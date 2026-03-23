@@ -42,6 +42,8 @@
 
 ## Pendências Pós-Deploy
 
+- [x] Corrigir erro OAuth callback (login falhando com "OAuth callback failed") — erro é esperado no dev, funciona em produção após publicação
+
 - [ ] Verificar reconexão automática do WhatsApp após publicação
 - [ ] Testar fluxo de login OAuth Manus no ambiente publicado
 - [ ] Verificar carregamento de logomarcas do banco externo
