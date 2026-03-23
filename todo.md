@@ -121,3 +121,15 @@
 - [x] Corrigir Tickets.tsx: adicionar status 'pending' ao STATUS_MAP
 - [x] Testar INSERT/SELECT em 22 tabelas principais: 22/22 passando
 - [x] Confirmar zero erros TypeScript e zero colunas faltando
+
+## Teste Completo de Páginas
+
+- [x] Identificar erros nas páginas de Gestão Pública
+- [x] Corrigir 12 colunas faltantes em serviceTypes (incluindo serviceMode, externalUrl)
+- [x] Corrigir queries incorretas no script de teste (customModuleFields, messageTemplates, documents, auditLogs.entityType, workflowInstances.definitionId, electronicSignatures.status)
+- [x] Testar 44 queries das páginas principais: 44/44 passando
+
+## Erros de Conexão WhatsApp
+
+- [x] Verificar logs e identificar erro exato de conexão
+- [x] Corrigir e testar reconexão (QR Code estável após correção do loop)
