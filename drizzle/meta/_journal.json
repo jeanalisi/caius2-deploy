@@ -1,5 +1,13 @@
 {
   "version": "7",
   "dialect": "mysql",
-  "entries": []
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1774274265221,
+      "tag": "0000_odd_vance_astro",
+      "breakpoints": true
+    }
+  ]
 }

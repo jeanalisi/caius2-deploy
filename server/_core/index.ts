@@ -7,6 +7,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { initSocketIO } from "./socketio";
+import { initChannelGateway } from "../channel-gateway";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -33,6 +35,10 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Initialize Socket.io
+  initSocketIO(server);
+
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // tRPC API
@@ -60,6 +66,16 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
+
+  // Inicializar ChannelGateway: registra conectores e reconecta WhatsApp com sessão salva
+  setTimeout(async () => {
+    try {
+      await initChannelGateway();
+      console.log("[Server] ChannelGateway inicializado com sucesso.");
+    } catch (err) {
+      console.error("[Server] Erro ao inicializar ChannelGateway:", err);
+    }
+  }, 3000); // aguardar 3s para o banco estar pronto
 }
 
 startServer().catch(console.error);
