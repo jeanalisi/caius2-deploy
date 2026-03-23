@@ -133,3 +133,15 @@
 
 - [x] Verificar logs e identificar erro exato de conexão
 - [x] Corrigir e testar reconexão (QR Code estável após correção do loop)
+
+## Erros nas Páginas /processes, /documents e outras
+
+- [ ] Identificar queries falhando via logs
+- [ ] Corrigir colunas/enums faltantes
+- [ ] Testar todas as páginas afetadas
+
+## Erro NotFoundError removeChild nas páginas /processes e /documents
+
+- [x] Identificar causa: lang=en no index.html ativava Google Translate que modificava o DOM conflitando com React
+- [x] Corrigir index.html: lang=pt-BR, translate=no, class=notranslate, meta google=notranslate
+- [x] Verificar páginas /processes e /documents: sem dangerouslySetInnerHTML problemático
