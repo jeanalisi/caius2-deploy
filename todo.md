@@ -98,3 +98,14 @@
 - [x] Corrigir colunas faltantes em messages (aiGenerated, deliveryStatus, deliveryError)
 - [x] Corrigir upsertContact para find-or-create (evitar falha em contatos duplicados)
 - [x] Resetar status da conta WhatsApp para disconnected (sessão perdida)
+
+## Erro de Conexão WhatsApp
+
+- [ ] Verificar logs e identificar erro exato de conexão
+- [ ] Corrigir e testar reconexão
+
+## QR Code WhatsApp em Loop
+
+- [x] Investigar causa do QR Code mudando em loop (frontend chamava connectWhatsApp repetidamente)
+- [x] Corrigir connectWhatsApp para ignorar chamadas duplicadas quando sessão já ativa
+- [x] Trocar Browsers.ubuntu por Browsers.macOS para maior compatibilidade

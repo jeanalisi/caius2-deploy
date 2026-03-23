@@ -127,12 +127,11 @@ async function findOrCreateConversation(
 }
 
 export async function connectWhatsApp(accountId: number) {
-  // Se já existe uma sessão ativa, desconectar antes de reconectar
+  // Se já existe uma sessão ativa (aguardando QR ou conectada), não reiniciar.
+  // Isso evita o loop de QR Code causado por chamadas repetidas do frontend.
   if (sessions.has(accountId)) {
-    try {
-      sessions.get(accountId)?.end(undefined);
-    } catch (_) { /* ignorar */ }
-    sessions.delete(accountId);
+    console.log(`[WhatsApp] Conta #${accountId}: sessão já ativa, ignorando nova chamada de connect.`);
+    return;
   }
 
   // Usar persistência de sessão no banco TiDB (sobrevive a reinicializações do servidor)
@@ -143,8 +142,8 @@ export async function connectWhatsApp(accountId: number) {
     version,
     auth: state,
     printQRInTerminal: false,
-    // Usar Browsers.ubuntu para evitar bloqueio por fingerprint suspeito
-    browser: Browsers.ubuntu("Chrome"),
+    // Usar Browsers.macOS para maior compatibilidade com servidores WhatsApp
+    browser: Browsers.macOS("Chrome"),
     logger: P({ level: "silent" }),
     // Necessário para que o Baileys possa reenviar mensagens que falharam na
     // descriptografia do destinatário (resolve o problema de mensagens não entregues)
@@ -168,14 +167,10 @@ export async function connectWhatsApp(accountId: number) {
       } catch (_) { /* ignorar */ }
       return undefined;
     },
-    // Habilitar cache de mensagens recentes para retry automático
-    enableRecentMessageCache: true,
-    // Habilitar recriação automática de sessão Signal quando necessário
-    enableAutoSessionRecreation: true,
-    // Marcar como online ao conectar
-    markOnlineOnConnect: true,
     // Não sincronizar histórico completo (melhora performance)
     syncFullHistory: false,
+    // Marcar como online ao conectar
+    markOnlineOnConnect: true,
   });
 
   sessions.set(accountId, sock);
