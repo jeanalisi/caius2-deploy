@@ -51,3 +51,4 @@
 - [ ] Testar fluxo de login OAuth Manus no ambiente publicado
 - [ ] Verificar carregamento de logomarcas do banco externo
 - [ ] Testar envio e recebimento de mensagens WhatsApp em produção
+- [x] Corrigir erro OAuth: adicionadas colunas profile, isAgent, isAvailable, avatarUrl, sectorId à tabela users no TiDB

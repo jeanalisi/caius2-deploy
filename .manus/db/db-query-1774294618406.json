@@ -1,0 +1,9 @@
+{
+  "query": "\nALTER TABLE `users`\n  ADD COLUMN `profile` ENUM('citizen','attendant','sector_server','manager','admin') NOT NULL DEFAULT 'attendant',\n  ADD COLUMN `isAgent` TINYINT(1) NOT NULL DEFAULT 0,\n  ADD COLUMN `isAvailable` TINYINT(1) NOT NULL DEFAULT 1,\n  ADD COLUMN `avatarUrl` TEXT NULL,\n  ADD COLUMN `sectorId` INT NULL;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute \nALTER TABLE `users`\n  ADD COLUMN `profile` ENUM('citizen','attendant','sector_server','manager','admin') NOT NULL DEFAULT 'attendant',\n  ADD COLUMN `isAgent` TINYINT(1) NOT NULL DEFAULT 0,\n  ADD COLUMN `isAvailable` TINYINT(1) NOT NULL DEFAULT 1,\n  ADD COLUMN `avatarUrl` TEXT NULL,\n  ADD COLUMN `sectorId` INT NULL;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 2001
+}
