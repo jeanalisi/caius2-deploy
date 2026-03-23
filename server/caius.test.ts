@@ -51,6 +51,9 @@ vi.mock("./db", () => ({
   getDb: vi.fn().mockResolvedValue(null),
   upsertUser: vi.fn(),
   getUserByOpenId: vi.fn(),
+  createNupNotification: vi.fn().mockResolvedValue(1),
+  updateNupNotificationStatus: vi.fn().mockResolvedValue(undefined),
+  getAllAccounts: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("./_core/llm", () => ({

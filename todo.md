@@ -12,6 +12,8 @@
 - [x] Servidor rodando corretamente no Manus
 - [x] Importar banco de dados externo (87 tabelas + dados) para TiDB interno do Manus
 - [x] Publicar projeto no Manus
+- [x] Revisão completa: TypeScript sem erros, 76 testes passando, servidor estável, 87 tabelas no TiDB
+- [x] Corrigir mock do db no caius.test.ts (createNupNotification, updateNupNotificationStatus, getAllAccounts)
 
 ## Correções WhatsApp (já aplicadas no GitHub)
 
