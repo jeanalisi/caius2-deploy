@@ -10,7 +10,8 @@
 - [x] Copiar .npmrc para permitir builds automáticos do Baileys
 - [x] TypeScript compilando sem erros (0 erros)
 - [x] Servidor rodando corretamente no Manus
-- [ ] Publicar projeto para ativar DATABASE_URL com banco externo (painel.hchost.net)
+- [x] Importar banco de dados externo (87 tabelas + dados) para TiDB interno do Manus
+- [x] Publicar projeto no Manus
 
 ## Correções WhatsApp (já aplicadas no GitHub)
 

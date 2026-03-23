@@ -1,0 +1,25 @@
+{
+  "query": "\n-- Remover duplicata: manter apenas o primeiro registro de cada id em administradores\nDELETE FROM administradores WHERE id = 1 LIMIT 1;\n\n-- Verificar resultado\nSELECT COUNT(*) as total_administradores FROM administradores;\nSELECT COUNT(*) as total_solicitacoes FROM solicitacoes_endereco;\nSELECT COUNT(*) as total_avaliacoes FROM avaliacoes_documentos;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute \n-- Remover duplicata: manter apenas o primeiro registro de cada id em administradores\nDELETE FROM administradores WHERE id = 1 LIMIT 1;\n\n-- Verificar resultado\nSELECT COUNT(*) as total_administradores FROM administradores;\nSELECT COUNT(*) as total_solicitacoes FROM solicitacoes_endereco;\nSELECT COUNT(*) as total_avaliacoes FROM avaliacoes_documentos;\n",
+  "rows": [
+    {
+      "total_administradores": "1"
+    },
+    {
+      "total_administradores": "total_solicitacoes"
+    },
+    {
+      "total_administradores": "4"
+    },
+    {
+      "total_administradores": "total_avaliacoes"
+    },
+    {
+      "total_administradores": "24"
+    }
+  ],
+  "messages": [],
+  "stdout": "total_administradores\n1\ntotal_solicitacoes\n4\ntotal_avaliacoes\n24\n",
+  "stderr": "",
+  "execution_time_ms": 86
+}
