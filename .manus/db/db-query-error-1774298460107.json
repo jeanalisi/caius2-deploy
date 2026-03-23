@@ -1,0 +1,8 @@
+{
+  "query": "ALTER TABLE `accounts`\n  MODIFY COLUMN `id` int NOT NULL AUTO_INCREMENT,\n  ADD PRIMARY KEY (`id`);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute ALTER TABLE `accounts`\n  MODIFY COLUMN `id` int NOT NULL AUTO_INCREMENT,\n  ADD PRIMARY KEY (`id`);",
+  "returncode": 1,
+  "logs": [
+    "ERROR 8200 (HY000) at line 1: Unsupported modify column: can't set auto_increment"
+  ]
+}

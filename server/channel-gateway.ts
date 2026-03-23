@@ -462,7 +462,7 @@ export async function initChannelGateway(): Promise<void> {
         channelGateway.register(connector);
       } else if (account.channel === "whatsapp") {
         // Registra o conector e reconecta se houver sessão salva em disco
-        const connector = new WhatsAppConnector(account.id, account.identifier);
+        const connector = new WhatsAppConnector(account.id, account.identifier ?? "");
         channelGateway.register(connector);
         const sessionPath = path.join(process.cwd(), ".wa-sessions", `account-${account.id}`);
         if (fs.existsSync(sessionPath) && fs.readdirSync(sessionPath).length > 0) {

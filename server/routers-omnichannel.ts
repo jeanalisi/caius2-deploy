@@ -234,7 +234,7 @@ export const omnichannelRouter = router({
             });
             channelGateway.register(connector);
           } else if (account.channel === "whatsapp") {
-            const connector = new WhatsAppConnector(account.id, account.identifier);
+            const connector = new WhatsAppConnector(account.id, account.identifier ?? "");
             channelGateway.register(connector);
             // Inicia a sessão Baileys imediatamente ao registrar
             connector.connect().catch(err =>

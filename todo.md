@@ -64,3 +64,8 @@
 - [x] Criar painel de administração (ChatbotAdmin.tsx): editor de fluxos, editor de nós, estatísticas de sessões
 - [x] Adicionar rota /chatbot no App.tsx e item de menu "Chatbot WhatsApp" no OmniLayout
 - [x] Escrever testes unitários para o motor do chatbot (92 testes passando)
+
+## Correções de Banco de Dados
+
+- [x] Corrigir tabela accounts: AUTO_INCREMENT, PRIMARY KEY, enum status, identifier nullable, smtpSecure boolean, igAccessToken/imapPassword/smtpPassword como text
+- [x] Corrigir erros TypeScript: identifier nullable requer fallback ?? "" em channel-gateway.ts e routers-omnichannel.ts

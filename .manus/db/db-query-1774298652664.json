@@ -1,0 +1,157 @@
+{
+  "query": "DELETE FROM `accounts` WHERE id = 1;\n\n-- Confirmar estrutura final\nSELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_NAME = 'accounts'\nORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute DELETE FROM `accounts` WHERE id = 1;\n\n-- Confirmar estrutura final\nSELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, EXTRA\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_NAME = 'accounts'\nORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": "auto_increment"
+    },
+    {
+      "COLUMN_NAME": "userId",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "channel",
+      "COLUMN_TYPE": "enum('whatsapp','instagram','email')",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "name",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "identifier",
+      "COLUMN_TYPE": "varchar(320)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "status",
+      "COLUMN_TYPE": "enum('connecting','connected','disconnected','active','inactive','error')",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "disconnected",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "waSessionData",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "waQrCode",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "igAccessToken",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "igUserId",
+      "COLUMN_TYPE": "varchar(64)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "imapHost",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "imapPort",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "imapUser",
+      "COLUMN_TYPE": "varchar(320)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "imapPassword",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "smtpHost",
+      "COLUMN_TYPE": "varchar(255)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "smtpPort",
+      "COLUMN_TYPE": "int",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "smtpUser",
+      "COLUMN_TYPE": "varchar(320)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "smtpPassword",
+      "COLUMN_TYPE": "text",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "NULL",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "smtpSecure",
+      "COLUMN_TYPE": "tinyint(1)",
+      "IS_NULLABLE": "YES",
+      "COLUMN_DEFAULT": "1",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "createdAt",
+      "COLUMN_TYPE": "timestamp",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+      "EXTRA": ""
+    },
+    {
+      "COLUMN_NAME": "updatedAt",
+      "COLUMN_TYPE": "timestamp",
+      "IS_NULLABLE": "NO",
+      "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+      "EXTRA": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tCOLUMN_TYPE\tIS_NULLABLE\tCOLUMN_DEFAULT\tEXTRA\nid\tint\tNO\tNULL\tauto_increment\nuserId\tint\tNO\tNULL\t\nchannel\tenum('whatsapp','instagram','email')\tNO\tNULL\t\nname\tvarchar(255)\tNO\tNULL\t\nidentifier\tvarchar(320)\tYES\tNULL\t\nstatus\tenum('connecting','connected','disconnected','active','inactive','error')\tNO\tdisconnected\t\nwaSessionData\ttext\tYES\tNULL\t\nwaQrCode\ttext\tYES\tNULL\t\nigAccessToken\ttext\tYES\tNULL\t\nigUserId\tvarchar(64)\tYES\tNULL\t\nimapHost\tvarchar(255)\tYES\tNULL\t\nimapPort\tint\tYES\tNULL\t\nimapUser\tvarchar(320)\tYES\tNULL\t\nimapPassword\ttext\tYES\tNULL\t\nsmtpHost\tvarchar(255)\tYES\tNULL\t\nsmtpPort\tint\tYES\tNULL\t\nsmtpUser\tvarchar(320)\tYES\tNULL\t\nsmtpPassword\ttext\tYES\tNULL\t\nsmtpSecure\ttinyint(1)\tYES\t1\t\ncreatedAt\ttimestamp\tNO\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\n",
+  "stderr": "",
+  "execution_time_ms": 68
+}
