@@ -36,9 +36,10 @@ const PRIORITY_MAP = {
   urgent: { label: "Urgente", className: "bg-red-500/10 text-red-400 border-red-500/20" },
 };
 
-const STATUS_MAP = {
+const STATUS_MAP: Record<string, { label: string; className: string; icon: React.ComponentType<any> }> = {
   open: { label: "Aberto", className: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: Clock },
   in_progress: { label: "Em andamento", className: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20", icon: TrendingUp },
+  pending: { label: "Pendente", className: "bg-orange-500/10 text-orange-400 border-orange-500/20", icon: AlertCircle },
   resolved: { label: "Resolvido", className: "bg-green-500/10 text-green-400 border-green-500/20", icon: CheckCircle2 },
   closed: { label: "Fechado", className: "bg-muted/50 text-muted-foreground border-border", icon: CheckCircle2 },
 };

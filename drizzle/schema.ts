@@ -362,14 +362,14 @@ export type InsertAiUsageLog = typeof aiUsageLogs.$inferInsert;
 // ─── Tickets ──────────────────────────────────────────────────────────────────
 export const tickets = mysqlTable("tickets", {
   id: int("id").autoincrement().primaryKey(),
-  conversationId: int("conversationId").notNull(),
+  conversationId: int("conversationId"),
   nup: varchar("nup", { length: 32 }),
   title: varchar("title", { length: 512 }).notNull(),
   description: text("description"),
-  status: mysqlEnum("status", ["open", "in_progress", "resolved", "closed"]).default("open").notNull(),
+  status: mysqlEnum("status", ["open", "in_progress", "pending", "resolved", "closed"]).default("open").notNull(),
   priority: mysqlEnum("priority", ["low", "normal", "high", "urgent"]).default("normal").notNull(),
   assignedAgentId: int("assignedAgentId"),
-  createdById: int("createdById").notNull(),
+  createdById: int("createdById"),
   resolvedAt: timestamp("resolvedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

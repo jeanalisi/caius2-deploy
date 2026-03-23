@@ -109,3 +109,15 @@
 - [x] Investigar causa do QR Code mudando em loop (frontend chamava connectWhatsApp repetidamente)
 - [x] Corrigir connectWhatsApp para ignorar chamadas duplicadas quando sessão já ativa
 - [x] Trocar Browsers.ubuntu por Browsers.macOS para maior compatibilidade
+
+## Auditoria Definitiva — Todas as Tabelas
+
+- [x] Extrair schema Drizzle e estrutura do banco para comparação completa
+- [x] Corrigir 12 colunas faltantes em serviceTypes (isPublic, publicationStatus, purpose, whoCanRequest, cost, formOfService, responseChannel, importantNotes, faq, formTemplateId, serviceMode, externalUrl)
+- [x] Corrigir coluna nup faltante em tickets
+- [x] Adicionar valor 'pending' ao enum tickets.status
+- [x] Adicionar valores 'interactive' e 'reaction' ao enum messages.type
+- [x] Tornar tickets.conversationId e tickets.createdById nullable (alinhamento com schema)
+- [x] Corrigir Tickets.tsx: adicionar status 'pending' ao STATUS_MAP
+- [x] Testar INSERT/SELECT em 22 tabelas principais: 22/22 passando
+- [x] Confirmar zero erros TypeScript e zero colunas faltando
