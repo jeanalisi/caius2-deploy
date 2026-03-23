@@ -1,0 +1,9 @@
+{
+  "query": "-- Tabela conversations: adicionar nup e assignedSectorId\nALTER TABLE `conversations`\n  ADD COLUMN IF NOT EXISTS `nup` varchar(32) DEFAULT NULL,\n  ADD COLUMN IF NOT EXISTS `assignedSectorId` int DEFAULT NULL;\n\n-- Tabela contacts: adicionar cpfCnpj\nALTER TABLE `contacts`\n  ADD COLUMN IF NOT EXISTS `cpfCnpj` varchar(20) DEFAULT NULL;\n\n-- Tabela accounts: verificar se waSessionData existe (pode ter sido perdida na recriação)\nALTER TABLE `accounts`\n  ADD COLUMN IF NOT EXISTS `waSessionData` text DEFAULT NULL;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute -- Tabela conversations: adicionar nup e assignedSectorId\nALTER TABLE `conversations`\n  ADD COLUMN IF NOT EXISTS `nup` varchar(32) DEFAULT NULL,\n  ADD COLUMN IF NOT EXISTS `assignedSectorId` int DEFAULT NULL;\n\n-- Tabela contacts: adicionar cpfCnpj\nALTER TABLE `contacts`\n  ADD COLUMN IF NOT EXISTS `cpfCnpj` varchar(20) DEFAULT NULL;\n\n-- Tabela accounts: verificar se waSessionData existe (pode ter sido perdida na recriação)\nALTER TABLE `accounts`\n  ADD COLUMN IF NOT EXISTS `waSessionData` text DEFAULT NULL;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1268
+}

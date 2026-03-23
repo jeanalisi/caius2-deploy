@@ -85,3 +85,9 @@
 - [x] Corrigir initChannelGateway para verificar sessão no banco em vez do disco
 - [x] Corrigir tabela notifications: adicionar colunas relatedProtocolId e nup, corrigir enum type
 - [x] Criar 9 tabelas faltantes: verifiableDocuments, workflowDefinitions, workflowSteps, workflowTransitions, workflowStepRules, workflowInstances, workflowInstanceSteps, workflowEvents, workflowDeadlines
+
+## Correção Erro /channel-health
+
+- [x] Identificar colunas faltantes nas tabelas conversations (nup, assignedSectorId), contacts (cpfCnpj), accounts (waSessionData)
+- [x] Adicionar colunas faltantes no banco TiDB
+- [x] Verificar TypeScript e testar a página /channel-health
