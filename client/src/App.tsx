@@ -47,6 +47,7 @@ import OuvidoriaAdmin from "./pages/OuvidoriaAdmin";
 import GeoMonitor from "./pages/GeoMonitor";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import SignExternalPDF from "./pages/SignExternalPDF";
+import ChatbotAdmin from "./pages/ChatbotAdmin";
 
 function ProtocolDetailWrapper() {
   const params = useParams<{ id: string }>();
@@ -123,6 +124,7 @@ function Router() {
       <Route path={"/geo-monitor"} component={GeoMonitor} />
       <Route path={"/knowledge-base"} component={KnowledgeBase} />
       <Route path={"/sign-external-pdf"} component={SignExternalPDF} />
+      <Route path={"/chatbot"} component={ChatbotAdmin} />
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

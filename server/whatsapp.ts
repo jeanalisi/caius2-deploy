@@ -18,6 +18,7 @@ import {
 import { conversations, messages } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { generateNup, createProtocol } from "./db-caius";
+import { processBotMessage } from "./bot-engine";
 
 const sessions = new Map<number, ReturnType<typeof makeWASocket>>();
 const qrCallbacks = new Map<number, (qr: string) => void>();
@@ -250,7 +251,7 @@ export async function connectWhatsApp(accountId: number) {
         });
 
         // Find or create conversation (com NUP automático para novas conversas)
-        const { convId } = await findOrCreateConversation(
+        const { convId, isNew } = await findOrCreateConversation(
           accountId,
           jid,
           contactId,
@@ -258,7 +259,36 @@ export async function connectWhatsApp(accountId: number) {
           sock
         );
 
-        // Registrar mensagem recebida
+        // Tentar processar via chatbot antes de registrar como mensagem normal
+        // O bot retorna `true` se tratou a mensagem (não exibir ao atendente)
+        const botHandled = await processBotMessage(
+          accountId,
+          jid,
+          content,
+          convId,
+          async (toJid, text) => {
+            try {
+              const sent = await sock.sendMessage(toJid, { text });
+              if (sent?.key?.id && sent.message) {
+                messageStore.set(sent.key.id, sent.message);
+              }
+              // Registrar resposta do bot como mensagem outbound
+              await createMessage({
+                conversationId: convId,
+                externalId: sent?.key?.id ?? undefined,
+                direction: "outbound",
+                type: "text",
+                content: text,
+                senderName: "Bot",
+                deliveryStatus: "sent",
+              });
+            } catch (err) {
+              console.error("[Bot] Erro ao enviar mensagem:", err);
+            }
+          }
+        );
+
+        // Registrar mensagem recebida (sempre — para histórico completo)
         await createMessage({
           conversationId: convId,
           externalId: msg.key.id ?? undefined,

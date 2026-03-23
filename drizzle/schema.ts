@@ -1672,3 +1672,107 @@ export const processDeadlineHistory = mysqlTable("processDeadlineHistory", {
 });
 export type ProcessDeadlineHistory = typeof processDeadlineHistory.$inferSelect;
 export type InsertProcessDeadlineHistory = typeof processDeadlineHistory.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CHATBOT — Fluxos Configuráveis para WhatsApp
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Bot Flows (Fluxos do Chatbot) ────────────────────────────────────────────
+// Cada conta WhatsApp pode ter um fluxo ativo. Um fluxo é uma árvore de nós.
+export const botFlows = mysqlTable("botFlows", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  // Se accountId for null, o fluxo é global (aplicado a todas as contas)
+  accountId: int("accountId"),
+  isActive: boolean("isActive").default(false).notNull(),
+  // Nó raiz do fluxo (primeiro nó exibido ao usuário)
+  rootNodeId: int("rootNodeId"),
+  // Timeout em minutos para expirar a sessão do bot (padrão 30 min)
+  sessionTimeoutMinutes: int("sessionTimeoutMinutes").default(30).notNull(),
+  // Mensagem enviada quando a sessão expira
+  timeoutMessage: text("timeoutMessage"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type BotFlow = typeof botFlows.$inferSelect;
+export type InsertBotFlow = typeof botFlows.$inferInsert;
+
+// ─── Bot Nodes (Nós/Etapas do Fluxo) ─────────────────────────────────────────
+// Cada nó representa uma etapa do fluxo: pode exibir um menu, coletar dados,
+// transferir para atendente ou abrir protocolo automaticamente.
+export const botNodes = mysqlTable("botNodes", {
+  id: int("id").autoincrement().primaryKey(),
+  flowId: int("flowId").notNull(),
+  // Tipo do nó:
+  //   menu       → exibe lista numerada de opções
+  //   message    → envia mensagem e avança automaticamente para nextNodeId
+  //   collect    → coleta dado do usuário (nome, CPF, etc.)
+  //   transfer   → transfere para atendente (setor ou agente específico)
+  //   protocol   → abre protocolo NUP automaticamente e encerra bot
+  //   end        → encerra o fluxo sem abrir protocolo
+  nodeType: mysqlEnum("nodeType", ["menu", "message", "collect", "transfer", "protocol", "end"]).notNull(),
+  // Título interno para identificação no painel
+  title: varchar("title", { length: 255 }).notNull(),
+  // Texto enviado ao usuário neste nó
+  message: text("message").notNull(),
+  // Para nó "collect": nome do campo a coletar (ex: "requesterName", "cpf")
+  collectField: varchar("collectField", { length: 64 }),
+  // Para nó "transfer": setor de destino
+  transferSectorId: int("transferSectorId"),
+  // Para nó "protocol": tipo do protocolo a abrir
+  protocolType: mysqlEnum("protocolType", ["request", "complaint", "information", "suggestion", "praise", "ombudsman", "esic"]),
+  // Para nó "protocol": assunto padrão do protocolo (pode usar variáveis como {{requesterName}})
+  protocolSubject: varchar("protocolSubject", { length: 512 }),
+  // Para nó "protocol": serviceTypeId vinculado ao protocolo
+  protocolServiceTypeId: int("protocolServiceTypeId"),
+  // Próximo nó padrão (para nós do tipo message/collect que não têm opções)
+  nextNodeId: int("nextNodeId"),
+  // Opções do menu (JSON): [{ label, nextNodeId }]
+  options: json("options"),
+  // Ordem de exibição no editor visual
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type BotNode = typeof botNodes.$inferSelect;
+export type InsertBotNode = typeof botNodes.$inferInsert;
+
+// ─── Bot Sessions (Estado Atual do Usuário no Fluxo) ──────────────────────────
+// Rastreia em qual nó do fluxo cada usuário (JID) está no momento.
+export const botSessions = mysqlTable("botSessions", {
+  id: int("id").autoincrement().primaryKey(),
+  // JID do usuário no WhatsApp (ex: 5511999999999@s.whatsapp.net)
+  jid: varchar("jid", { length: 128 }).notNull(),
+  accountId: int("accountId").notNull(),
+  flowId: int("flowId").notNull(),
+  currentNodeId: int("currentNodeId").notNull(),
+  // Dados coletados durante o fluxo (JSON): { requesterName, cpf, subject, ... }
+  collectedData: json("collectedData"),
+  // Status da sessão
+  status: mysqlEnum("status", ["active", "completed", "expired", "transferred"]).default("active").notNull(),
+  // Protocolo gerado ao final (se aplicável)
+  generatedNup: varchar("generatedNup", { length: 32 }),
+  // Conversa vinculada
+  conversationId: int("conversationId"),
+  // Última interação (para calcular timeout)
+  lastInteractionAt: timestamp("lastInteractionAt").defaultNow().notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type BotSession = typeof botSessions.$inferSelect;
+export type InsertBotSession = typeof botSessions.$inferInsert;
+
+// ─── Bot Session Logs (Histórico de Interações) ───────────────────────────────
+export const botSessionLogs = mysqlTable("botSessionLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(),
+  nodeId: int("nodeId"),
+  // Mensagem enviada pelo bot
+  botMessage: text("botMessage"),
+  // Resposta do usuário
+  userInput: varchar("userInput", { length: 1024 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type BotSessionLog = typeof botSessionLogs.$inferSelect;
+export type InsertBotSessionLog = typeof botSessionLogs.$inferInsert;

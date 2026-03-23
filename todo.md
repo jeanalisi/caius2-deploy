@@ -54,3 +54,13 @@
 - [x] Corrigir erro OAuth: adicionadas colunas profile, isAgent, isAvailable, avatarUrl, sectorId à tabela users no TiDB
 - [x] Corrigir menus faltantes no sidebar: promovido usuário a admin no banco e corrigido upsertUser para preservar role=admin em logins futuros
 - [x] Serviços com link externo: não abrir formulário, apenas exibir informações e abrir link em nova aba
+
+## Chatbot WhatsApp
+
+- [x] Criar tabelas do banco: botFlows, botNodes, botSessions, botSessionLogs
+- [x] Implementar motor do chatbot (bot-engine.ts): processamento de sessões, menus, coleta de dados, abertura de protocolo NUP, transferência para setor
+- [x] Integrar chatbot ao gateway WhatsApp (whatsapp.ts): interceptar mensagens recebidas
+- [x] Criar router tRPC do chatbot (routers-chatbot.ts): CRUD de fluxos, nós, sessões, wizard de criação rápida
+- [x] Criar painel de administração (ChatbotAdmin.tsx): editor de fluxos, editor de nós, estatísticas de sessões
+- [x] Adicionar rota /chatbot no App.tsx e item de menu "Chatbot WhatsApp" no OmniLayout
+- [x] Escrever testes unitários para o motor do chatbot (92 testes passando)

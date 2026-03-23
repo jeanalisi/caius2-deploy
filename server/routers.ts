@@ -64,6 +64,7 @@ import { omnichannelRouter } from "./routers-omnichannel";
 import { workflowRouter } from "./routers-workflow";
 import { documentsRouter } from "./routers-documents";
 import { publicServicesRouter } from "./routers-public-services";
+import { chatbotRouter } from "./routers-chatbot";
 import {
   serviceTypesRouter,
   serviceSubjectsRouter,
@@ -491,6 +492,7 @@ export const appRouter = router({
   workflow: workflowRouter,
   docs: documentsRouter,
   publicServices: publicServicesRouter,
+  chatbot: chatbotRouter,
   // ── Analytics ─────────────────────────────────────────────────────────────
    analytics: router({
     overview: protectedProcedure

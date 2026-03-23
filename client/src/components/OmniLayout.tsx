@@ -45,6 +45,7 @@ import {
   Users,
   Wifi,
   Workflow,
+  Bot,
 } from "lucide-react";
 import React, { useState, useRef, createContext, useContext, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -88,6 +89,7 @@ const caiusItems = [
 
 const channelItems = [
   { href: "/channel-health", icon: Activity, label: "Saúde dos Canais" },
+  { href: "/chatbot", icon: Bot, label: "Chatbot WhatsApp" },
 ];
 
 const adminItems = [
