@@ -1,0 +1,2 @@
+ALTER TABLE `accounts` MODIFY COLUMN `identifier` varchar(320);--> statement-breakpoint
+ALTER TABLE `accounts` MODIFY COLUMN `status` enum('connecting','connected','disconnected','active','inactive','error') NOT NULL DEFAULT 'disconnected';

@@ -1,0 +1,562 @@
+{
+  "query": "SELECT \n  t.TABLE_NAME,\n  t.TABLE_ROWS,\n  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS c \n   WHERE c.TABLE_NAME = t.TABLE_NAME AND c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.EXTRA LIKE '%auto_increment%') as has_autoincrement,\n  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc \n   WHERE tc.TABLE_NAME = t.TABLE_NAME AND tc.TABLE_SCHEMA = t.TABLE_SCHEMA AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY') as has_primary_key\nFROM INFORMATION_SCHEMA.TABLES t\nWHERE t.TABLE_SCHEMA = DATABASE()\n  AND t.TABLE_TYPE = 'BASE TABLE'\nORDER BY t.TABLE_NAME;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute SELECT \n  t.TABLE_NAME,\n  t.TABLE_ROWS,\n  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS c \n   WHERE c.TABLE_NAME = t.TABLE_NAME AND c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.EXTRA LIKE '%auto_increment%') as has_autoincrement,\n  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc \n   WHERE tc.TABLE_NAME = t.TABLE_NAME AND tc.TABLE_SCHEMA = t.TABLE_SCHEMA AND tc.CONSTRAINT_TYPE = 'PRIMARY KEY') as has_primary_key\nFROM INFORMATION_SCHEMA.TABLES t\nWHERE t.TABLE_SCHEMA = DATABASE()\n  AND t.TABLE_TYPE = 'BASE TABLE'\nORDER BY t.TABLE_NAME;",
+  "rows": [
+    {
+      "TABLE_NAME": "__drizzle_migrations",
+      "TABLE_ROWS": "1",
+      "has_autoincrement": "1",
+      "has_primary_key": "1"
+    },
+    {
+      "TABLE_NAME": "accounts",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "1",
+      "has_primary_key": "1"
+    },
+    {
+      "TABLE_NAME": "accounts_old",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "1"
+    },
+    {
+      "TABLE_NAME": "adminProcesses",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "administradores",
+      "TABLE_ROWS": "1",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "agentStatus",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "aiProviders",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "aiUsageLogs",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "allocationHistory",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "attachmentConfigs",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "attachments",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "attendanceMetricsSnapshots",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "audioTranscriptions",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "auditLogs",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "avaliacoes_documentos",
+      "TABLE_ROWS": "24",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "botFlows",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "1",
+      "has_primary_key": "1"
+    },
+    {
+      "TABLE_NAME": "botNodes",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "1",
+      "has_primary_key": "1"
+    },
+    {
+      "TABLE_NAME": "botSessionLogs",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "1",
+      "has_primary_key": "1"
+    },
+    {
+      "TABLE_NAME": "botSessions",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "1",
+      "has_primary_key": "1"
+    },
+    {
+      "TABLE_NAME": "channelHealthLogs",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "channelSyncState",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "complianceEvents",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "contacts",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "contextHelp",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "conversationTags",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "conversationTransfers",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "conversations",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "customModuleRecords",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "customModules",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "deliveryAttempts",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "documentNumberSequences",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "documentReadLogs",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "documentSignatures",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "documentTemplates",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "documentVerificationLogs",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "documentVersions",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "electronicSignatures",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "formFieldOptions",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "formFields",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "formSubmissionValues",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "formSubmissions",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "formTemplates",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "geoAttachments",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "geoEvents",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "geoPoints",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "institutionalConfig",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "knowledgeArticles",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "knowledgeCategories",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "knowledgeTags",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "manifestationDeadlines",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "manifestationResponses",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "manifestationStatusHistory",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "manifestationTypes",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "messageEvents",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "messageReadEvents",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "messages",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "notifications",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "nupCounter",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "nupNotifications",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "officialDocuments",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "ombudsmanManifestations",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "onlineSessions",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "orgInvites",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "orgUnits",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "positions",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "processDeadlineHistory",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "protocols",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "queue",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "quickReplies",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "satisfactionSurveys",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "searchIndex",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "sectors",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "sensitiveAccessLogs",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "serviceCategories",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "serviceChecklists",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "serviceFaqs",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "servicePublications",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "serviceSubjectDocuments",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "serviceSubjects",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "serviceTypeDocuments",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "serviceTypeFields",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "serviceTypeOrgUnits",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "serviceTypes",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "solicitacoes_endereco",
+      "TABLE_ROWS": "4",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "surveyAnswers",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "surveyDispatches",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "tags",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "tickets",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "tramitations",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "userAllocations",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "userRegistrations",
+      "TABLE_ROWS": "0",
+      "has_autoincrement": "0",
+      "has_primary_key": "0"
+    },
+    {
+      "TABLE_NAME": "users",
+      "TABLE_ROWS": "2",
+      "has_autoincrement": "1",
+      "has_primary_key": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "TABLE_NAME\tTABLE_ROWS\thas_autoincrement\thas_primary_key\n__drizzle_migrations\t1\t1\t1\naccounts\t0\t1\t1\naccounts_old\t0\t0\t1\nadminProcesses\t0\t0\t0\nadministradores\t1\t0\t0\nagentStatus\t0\t0\t0\naiProviders\t0\t0\t0\naiUsageLogs\t0\t0\t0\nallocationHistory\t0\t0\t0\nattachmentConfigs\t0\t0\t0\nattachments\t0\t0\t0\nattendanceMetricsSnapshots\t0\t0\t0\naudioTranscriptions\t0\t0\t0\nauditLogs\t0\t0\t0\navaliacoes_documentos\t24\t0\t0\nbotFlows\t0\t1\t1\nbotNodes\t0\t1\t1\nbotSessionLogs\t0\t1\t1\nbotSessions\t0\t1\t1\nchannelHealthLogs\t0\t0\t0\nchannelSyncState\t0\t0\t0\ncomplianceEvents\t0\t0\t0\ncontacts\t0\t0\t0\ncontextHelp\t0\t0\t0\nconversationTags\t0\t0\t0\nconversationTransfers\t0\t0\t0\nconversations\t0\t0\t0\ncustomModuleRecords\t0\t0\t0\ncustomModules\t0\t0\t0\ndeliveryAttempts\t0\t0\t0\ndocumentNumberSequences\t0\t0\t0\ndocumentReadLogs\t0\t0\t0\ndocumentSignatures\t0\t0\t0\ndocumentTemplates\t0\t0\t0\ndocumentVerificationLogs\t0\t0\t0\ndocumentVersions\t0\t0\t0\nelectronicSignatures\t0\t0\t0\nformFieldOptions\t0\t0\t0\nformFields\t0\t0\t0\nformSubmissionValues\t0\t0\t0\nformSubmissions\t0\t0\t0\nformTemplates\t0\t0\t0\ngeoAttachments\t0\t0\t0\ngeoEvents\t0\t0\t0\ngeoPoints\t0\t0\t0\ninstitutionalConfig\t0\t0\t0\nknowledgeArticles\t0\t0\t0\nknowledgeCategories\t0\t0\t0\nknowledgeTags\t0\t0\t0\nmanifestationDeadlines\t0\t0\t0\nmanifestationResponses\t0\t0\t0\nmanifestationStatusHistory\t0\t0\t0\nmanifestationTypes\t0\t0\t0\nmessageEvents\t0\t0\t0\nmessageReadEvents\t0\t0\t0\nmessages\t0\t0\t0\nnotifications\t0\t0\t0\nnupCounter\t0\t0\t0\nnupNotifications\t0\t0\t0\nofficialDocuments\t0\t0\t0\nombudsmanManifestations\t0\t0\t0\nonlineSessions\t0\t0\t0\norgInvites\t0\t0\t0\norgUnits\t0\t0\t0\npositions\t0\t0\t0\nprocessDeadlineHistory\t0\t0\t0\nprotocols\t0\t0\t0\nqueue\t0\t0\t0\nquickReplies\t0\t0\t0\nsatisfactionSurveys\t0\t0\t0\nsearchIndex\t0\t0\t0\nsectors\t0\t0\t0\nsensitiveAccessLogs\t0\t0\t0\nserviceCategories\t0\t0\t0\nserviceChecklists\t0\t0\t0\nserviceFaqs\t0\t0\t0\nservicePublications\t0\t0\t0\nserviceSubjectDocuments\t0\t0\t0\nserviceSubjects\t0\t0\t0\nserviceTypeDocuments\t0\t0\t0\nserviceTypeFields\t0\t0\t0\nserviceTypeOrgUnits\t0\t0\t0\nserviceTypes\t0\t0\t0\nsolicitacoes_endereco\t4\t0\t0\nsurveyAnswers\t0\t0\t0\nsurveyDispatches\t0\t0\t0\ntags\t0\t0\t0\ntickets\t0\t0\t0\ntramitations\t0\t0\t0\nuserAllocations\t0\t0\t0\nuserRegistrations\t0\t0\t0\nusers\t2\t1\t1\n",
+  "stderr": "",
+  "execution_time_ms": 145
+}

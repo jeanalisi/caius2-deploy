@@ -69,3 +69,9 @@
 
 - [x] Corrigir tabela accounts: AUTO_INCREMENT, PRIMARY KEY, enum status, identifier nullable, smtpSecure boolean, igAccessToken/imapPassword/smtpPassword como text
 - [x] Corrigir erros TypeScript: identifier nullable requer fallback ?? "" em channel-gateway.ts e routers-omnichannel.ts
+
+## Auditoria Completa do Banco
+
+- [x] Auditar todas as tabelas: comparar TiDB vs schema Drizzle (colunas faltantes, tipos errados, AUTO_INCREMENT ausente)
+- [x] Aplicar todas as correções SQL em lote
+- [x] Verificar TypeScript após correções

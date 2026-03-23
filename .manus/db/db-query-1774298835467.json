@@ -1,0 +1,247 @@
+{
+  "query": "SELECT TABLE_NAME\nFROM INFORMATION_SCHEMA.TABLES\nWHERE TABLE_SCHEMA = DATABASE()\n  AND TABLE_TYPE = 'BASE TABLE'\n  AND TABLE_NAME NOT IN ('__drizzle_migrations', 'accounts', 'accounts_old', 'botFlows', 'botNodes', 'botSessions', 'botSessionLogs')\n  AND TABLE_NAME IN (\n    'adminProcesses','agentStatus','aiProviders','aiUsageLogs','allocationHistory',\n    'attachmentConfigs','attachments','attendanceMetricsSnapshots','audioTranscriptions',\n    'auditLogs','channelHealthLogs','channelSyncState','complianceEvents','contacts',\n    'contextHelp','conversationTags','conversationTransfers','conversations',\n    'customModuleRecords','customModules','deliveryAttempts','documentNumberSequences',\n    'documentReadLogs','documentSignatures','documentTemplates','documentVerificationLogs',\n    'documentVersions','electronicSignatures','formFieldOptions','formFields',\n    'formSubmissionValues','formSubmissions','formTemplates','geoAttachments','geoEvents',\n    'geoPoints','institutionalConfig','knowledgeArticles','knowledgeCategories','knowledgeTags',\n    'manifestationDeadlines','manifestationResponses','manifestationStatusHistory',\n    'manifestationTypes','messageEvents','messages','notifications','nupCounter',\n    'nupNotifications','officialDocuments','ombudsmanManifestations','onlineSessions',\n    'orgInvites','orgUnits','positions','processDeadlineHistory','protocols','queue',\n    'quickReplies','satisfactionSurveys','searchIndex','sectors','sensitiveAccessLogs',\n    'serviceCategories','serviceChecklists','serviceFaqs','servicePublications',\n    'serviceSubjects','serviceTypeDocuments','serviceTypeFields','serviceTypes',\n    'surveyAnswers','surveyDispatches','tags','tickets','tramitations','userAllocations',\n    'userRegistrations','users','verifiableDocuments','workflowDeadlines',\n    'workflowDefinitions','workflowEvents','workflowInstanceSteps','workflowInstances',\n    'workflowStepRules','workflowSteps','workflowTransitions'\n  )\nORDER BY TABLE_NAME;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute SELECT TABLE_NAME\nFROM INFORMATION_SCHEMA.TABLES\nWHERE TABLE_SCHEMA = DATABASE()\n  AND TABLE_TYPE = 'BASE TABLE'\n  AND TABLE_NAME NOT IN ('__drizzle_migrations', 'accounts', 'accounts_old', 'botFlows', 'botNodes', 'botSessions', 'botSessionLogs')\n  AND TABLE_NAME IN (\n    'adminProcesses','agentStatus','aiProviders','aiUsageLogs','allocationHistory',\n    'attachmentConfigs','attachments','attendanceMetricsSnapshots','audioTranscriptions',\n    'auditLogs','channelHealthLogs','channelSyncState','complianceEvents','contacts',\n    'contextHelp','conversationTags','conversationTransfers','conversations',\n    'customModuleRecords','customModules','deliveryAttempts','documentNumberSequences',\n    'documentReadLogs','documentSignatures','documentTemplates','documentVerificationLogs',\n    'documentVersions','electronicSignatures','formFieldOptions','formFields',\n    'formSubmissionValues','formSubmissions','formTemplates','geoAttachments','geoEvents',\n    'geoPoints','institutionalConfig','knowledgeArticles','knowledgeCategories','knowledgeTags',\n    'manifestationDeadlines','manifestationResponses','manifestationStatusHistory',\n    'manifestationTypes','messageEvents','messages','notifications','nupCounter',\n    'nupNotifications','officialDocuments','ombudsmanManifestations','onlineSessions',\n    'orgInvites','orgUnits','positions','processDeadlineHistory','protocols','queue',\n    'quickReplies','satisfactionSurveys','searchIndex','sectors','sensitiveAccessLogs',\n    'serviceCategories','serviceChecklists','serviceFaqs','servicePublications',\n    'serviceSubjects','serviceTypeDocuments','serviceTypeFields','serviceTypes',\n    'surveyAnswers','surveyDispatches','tags','tickets','tramitations','userAllocations',\n    'userRegistrations','users','verifiableDocuments','workflowDeadlines',\n    'workflowDefinitions','workflowEvents','workflowInstanceSteps','workflowInstances',\n    'workflowStepRules','workflowSteps','workflowTransitions'\n  )\nORDER BY TABLE_NAME;",
+  "rows": [
+    {
+      "TABLE_NAME": "adminProcesses"
+    },
+    {
+      "TABLE_NAME": "agentStatus"
+    },
+    {
+      "TABLE_NAME": "aiProviders"
+    },
+    {
+      "TABLE_NAME": "aiUsageLogs"
+    },
+    {
+      "TABLE_NAME": "allocationHistory"
+    },
+    {
+      "TABLE_NAME": "attachmentConfigs"
+    },
+    {
+      "TABLE_NAME": "attachments"
+    },
+    {
+      "TABLE_NAME": "attendanceMetricsSnapshots"
+    },
+    {
+      "TABLE_NAME": "audioTranscriptions"
+    },
+    {
+      "TABLE_NAME": "auditLogs"
+    },
+    {
+      "TABLE_NAME": "channelHealthLogs"
+    },
+    {
+      "TABLE_NAME": "channelSyncState"
+    },
+    {
+      "TABLE_NAME": "complianceEvents"
+    },
+    {
+      "TABLE_NAME": "contacts"
+    },
+    {
+      "TABLE_NAME": "contextHelp"
+    },
+    {
+      "TABLE_NAME": "conversationTags"
+    },
+    {
+      "TABLE_NAME": "conversationTransfers"
+    },
+    {
+      "TABLE_NAME": "conversations"
+    },
+    {
+      "TABLE_NAME": "customModuleRecords"
+    },
+    {
+      "TABLE_NAME": "customModules"
+    },
+    {
+      "TABLE_NAME": "deliveryAttempts"
+    },
+    {
+      "TABLE_NAME": "documentNumberSequences"
+    },
+    {
+      "TABLE_NAME": "documentReadLogs"
+    },
+    {
+      "TABLE_NAME": "documentSignatures"
+    },
+    {
+      "TABLE_NAME": "documentTemplates"
+    },
+    {
+      "TABLE_NAME": "documentVerificationLogs"
+    },
+    {
+      "TABLE_NAME": "documentVersions"
+    },
+    {
+      "TABLE_NAME": "electronicSignatures"
+    },
+    {
+      "TABLE_NAME": "formFieldOptions"
+    },
+    {
+      "TABLE_NAME": "formFields"
+    },
+    {
+      "TABLE_NAME": "formSubmissionValues"
+    },
+    {
+      "TABLE_NAME": "formSubmissions"
+    },
+    {
+      "TABLE_NAME": "formTemplates"
+    },
+    {
+      "TABLE_NAME": "geoAttachments"
+    },
+    {
+      "TABLE_NAME": "geoEvents"
+    },
+    {
+      "TABLE_NAME": "geoPoints"
+    },
+    {
+      "TABLE_NAME": "institutionalConfig"
+    },
+    {
+      "TABLE_NAME": "knowledgeArticles"
+    },
+    {
+      "TABLE_NAME": "knowledgeCategories"
+    },
+    {
+      "TABLE_NAME": "knowledgeTags"
+    },
+    {
+      "TABLE_NAME": "manifestationDeadlines"
+    },
+    {
+      "TABLE_NAME": "manifestationResponses"
+    },
+    {
+      "TABLE_NAME": "manifestationStatusHistory"
+    },
+    {
+      "TABLE_NAME": "manifestationTypes"
+    },
+    {
+      "TABLE_NAME": "messageEvents"
+    },
+    {
+      "TABLE_NAME": "messages"
+    },
+    {
+      "TABLE_NAME": "notifications"
+    },
+    {
+      "TABLE_NAME": "nupCounter"
+    },
+    {
+      "TABLE_NAME": "nupNotifications"
+    },
+    {
+      "TABLE_NAME": "officialDocuments"
+    },
+    {
+      "TABLE_NAME": "ombudsmanManifestations"
+    },
+    {
+      "TABLE_NAME": "onlineSessions"
+    },
+    {
+      "TABLE_NAME": "orgInvites"
+    },
+    {
+      "TABLE_NAME": "orgUnits"
+    },
+    {
+      "TABLE_NAME": "positions"
+    },
+    {
+      "TABLE_NAME": "processDeadlineHistory"
+    },
+    {
+      "TABLE_NAME": "protocols"
+    },
+    {
+      "TABLE_NAME": "queue"
+    },
+    {
+      "TABLE_NAME": "quickReplies"
+    },
+    {
+      "TABLE_NAME": "satisfactionSurveys"
+    },
+    {
+      "TABLE_NAME": "searchIndex"
+    },
+    {
+      "TABLE_NAME": "sectors"
+    },
+    {
+      "TABLE_NAME": "sensitiveAccessLogs"
+    },
+    {
+      "TABLE_NAME": "serviceCategories"
+    },
+    {
+      "TABLE_NAME": "serviceChecklists"
+    },
+    {
+      "TABLE_NAME": "serviceFaqs"
+    },
+    {
+      "TABLE_NAME": "servicePublications"
+    },
+    {
+      "TABLE_NAME": "serviceSubjects"
+    },
+    {
+      "TABLE_NAME": "serviceTypeDocuments"
+    },
+    {
+      "TABLE_NAME": "serviceTypeFields"
+    },
+    {
+      "TABLE_NAME": "serviceTypes"
+    },
+    {
+      "TABLE_NAME": "surveyAnswers"
+    },
+    {
+      "TABLE_NAME": "surveyDispatches"
+    },
+    {
+      "TABLE_NAME": "tags"
+    },
+    {
+      "TABLE_NAME": "tickets"
+    },
+    {
+      "TABLE_NAME": "tramitations"
+    },
+    {
+      "TABLE_NAME": "userAllocations"
+    },
+    {
+      "TABLE_NAME": "userRegistrations"
+    },
+    {
+      "TABLE_NAME": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "TABLE_NAME\nadminProcesses\nagentStatus\naiProviders\naiUsageLogs\nallocationHistory\nattachmentConfigs\nattachments\nattendanceMetricsSnapshots\naudioTranscriptions\nauditLogs\nchannelHealthLogs\nchannelSyncState\ncomplianceEvents\ncontacts\ncontextHelp\nconversationTags\nconversationTransfers\nconversations\ncustomModuleRecords\ncustomModules\ndeliveryAttempts\ndocumentNumberSequences\ndocumentReadLogs\ndocumentSignatures\ndocumentTemplates\ndocumentVerificationLogs\ndocumentVersions\nelectronicSignatures\nformFieldOptions\nformFields\nformSubmissionValues\nformSubmissions\nformTemplates\ngeoAttachments\ngeoEvents\ngeoPoints\ninstitutionalConfig\nknowledgeArticles\nknowledgeCategories\nknowledgeTags\nmanifestationDeadlines\nmanifestationResponses\nmanifestationStatusHistory\nmanifestationTypes\nmessageEvents\nmessages\nnotifications\nnupCounter\nnupNotifications\nofficialDocuments\nombudsmanManifestations\nonlineSessions\norgInvites\norgUnits\npositions\nprocessDeadlineHistory\nprotocols\nqueue\nquickReplies\nsatisfactionSurveys\nsearchIndex\nsectors\nsensitiveAccessLogs\nserviceCategories\nserviceChecklists\nserviceFaqs\nservicePublications\nserviceSubjects\nserviceTypeDocuments\nserviceTypeFields\nserviceTypes\nsurveyAnswers\nsurveyDispatches\ntags\ntickets\ntramitations\nuserAllocations\nuserRegistrations\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

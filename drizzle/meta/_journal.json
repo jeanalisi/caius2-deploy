@@ -15,6 +15,13 @@
       "when": 1774296896529,
       "tag": "0001_fine_franklin_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1774298846482,
+      "tag": "0002_dear_sally_floyd",
+      "breakpoints": true
     }
   ]
 }
