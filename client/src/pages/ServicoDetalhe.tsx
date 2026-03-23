@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, CheckCircle2, Clock, DollarSign, Users, Building2,
   MessageSquare, Info, FileText, Shield, Globe, AlertCircle, Copy,
-  Camera, MapPin, Loader2,
+  Camera, MapPin, Loader2, ExternalLink,
 } from "lucide-react";
 import { useRef, useState as useStateAlias } from "react";
 
@@ -439,8 +439,8 @@ export default function ServicoDetalhe() {
               </div>
             )}
 
-            {/* Subjects */}
-            {(service as any).subjects?.length > 0 && (
+            {/* Subjects — apenas para serviços internos */}
+            {(service as any).serviceMode !== "external" && (service as any).subjects?.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
                 <h3 className="font-semibold text-gray-800 mb-3">Tipos de Solicitação</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -463,18 +463,34 @@ export default function ServicoDetalhe() {
               </div>
             )}
 
-            {/* CTA */}
-            <div className="bg-blue-600 rounded-2xl p-6 text-white text-center">
-              <h3 className="text-lg font-bold mb-2">Pronto para solicitar?</h3>
-              <p className="text-blue-100 text-sm mb-4">Preencha o formulário online e acompanhe o andamento pelo número de protocolo.</p>
-              <Button
-                size="lg"
-                className="bg-white text-blue-600 hover:bg-blue-50 font-semibold"
-                onClick={() => setStep("form")}
-              >
-                Iniciar Solicitação
-              </Button>
-            </div>
+            {/* CTA — condicional: externo abre link, interno abre formulário */}
+            {(service as any).serviceMode === "external" && (service as any).externalUrl ? (
+              <div className="bg-green-600 rounded-2xl p-6 text-white text-center">
+                <h3 className="text-lg font-bold mb-2">Serviço Externo</h3>
+                <p className="text-green-100 text-sm mb-4">Este serviço é realizado em um portal externo. Clique abaixo para ser redirecionado.</p>
+                <a
+                  href={(service as any).externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 bg-white text-green-700 hover:bg-green-50 font-semibold px-6 py-3 rounded-lg transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Acessar Serviço Externo
+                </a>
+              </div>
+            ) : (
+              <div className="bg-blue-600 rounded-2xl p-6 text-white text-center">
+                <h3 className="text-lg font-bold mb-2">Pronto para solicitar?</h3>
+                <p className="text-blue-100 text-sm mb-4">Preencha o formulário online e acompanhe o andamento pelo número de protocolo.</p>
+                <Button
+                  size="lg"
+                  className="bg-white text-blue-600 hover:bg-blue-50 font-semibold"
+                  onClick={() => setStep("form")}
+                >
+                  Iniciar Solicitação
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
