@@ -1,14 +1,10 @@
 import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
-  useMultiFileAuthState,
   Browsers,
-  type proto,
 } from "@whiskeysockets/baileys";
 import P from "pino";
 import { Boom } from "@hapi/boom";
-import * as fs from "fs";
-import * as path from "path";
 import { getDb } from "./db";
 import {
   updateAccount,
@@ -19,6 +15,7 @@ import { conversations, messages } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 import { generateNup, createProtocol } from "./db-caius";
 import { processBotMessage } from "./bot-engine";
+import { useAuthStateDB, clearAccountSession, hasAccountSession } from "./wa-session-store";
 
 const sessions = new Map<number, ReturnType<typeof makeWASocket>>();
 const qrCallbacks = new Map<number, (qr: string) => void>();
@@ -27,9 +24,6 @@ const statusCallbacks = new Map<number, (status: string) => void>();
 // Cache em memória para retry de mensagens enviadas (necessário para o Baileys reenviar
 // mensagens que o destinatário não conseguiu descriptografar na primeira tentativa)
 const messageStore = new Map<string, object>();
-
-const SESSION_DIR = path.join(process.cwd(), ".wa-sessions");
-if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 
 export function onQrCode(accountId: number, cb: (qr: string) => void) {
   qrCallbacks.set(accountId, cb);
@@ -141,8 +135,8 @@ export async function connectWhatsApp(accountId: number) {
     sessions.delete(accountId);
   }
 
-  const sessionPath = path.join(SESSION_DIR, `account-${accountId}`);
-  const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+  // Usar persistência de sessão no banco TiDB (sobrevive a reinicializações do servidor)
+  const { state, saveCreds } = await useAuthStateDB(accountId);
   const { version } = await fetchLatestBaileysVersion();
 
   const sock = makeWASocket({
@@ -325,6 +319,8 @@ export async function disconnectWhatsApp(accountId: number) {
     } catch (_) { /* ignorar erros ao desconectar */ }
     sessions.delete(accountId);
   }
+  // Limpar sessão persistida no banco ao desconectar explicitamente
+  await clearAccountSession(accountId);
   await updateAccount(accountId, { status: "disconnected", waQrCode: null });
 }
 

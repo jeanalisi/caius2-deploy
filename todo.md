@@ -75,3 +75,13 @@
 - [x] Auditar todas as tabelas: comparar TiDB vs schema Drizzle (colunas faltantes, tipos errados, AUTO_INCREMENT ausente)
 - [x] Aplicar todas as correções SQL em lote
 - [x] Verificar TypeScript após correções
+
+## Correção WhatsApp
+
+- [x] Diagnosticar por que WhatsApp não recebe mensagens (sessão em disco perdida após reinicialização)
+- [x] Corrigir gateway WhatsApp: substituir useMultiFileAuthState (disco) por useAuthStateDB (banco TiDB)
+- [x] Criar tabela waSessions para persistência de sessão no banco
+- [x] Criar módulo wa-session-store.ts com useAuthStateDB, hasAccountSession, clearAccountSession
+- [x] Corrigir initChannelGateway para verificar sessão no banco em vez do disco
+- [x] Corrigir tabela notifications: adicionar colunas relatedProtocolId e nup, corrigir enum type
+- [x] Criar 9 tabelas faltantes: verifiableDocuments, workflowDefinitions, workflowSteps, workflowTransitions, workflowStepRules, workflowInstances, workflowInstanceSteps, workflowEvents, workflowDeadlines

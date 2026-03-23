@@ -438,10 +438,9 @@ export async function initChannelGateway(): Promise<void> {
   const db = await getDb();
   if (!db) { console.warn("[ChannelGateway] DB unavailable, skipping init"); return; }
   const { accounts } = await import("../drizzle/schema");
-  const { default: fs } = await import("fs");
-  const { default: path } = await import("path");
+  const { hasAccountSession } = await import("./wa-session-store");
 
-  // Busca contas ativas (connected) + contas WhatsApp com sessão salva em disco
+  // Busca todas as contas do banco
   const allAccounts = await db.select().from(accounts);
 
   for (const account of allAccounts) {
@@ -461,15 +460,18 @@ export async function initChannelGateway(): Promise<void> {
         });
         channelGateway.register(connector);
       } else if (account.channel === "whatsapp") {
-        // Registra o conector e reconecta se houver sessão salva em disco
+        // Registra o conector e reconecta se houver sessão persistida no banco TiDB
         const connector = new WhatsAppConnector(account.id, account.identifier ?? "");
         channelGateway.register(connector);
-        const sessionPath = path.join(process.cwd(), ".wa-sessions", `account-${account.id}`);
-        if (fs.existsSync(sessionPath) && fs.readdirSync(sessionPath).length > 0) {
-          console.log(`[ChannelGateway] Reconectando WhatsApp conta #${account.id} (${account.name})...`);
+        // Verificar sessão no banco (sobrevive a reinicializações do servidor)
+        const hasSavedSession = await hasAccountSession(account.id);
+        if (hasSavedSession) {
+          console.log(`[ChannelGateway] Reconectando WhatsApp conta #${account.id} (${account.name}) via sessão persistida no banco...`);
           connector.connect().catch(err =>
             console.error(`[ChannelGateway] Erro ao reconectar WhatsApp conta #${account.id}:`, err)
           );
+        } else {
+          console.log(`[ChannelGateway] WhatsApp conta #${account.id} (${account.name}): sem sessão salva, aguardando QR Code.`);
         }
       } else if (account.channel === "instagram" && account.status === "connected" &&
                  account.igAccessToken && account.igUserId) {
