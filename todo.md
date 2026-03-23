@@ -91,3 +91,10 @@
 - [x] Identificar colunas faltantes nas tabelas conversations (nup, assignedSectorId), contacts (cpfCnpj), accounts (waSessionData)
 - [x] Adicionar colunas faltantes no banco TiDB
 - [x] Verificar TypeScript e testar a página /channel-health
+
+## Investigação WhatsApp — Sem Receber Mensagens
+
+- [x] Verificar estado da sessão e logs do servidor
+- [x] Corrigir colunas faltantes em messages (aiGenerated, deliveryStatus, deliveryError)
+- [x] Corrigir upsertContact para find-or-create (evitar falha em contatos duplicados)
+- [x] Resetar status da conta WhatsApp para disconnected (sessão perdida)

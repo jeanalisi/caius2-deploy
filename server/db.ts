@@ -152,6 +152,29 @@ export async function deleteAccount(id: number) {
 export async function upsertContact(data: InsertContact): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
+  // Tentar encontrar contato existente por phone ou igHandle
+  if (data.phone) {
+    const existing = await db
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(eq(contacts.phone, data.phone))
+      .limit(1);
+    if (existing.length > 0) {
+      // Atualizar nome se mudou
+      if (data.name) {
+        await db.update(contacts).set({ name: data.name }).where(eq(contacts.id, existing[0]!.id));
+      }
+      return existing[0]!.id;
+    }
+  } else if (data.igHandle) {
+    const existing = await db
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(eq(contacts.igHandle, data.igHandle))
+      .limit(1);
+    if (existing.length > 0) return existing[0]!.id;
+  }
+  // Criar novo contato
   const result = await db.insert(contacts).values(data);
   return (result[0] as any).insertId;
 }
