@@ -67,13 +67,16 @@ export async function upsertUser(user: InsertUser): Promise<void> {
     values.lastSignedIn = user.lastSignedIn;
     updateSet.lastSignedIn = user.lastSignedIn;
   }
-  if (user.role !== undefined) {
-    values.role = user.role;
-    updateSet.role = user.role;
-  } else if (user.openId === ENV.ownerOpenId) {
+  // Determina o role: owner sempre é admin; caso contrário, preserva o role existente no banco
+  const isOwner = user.openId === ENV.ownerOpenId;
+  if (isOwner) {
     values.role = "admin";
-    updateSet.role = "admin";
+    // Não inclui role no updateSet para não sobrescrever promoções manuais feitas no banco
+  } else if (user.role !== undefined) {
+    values.role = user.role;
+    // Não sobrescreve role no update — preserva promoções manuais (admin promovido via banco)
   }
+  // updateSet nunca inclui role para preservar promoções manuais feitas diretamente no banco
 
   if (!values.lastSignedIn) values.lastSignedIn = new Date();
   if (Object.keys(updateSet).length === 0) updateSet.lastSignedIn = new Date();

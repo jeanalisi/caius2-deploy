@@ -52,3 +52,4 @@
 - [ ] Verificar carregamento de logomarcas do banco externo
 - [ ] Testar envio e recebimento de mensagens WhatsApp em produção
 - [x] Corrigir erro OAuth: adicionadas colunas profile, isAgent, isAvailable, avatarUrl, sectorId à tabela users no TiDB
+- [x] Corrigir menus faltantes no sidebar: promovido usuário a admin no banco e corrigido upsertUser para preservar role=admin em logins futuros
