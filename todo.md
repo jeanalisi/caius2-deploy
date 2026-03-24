@@ -179,3 +179,8 @@
 - [x] Registrar rota pública /atendimento, /chat e /atendimento-online no App.tsx
 - [x] Adicionar link "Atendimento Online" na Central do Cidadão (primeiro item dos QUICK_LINKS)
 - [x] Adicionar link na sidebar do dashboard (Canais > Webchat Cidadão no OmniLayout)
+
+## Menu Superior da Central do Cidadão
+
+- [x] Adicionar item "Atendimento" no menu de navegação superior da Central do Cidadão
+- [x] Incluir item no menu mobile (hambúrguer) também

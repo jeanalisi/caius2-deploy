@@ -187,6 +187,14 @@ export default function CentralCidadao() {
                   {tab.label}
                 </button>
               ))}
+              {/* Link direto para o chat */}
+              <a
+                href="/atendimento"
+                className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition-colors ml-1"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Atendimento
+              </a>
             </nav>
 
             {/* Desktop actions */}
@@ -232,6 +240,15 @@ export default function CentralCidadao() {
                   {tab.label}
                 </button>
               ))}
+              {/* Link direto para o chat no mobile */}
+              <a
+                href="/atendimento"
+                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <MessageSquare className="w-4 h-4" />
+                Atendimento Online
+              </a>
               <div className="pt-2 flex gap-2">
                 <a href="/consulta" className="flex-1">
                   <Button variant="outline" size="sm" className="w-full text-xs">Consultar Protocolo</Button>
