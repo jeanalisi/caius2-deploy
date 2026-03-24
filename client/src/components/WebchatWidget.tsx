@@ -10,8 +10,31 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, X, Send, Loader2, Bot, User, ChevronDown } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, Bot, User, ChevronDown, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/**
+ * Formata texto com markdown básico:
+ * **negrito**, *itálico*, `código`, \n para quebra de linha
+ */
+function formatBotText(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    if (part.startsWith("`") && part.endsWith("`")) {
+      return <code key={i} className="bg-gray-200 px-1 rounded text-xs font-mono">{part.slice(1, -1)}</code>;
+    }
+    // Quebras de linha
+    return part.split("\n").map((line, j, arr) => (
+      <span key={`${i}-${j}`}>{line}{j < arr.length - 1 && <br />}</span>
+    ));
+  });
+}
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -97,13 +120,19 @@ function IdentificationForm({
 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const isUser = msg.direction === "inbound";
+  const isSystem = msg.senderName === "Sistema";
   const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className={cn("flex gap-2 mb-3", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
-          <Bot className="w-4 h-4 text-blue-600" />
+        <div className={cn(
+          "w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-1",
+          isSystem ? "bg-green-100" : "bg-blue-100"
+        )}>
+          {isSystem
+            ? <Shield className="w-4 h-4 text-green-600" />
+            : <Bot className="w-4 h-4 text-blue-600" />}
         </div>
       )}
       <div className={cn("max-w-[78%]", isUser ? "items-end" : "items-start", "flex flex-col gap-0.5")}>
@@ -112,14 +141,14 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
         )}
         <div
           className={cn(
-            "px-3 py-2 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap",
+            "px-3 py-2 rounded-2xl text-sm leading-relaxed",
             isUser
               ? "bg-blue-600 text-white rounded-tr-sm"
               : "bg-gray-100 text-gray-800 rounded-tl-sm",
             msg.isOptimistic && "opacity-70"
           )}
         >
-          {msg.content}
+          {isUser ? msg.content : formatBotText(msg.content)}
         </div>
         <span className="text-[10px] text-gray-400 px-1">{time}</span>
       </div>
@@ -128,6 +157,22 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
           <User className="w-4 h-4 text-white" />
         </div>
       )}
+    </div>
+  );
+}
+
+/** Indicador de "digitando..." para o bot */
+function TypingIndicator() {
+  return (
+    <div className="flex gap-2 mb-3 justify-start">
+      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1">
+        <Bot className="w-4 h-4 text-blue-600" />
+      </div>
+      <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-3 py-2 flex items-center gap-1">
+        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+        <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+      </div>
     </div>
   );
 }
@@ -145,6 +190,7 @@ export default function WebchatWidget() {
   const [nup, setNup] = useState<string | null>(null);
   const [sessionStatus, setSessionStatus] = useState<string>("bot");
   const [hasUnread, setHasUnread] = useState(false);
+  const [isBotTyping, setIsBotTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const lastMessageCountRef = useRef(0);
@@ -248,6 +294,9 @@ export default function WebchatWidget() {
     };
     setMessages((prev) => [...prev, optimisticMsg]);
 
+    // Mostrar indicador de digitando
+    setIsBotTyping(true);
+
     try {
       const result = await sendMutation.mutateAsync({
         sessionToken,
@@ -278,6 +327,7 @@ export default function WebchatWidget() {
       console.error("[WebchatWidget] Erro ao enviar mensagem:", err);
     } finally {
       setIsSending(false);
+      setIsBotTyping(false);
       inputRef.current?.focus();
     }
   }, [inputText, sessionToken, isSending, sendMutation]);
@@ -398,6 +448,7 @@ export default function WebchatWidget() {
                 {messages.map((msg) => (
                   <MessageBubble key={msg.id} msg={msg} />
                 ))}
+                {isBotTyping && <TypingIndicator />}
                 <div ref={messagesEndRef} />
               </div>
 

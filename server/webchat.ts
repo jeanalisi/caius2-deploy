@@ -12,8 +12,8 @@
 
 import { randomBytes } from "crypto";
 import { getDb, upsertContact, createMessage } from "./db";
-import { generateNup, createProtocol } from "./db-caius";
-import { processBotMessage } from "./bot-engine";
+import { generateNup, createProtocolWithNup } from "./db-caius";
+import { processWebchatBotMessage } from "./webchat-bot";
 import { getIo } from "./_core/socketio";
 import {
   webchatSessions,
@@ -75,7 +75,8 @@ async function findOrCreateWebchatConversation(
     return { convId: existing[0].id, nup: existing[0].nup ?? "", isNew: false };
   }
 
-  // Nova conversa — gerar NUP
+  // Nova conversa — gerar UM ÚNICO NUP compartilhado entre conversa e protocolo
+  // IMPORTANTE: generateNup() é chamado apenas uma vez aqui para evitar divergência
   const nup = await generateNup();
 
   const result = await db.insert(conversations).values({
@@ -91,9 +92,9 @@ async function findOrCreateWebchatConversation(
 
   const convId = Number((result[0] as any).insertId);
 
-  // Criar protocolo vinculado
+  // Criar protocolo com o MESMO NUP da conversa (não gerar novo)
   try {
-    await createProtocol({
+    await createProtocolWithNup(nup, {
       conversationId: convId,
       contactId,
       subject: `Atendimento via Webchat — ${visitorName}`,
@@ -223,16 +224,21 @@ export async function processWebchatMessage(
     io.emit("conversation_updated", { conversationId: convId, channel: "web" });
   }
 
-  // Se a sessão está em modo "active" (com agente), não processar bot
+  // Se a sessão está em modo "active" (com agente humano), não processar bot
   if (session.status === "active") {
     return { botReplies: [], status: "active", nup };
   }
 
-  // Processar bot
-  const botReplies: string[] = [];
-  const sendFn = async (_jid: string, text: string) => {
-    botReplies.push(text);
-    // Salvar resposta do bot no banco
+  // Processar chatbot dedicado para webchat
+  const botResult = await processWebchatBotMessage(
+    msg.sessionToken,
+    msg.content,
+    convId,
+    nup
+  );
+
+  // Salvar respostas do bot no banco e emitir via Socket.IO
+  for (const text of botResult.replies) {
     await createMessage({
       conversationId: convId,
       direction: "outbound" as const,
@@ -241,50 +247,30 @@ export async function processWebchatMessage(
       senderName: "Bot CAIUS",
       deliveryStatus: "sent",
     });
-    // Emitir para o cidadão via Socket.IO
     if (io) {
       io.to(`webchat:${msg.sessionToken}`).emit("bot_message", { text });
     }
-  };
-
-  const botHandled = await processBotMessage(
-    session.accountId ?? 1,
-    msg.sessionToken, // usar sessionToken como "jid" no contexto do bot
-    msg.content,
-    convId,
-    sendFn
-  );
-
-  // Se o bot não tratou (sem fluxo ativo), enviar mensagem padrão de boas-vindas
-  if (!botHandled && isNew) {
-    const welcomeText =
-      `Olá, ${visitorName}! Recebemos sua mensagem.\n\n` +
-      `Seu protocolo é: ${nup}\n\n` +
-      `Em breve um atendente irá lhe responder. Você pode acompanhar seu atendimento na Central do Cidadão informando o número do protocolo.`;
-    botReplies.push(welcomeText);
-    await createMessage({
-      conversationId: convId,
-      direction: "outbound" as const,
-      type: "text",
-      content: welcomeText,
-      senderName: "Sistema",
-      deliveryStatus: "sent",
-    });
-    if (io) {
-      io.to(`webchat:${msg.sessionToken}`).emit("bot_message", { text: welcomeText });
-    }
   }
 
-  // Atualizar status da sessão
-  const newStatus = session.status === "bot" ? "waiting" : session.status;
+  // Atualizar status da sessão webchat conforme resultado do bot
+  const newStatus = botResult.sessionStatus;
   if (newStatus !== session.status) {
     await db
       .update(webchatSessions)
-      .set({ status: newStatus as "waiting" })
+      .set({ status: newStatus })
       .where(eq(webchatSessions.id, session.id));
   }
 
-  return { botReplies, status: newStatus, nup };
+  // Atualizar NUP na sessão se o bot gerou/confirmou um
+  const finalNup = botResult.nup ?? nup;
+  if (finalNup && finalNup !== session.nup) {
+    await db
+      .update(webchatSessions)
+      .set({ nup: finalNup })
+      .where(eq(webchatSessions.id, session.id));
+  }
+
+  return { botReplies: botResult.replies, status: newStatus, nup: finalNup };
 }
 
 /**

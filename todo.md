@@ -157,3 +157,13 @@
 - [x] Corrigir enum channel em conversations (banco + schema Drizzle): adicionado 'web'
 - [x] Corrigir função getConversations no db.ts: aceita channel='web'
 - [x] Escrever 10 testes unitários para o webchat (102 testes totais passando)
+
+## Correção Divergência NUP Webchat + Chatbot Webchat
+
+- [x] Corrigir divergência de NUPs: adicionado createProtocolWithNup em db-caius.ts — conversa e protocolo agora usam o mesmo NUP
+- [x] Garantir que o NUP informado ao cidadão é o mesmo registrado no protocolo e na conversa
+- [x] Criar chatbot dedicado para o canal Webchat (webchat-bot.ts): processWebchatBotMessage, createDefaultWebchatFlow, consultProtocol, openWebchatProtocol
+- [x] Integrar chatbot webchat ao processWebchatMessage (substituindo bot-engine genérico)
+- [x] Widget melhorado: indicador de digitando, formatação markdown, ícones diferenciados por tipo de remetente
+- [x] Botão 'Fluxo Webchat' adicionado ao ChatbotAdmin para criar o fluxo padrão
+- [x] Escrever 17 testes unitários para webchat (109 testes totais passando)

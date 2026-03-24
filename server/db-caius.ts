@@ -180,6 +180,20 @@ export async function createProtocol(data: Omit<InsertProtocol, "nup">) {
   return { nup, protocolId: Number(result[0].insertId) };
 }
 
+/**
+ * Cria um protocolo usando um NUP já gerado externamente.
+ * Usar quando a conversa e o protocolo devem compartilhar o mesmo NUP.
+ */
+export async function createProtocolWithNup(
+  nup: string,
+  data: Omit<InsertProtocol, "nup">
+): Promise<{ nup: string; protocolId: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const result = await db.insert(protocols).values({ ...data, nup });
+  return { nup, protocolId: Number(result[0].insertId) };
+}
+
 export async function updateProtocol(id: number, data: Partial<InsertProtocol>) {
   const db = await getDb();
   if (!db) return;

@@ -855,6 +855,14 @@ export default function ChatbotAdmin() {
     onError: (e) => toast.error(e.message),
   });
 
+  const createWebchatFlowMutation = trpc.webchat.createDefaultFlow.useMutation({
+    onSuccess: (data) => {
+      toast.success(`Fluxo padrão do Webchat criado! (ID: ${data.flowId}) Ative-o no painel.`);
+      utils.chatbot.listFlows.invalidate();
+    },
+    onError: (e) => toast.error("Erro ao criar fluxo webchat: " + e.message),
+  });
+
   if (selectedFlowId) {
     return (
       <div className="p-6">
@@ -884,6 +892,17 @@ export default function ChatbotAdmin() {
           >
             <Sparkles className="w-4 h-4 text-yellow-500" />
             Criar Fluxo Padrão
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => createWebchatFlowMutation.mutate()}
+            disabled={createWebchatFlowMutation.isPending}
+            className="gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+          >
+            {createWebchatFlowMutation.isPending
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <MessageSquare className="w-4 h-4" />}
+            Fluxo Webchat
           </Button>
           <Button onClick={() => setNewFlowOpen(true)} className="gap-2">
             <Plus className="w-4 h-4" />

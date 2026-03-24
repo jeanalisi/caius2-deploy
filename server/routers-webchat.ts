@@ -24,6 +24,7 @@ import {
   closeWebchatSession,
   getWebchatMessages,
 } from "./webchat";
+import { createDefaultWebchatFlow } from "./webchat-bot";
 import { getDb } from "./db";
 import { webchatSessions } from "../drizzle/schema";
 import { eq, desc, inArray } from "drizzle-orm";
@@ -186,11 +187,41 @@ export const webchatRouter = router({
       return { success: true };
     }),
 
-  // ── Agente: Encerrar sessão ──────────────────────────────────────────────
+  //  // ── Agente: Encerrar sessão ──────────────────────────────────────────
   closeByAgent: protectedProcedure
     .input(z.object({ sessionToken: z.string().length(64) }))
     .mutation(async ({ input }) => {
       await closeWebchatSession(input.sessionToken);
       return { success: true };
+    }),
+
+  // ── Admin: Criar fluxo padrão do chatbot webchat ────────────────────────
+  createDefaultFlow: protectedProcedure
+    .mutation(async () => {
+      const flowId = await createDefaultWebchatFlow();
+      return { success: true, flowId };
+    }),
+
+  // ── Admin: Listar todas as sessões (com filtro de status) ────────────────
+  allSessions: protectedProcedure
+    .input(
+      z.object({
+        status: z
+          .enum(["bot", "waiting", "active", "closed", "abandoned"])
+          .optional(),
+        limit: z.number().min(1).max(200).default(100),
+      }).optional()
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      const sessions = await db
+        .select()
+        .from(webchatSessions)
+        .orderBy(desc(webchatSessions.lastActivityAt))
+        .limit(input?.limit ?? 100);
+      return input?.status
+        ? sessions.filter((s) => s.status === input.status)
+        : sessions;
     }),
 });
