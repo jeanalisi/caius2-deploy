@@ -217,7 +217,7 @@ function IdentificationStep({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                E-mail <span className="text-gray-400 font-normal">(opcional)</span>
+                E-mail
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -233,7 +233,7 @@ function IdentificationStep({
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Telefone <span className="text-gray-400 font-normal">(opcional)</span>
+                Telefone
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
