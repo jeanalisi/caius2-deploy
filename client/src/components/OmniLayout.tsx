@@ -90,6 +90,7 @@ const caiusItems = [
 const channelItems = [
   { href: "/channel-health", icon: Activity, label: "Saúde dos Canais" },
   { href: "/chatbot", icon: Bot, label: "Chatbot WhatsApp" },
+  { href: "/atendimento", icon: MessageSquare, label: "Webchat Cidadão" },
 ];
 
 const adminItems = [

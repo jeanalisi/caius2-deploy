@@ -48,6 +48,7 @@ import GeoMonitor from "./pages/GeoMonitor";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import SignExternalPDF from "./pages/SignExternalPDF";
 import ChatbotAdmin from "./pages/ChatbotAdmin";
+import ChatCidadao from "./pages/ChatCidadao";
 
 function ProtocolDetailWrapper() {
   const params = useParams<{ id: string }>();
@@ -68,6 +69,9 @@ function Router() {
       <Route path={"/verificar/:key"} component={VerifyDocument} />
       <Route path={"/verificar"} component={VerifyDocument} />
       <Route path={"/central-cidadao"} component={CentralCidadao} />
+      <Route path={"/atendimento"} component={ChatCidadao} />
+      <Route path={"/chat"} component={ChatCidadao} />
+      <Route path={"/atendimento-online"} component={ChatCidadao} />
       <Route path={"/estrutura-administrativa"} component={EstruturaAdministrativa} />
       <Route path={"/estrutura"} component={EstruturaAdministrativa} />
       <Route path={"/servico/:id"} component={ServicoDetalhe} />

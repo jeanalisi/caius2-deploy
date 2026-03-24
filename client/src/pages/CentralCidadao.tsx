@@ -46,9 +46,9 @@ const CITIZEN_PROFILES = [
 ];
 
 const QUICK_LINKS = [
+  { icon: MessageSquare, label: "Atendimento Online", href: "/atendimento", desc: "Converse com nossa equipe agora" },
   { icon: ClipboardList, label: "Consultar Protocolo", href: "/consulta", desc: "Acompanhe sua solicitação pelo NUP" },
   { icon: GitBranch, label: "Estrutura Administrativa", href: "/estrutura-administrativa", desc: "Conheça os órgãos e secretarias" },
-  { icon: MessageSquare, label: "Ouvidoria", href: "/", desc: "Reclamações, sugestões e elogios" },
   { icon: HelpCircle, label: "Ajuda ao Cidadão", href: "/", desc: "Dúvidas frequentes e tutoriais" },
 ];
 

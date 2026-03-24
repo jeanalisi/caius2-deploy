@@ -167,3 +167,15 @@
 - [x] Widget melhorado: indicador de digitando, formatação markdown, ícones diferenciados por tipo de remetente
 - [x] Botão 'Fluxo Webchat' adicionado ao ChatbotAdmin para criar o fluxo padrão
 - [x] Escrever 17 testes unitários para webchat (109 testes totais passando)
+
+## Página Dedicada de Chat do Cidadão
+
+- [x] Criar página /atendimento (ChatCidadao.tsx) — interface completa de chat sem balão flutuante
+- [x] Layout responsivo com header institucional, área de mensagens e input fixo
+- [x] Formulário de identificação integrado na própria página (não modal)
+- [x] Exibir NUP em destaque após abertura do protocolo (painel lateral + badge no header)
+- [x] Botão de copiar NUP e link para consulta pública
+- [x] Indicador de status do atendimento (bot / aguardando / em atendimento / encerrado)
+- [x] Registrar rota pública /atendimento, /chat e /atendimento-online no App.tsx
+- [x] Adicionar link "Atendimento Online" na Central do Cidadão (primeiro item dos QUICK_LINKS)
+- [x] Adicionar link na sidebar do dashboard (Canais > Webchat Cidadão no OmniLayout)
