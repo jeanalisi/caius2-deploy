@@ -18,6 +18,7 @@ import {
   Baby, GraduationCap, Briefcase, Heart, Home, Car, Leaf, HelpCircle,
   ChevronDown, MessageSquare, ClipboardList, GitBranch, Star, Users,
 } from "lucide-react";
+import WebchatWidget from "@/components/WebchatWidget";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 const secrecyLabels: Record<string, { label: string; color: string }> = {
@@ -1021,6 +1022,8 @@ export default function CentralCidadao() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Widget de Webchat flutuante */}
+      <WebchatWidget />
     </div>
   );
 }

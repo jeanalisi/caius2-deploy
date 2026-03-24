@@ -203,7 +203,7 @@ export async function createConversation(data: InsertConversation): Promise<numb
 }
 
 export async function getConversations(filters?: {
-  channel?: "whatsapp" | "instagram" | "email";
+  channel?: "whatsapp" | "instagram" | "email" | "web";
   status?: "open" | "pending" | "resolved" | "snoozed";
   assignedAgentId?: number;
   search?: string;

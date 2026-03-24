@@ -65,6 +65,7 @@ import { workflowRouter } from "./routers-workflow";
 import { documentsRouter } from "./routers-documents";
 import { publicServicesRouter } from "./routers-public-services";
 import { chatbotRouter } from "./routers-chatbot";
+import { webchatRouter } from "./routers-webchat";
 import {
   serviceTypesRouter,
   serviceSubjectsRouter,
@@ -205,7 +206,7 @@ export const appRouter = router({
   conversations: router({
     list: protectedProcedure
       .input(z.object({
-        channel: z.enum(["whatsapp", "instagram", "email"]).optional(),
+        channel: z.enum(["whatsapp", "instagram", "email", "web"]).optional(),
         status: z.enum(["open", "pending", "resolved", "snoozed"]).optional(),
         assignedAgentId: z.number().optional(),
         search: z.string().optional(),
@@ -560,6 +561,9 @@ export const appRouter = router({
         return getNupNotificationsByEntity(input.entityType, input.entityId);
       }),
   }),
+  // ── Webchat ────────────────────────────────────────────────────────────────
+  webchat: webchatRouter,
+
   voice: router({
     // Upload audio and transcribe via Whisper API
     transcribe: protectedProcedure
@@ -598,3 +602,4 @@ export const appRouter = router({
   }),
 });
 export type AppRouter = typeof appRouter;
+

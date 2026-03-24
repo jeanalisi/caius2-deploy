@@ -19,6 +19,7 @@ const CHANNEL_LABELS: Record<string, string> = {
   whatsapp: "WhatsApp",
   instagram: "Instagram",
   email: "E-mail",
+  web: "Webchat",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -31,7 +32,7 @@ const STATUS_LABELS: Record<string, string> = {
 function ChannelBadge({ channel }: { channel: string }) {
   return (
     <span className={cn("inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide", `channel-${channel}`)}>
-      {channel === "whatsapp" ? "WA" : channel === "instagram" ? "IG" : "EM"}
+      {channel === "whatsapp" ? "WA" : channel === "instagram" ? "IG" : channel === "web" ? "WEB" : "EM"}
     </span>
   );
 }

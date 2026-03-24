@@ -100,7 +100,7 @@ export const conversations = mysqlTable("conversations", {
   nup: varchar("nup", { length: 32 }).unique(),
   accountId: int("accountId").notNull(),
   contactId: int("contactId"),
-  channel: mysqlEnum("channel", ["whatsapp", "instagram", "email"]).notNull(),
+  channel: mysqlEnum("channel", ["whatsapp", "instagram", "email", "web"]).notNull(),
   externalId: varchar("externalId", { length: 512 }),
   subject: varchar("subject", { length: 512 }),
   status: mysqlEnum("status", ["open", "pending", "resolved", "snoozed"]).default("open").notNull(),
@@ -1776,3 +1776,36 @@ export const botSessionLogs = mysqlTable("botSessionLogs", {
 });
 export type BotSessionLog = typeof botSessionLogs.$inferSelect;
 export type InsertBotSessionLog = typeof botSessionLogs.$inferInsert;
+
+// ─── Webchat Sessions (Sessões de chat da Central do Cidadão) ─────────────────
+export const webchatSessions = mysqlTable("webchatSessions", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionToken: varchar("sessionToken", { length: 128 }).notNull().unique(),
+  conversationId: int("conversationId"),
+  contactId: int("contactId"),
+  accountId: int("accountId"),
+  // Dados do visitante (coletados pelo bot ou formulário)
+  visitorName: varchar("visitorName", { length: 256 }),
+  visitorEmail: varchar("visitorEmail", { length: 320 }),
+  visitorPhone: varchar("visitorPhone", { length: 32 }),
+  visitorCpf: varchar("visitorCpf", { length: 14 }),
+  // Estado da sessão
+  status: mysqlEnum("status", ["bot", "waiting", "active", "closed", "abandoned"]).default("bot").notNull(),
+  nup: varchar("nup", { length: 64 }),
+  // Metadados
+  userAgent: text("userAgent"),
+  ipAddress: varchar("ipAddress", { length: 64 }),
+  referrerUrl: varchar("referrerUrl", { length: 1024 }),
+  // Timestamps
+  lastActivityAt: timestamp("lastActivityAt").defaultNow().notNull(),
+  assignedAt: timestamp("assignedAt"),
+  closedAt: timestamp("closedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  tokenIdx: index("wcs_token_idx").on(table.sessionToken),
+  convIdx: index("wcs_conv_idx").on(table.conversationId),
+  statusIdx: index("wcs_status_idx").on(table.status),
+  activityIdx: index("wcs_activity_idx").on(table.lastActivityAt),
+}));
+export type WebchatSession = typeof webchatSessions.$inferSelect;
+export type InsertWebchatSession = typeof webchatSessions.$inferInsert;

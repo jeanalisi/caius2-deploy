@@ -145,3 +145,15 @@
 - [x] Identificar causa: lang=en no index.html ativava Google Translate que modificava o DOM conflitando com React
 - [x] Corrigir index.html: lang=pt-BR, translate=no, class=notranslate, meta google=notranslate
 - [x] Verificar páginas /processes e /documents: sem dangerouslySetInnerHTML problemático
+
+## Módulo Webchat — Central do Cidadão
+
+- [x] Analisar estrutura existente: CentralCidadao, channel-gateway, Socket.IO, WhatsApp
+- [x] Criar tabela webchatSessions no banco (schema + migração SQL aplicada)
+- [x] Implementar gateway do webchat no servidor (webchat.ts): sessões, mensagens, bot-engine, Socket.IO, protocolos NUP
+- [x] Criar rotas tRPC do webchat (routers-webchat.ts): start, send, messages, status, close, sessions, reply, closeByAgent
+- [x] Criar widget de chat flutuante na Central do Cidadão (WebchatWidget.tsx): botão, janela, formulário de identificação, polling de mensagens
+- [x] Integrar webchat ao inbox unificado: canal 'web' adicionado ao CHANNEL_CONFIG do Inbox, Conversations, Dashboard, Reports
+- [x] Corrigir enum channel em conversations (banco + schema Drizzle): adicionado 'web'
+- [x] Corrigir função getConversations no db.ts: aceita channel='web'
+- [x] Escrever 10 testes unitários para o webchat (102 testes totais passando)

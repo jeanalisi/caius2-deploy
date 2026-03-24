@@ -49,6 +49,7 @@ const CHANNEL_LABELS: Record<string, string> = {
   whatsapp: "WhatsApp",
   instagram: "Instagram",
   email: "E-mail",
+  web: "Webchat",
 };
 
 const STATUS_COLORS: Record<string, string> = {

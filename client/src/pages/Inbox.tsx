@@ -42,6 +42,7 @@ const CHANNEL_CONFIG: Record<string, { label: string; shortLabel: string; color:
   email: { label: "E-mail", shortLabel: "EM", color: "bg-blue-500/15 text-blue-500", icon: "✉️" },
   phone: { label: "Telefone", shortLabel: "TEL", color: "bg-orange-500/15 text-orange-500", icon: "📞" },
   chat: { label: "Chat", shortLabel: "CH", color: "bg-violet-500/15 text-violet-500", icon: "💬" },
+  web: { label: "Webchat", shortLabel: "WEB", color: "bg-violet-500/15 text-violet-600", icon: "🌐" },
   sms: { label: "SMS", shortLabel: "SMS", color: "bg-teal-500/15 text-teal-500", icon: "📱" },
 };
 
