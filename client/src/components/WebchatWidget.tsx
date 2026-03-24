@@ -88,7 +88,7 @@ function IdentificationForm({
             className="text-sm"
           />
           <Input
-            placeholder="E-mail (opcional)"
+            placeholder="E-mail"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -96,7 +96,7 @@ function IdentificationForm({
             className="text-sm"
           />
           <Input
-            placeholder="Telefone (opcional)"
+            placeholder="Telefone"
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
