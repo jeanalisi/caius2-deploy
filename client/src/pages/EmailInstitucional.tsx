@@ -259,7 +259,7 @@ function DashboardTab() {
 
 function InboxTab() {
   const [selectedMailbox, setSelectedMailbox] = useState<number | undefined>();
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyBody, setReplyBody] = useState("");
@@ -268,7 +268,7 @@ function InboxTab() {
   const { data: mailboxes } = trpc.emailInstitutional.mailboxes.list.useQuery();
   const { data: msgData, isLoading, refetch } = trpc.emailInstitutional.messages.list.useQuery({
     mailboxId: selectedMailbox,
-    status: selectedStatus || undefined,
+    status: selectedStatus !== "all" ? selectedStatus : undefined,
     direction: "inbound",
     limit: 100,
   });
@@ -315,12 +315,12 @@ function InboxTab() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <Select value={selectedMailbox?.toString() ?? ""} onValueChange={v => setSelectedMailbox(v ? Number(v) : undefined)}>
+          <Select value={selectedMailbox?.toString() ?? "all"} onValueChange={v => setSelectedMailbox(v !== "all" ? Number(v) : undefined)}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Todas as caixas" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as caixas</SelectItem>
+              <SelectItem value="all">Todas as caixas</SelectItem>
               {mailboxes?.map((mb: any) => (
                 <SelectItem key={mb.id} value={mb.id.toString()}>{mb.name}</SelectItem>
               ))}
@@ -331,7 +331,7 @@ function InboxTab() {
               <SelectValue placeholder="Todos os status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="received">Recebidas</SelectItem>
               <SelectItem value="triaged">Triadas</SelectItem>
               <SelectItem value="in_progress">Em andamento</SelectItem>
@@ -1041,9 +1041,9 @@ function RulesTab() {
 // ─── Componente: Fila de Envio ────────────────────────────────────────────────
 
 function QueueTab() {
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { data: queueData, isLoading, refetch } = trpc.emailInstitutional.queue.list.useQuery({
-    status: statusFilter as any || undefined,
+    status: statusFilter !== "all" ? statusFilter as any : undefined,
     limit: 100,
   });
   const retryMutation = trpc.emailInstitutional.queue.retry.useMutation({ onSuccess: () => refetch() });
@@ -1068,7 +1068,7 @@ function QueueTab() {
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-40"><SelectValue placeholder="Todos os status" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="pending">Pendentes</SelectItem>
               <SelectItem value="sent">Enviados</SelectItem>
               <SelectItem value="failed">Falhou</SelectItem>
