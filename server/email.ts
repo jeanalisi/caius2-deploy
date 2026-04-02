@@ -110,7 +110,8 @@ export async function fetchEmails(account: Account): Promise<void> {
     const lock = await client.getMailboxLock("INBOX");
     try {
       // Buscar apenas mensagens não lidas (UNSEEN) para evitar reprocessar e-mails antigos
-      const unseenUids = await client.search({ seen: false });
+      const searchResult = await client.search({ seen: false });
+      const unseenUids: number[] = Array.isArray(searchResult) ? searchResult : [];
       if (unseenUids.length === 0) {
         // Nenhuma mensagem nova — encerrar normalmente pelo finally
         return;
