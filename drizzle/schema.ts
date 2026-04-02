@@ -3,6 +3,7 @@ import {
   boolean,
   int,
   json,
+  longtext,
   mysqlEnum,
   mysqlTable,
   text,
@@ -1809,3 +1810,507 @@ export const webchatSessions = mysqlTable("webchatSessions", {
 }));
 export type WebchatSession = typeof webchatSessions.$inferSelect;
 export type InsertWebchatSession = typeof webchatSessions.$inferInsert;
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── MÓDULO: E-MAIL INSTITUCIONAL ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Caixas Postais Institucionais ────────────────────────────────────────────
+export const emailMailboxes = mysqlTable("emailMailboxes", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  address: varchar("address", { length: 320 }).notNull(),
+  displayName: varchar("displayName", { length: 255 }),
+  description: text("description"),
+  sectorId: int("sectorId"),
+  imapHost: varchar("imapHost", { length: 255 }).notNull(),
+  imapPort: int("imapPort").default(993).notNull(),
+  imapUser: varchar("imapUser", { length: 320 }).notNull(),
+  imapPassword: text("imapPassword").notNull(),
+  imapSecure: boolean("imapSecure").default(true).notNull(),
+  imapMailbox: varchar("imapMailbox", { length: 128 }).default("INBOX").notNull(),
+  smtpHost: varchar("smtpHost", { length: 255 }).notNull(),
+  smtpPort: int("smtpPort").default(587).notNull(),
+  smtpUser: varchar("smtpUser", { length: 320 }).notNull(),
+  smtpPassword: text("smtpPassword").notNull(),
+  smtpSecure: boolean("smtpSecure").default(false).notNull(),
+  status: mysqlEnum("status", ["active", "inactive", "error", "syncing"]).default("inactive").notNull(),
+  lastSyncAt: timestamp("lastSyncAt"),
+  lastSyncError: text("lastSyncError"),
+  lastUid: bigint("lastUid", { mode: "number" }).default(0).notNull(),
+  syncIntervalMinutes: int("syncIntervalMinutes").default(5).notNull(),
+  autoReplyEnabled: boolean("autoReplyEnabled").default(true).notNull(),
+  autoReplyTemplate: text("autoReplyTemplate"),
+  signature: text("signature"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdById: int("createdById").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  sectorIdx: index("emb_sector_idx").on(table.sectorId),
+  statusIdx: index("emb_status_idx").on(table.status),
+}));
+export type EmailMailbox = typeof emailMailboxes.$inferSelect;
+export type InsertEmailMailbox = typeof emailMailboxes.$inferInsert;
+
+// ─── Mensagens de E-mail Institucionais ───────────────────────────────────────
+export const emailMessages = mysqlTable("emailMessages", {
+  id: int("id").autoincrement().primaryKey(),
+  mailboxId: int("mailboxId").notNull(),
+  messageId: varchar("messageId", { length: 512 }),
+  inReplyTo: varchar("inReplyTo", { length: 512 }),
+  references: text("references"),
+  imapUid: bigint("imapUid", { mode: "number" }),
+  fromAddress: varchar("fromAddress", { length: 320 }).notNull(),
+  fromName: varchar("fromName", { length: 255 }),
+  toAddresses: text("toAddresses").notNull(),
+  ccAddresses: text("ccAddresses"),
+  bccAddresses: text("bccAddresses"),
+  replyTo: varchar("replyTo", { length: 320 }),
+  subject: varchar("subject", { length: 998 }).notNull(),
+  bodyText: text("bodyText"),
+  bodyHtml: text("bodyHtml"),
+  direction: mysqlEnum("direction", ["inbound", "outbound"]).notNull(),
+  status: mysqlEnum("status", ["received", "triaged", "in_progress", "replied", "archived", "spam", "bounced", "failed", "sent"]).default("received").notNull(),
+  nup: varchar("nup", { length: 32 }),
+  conversationId: int("conversationId"),
+  contactId: int("contactId"),
+  sectorId: int("sectorId"),
+  assignedUserId: int("assignedUserId"),
+  priority: mysqlEnum("priority", ["low", "normal", "high", "urgent"]).default("normal").notNull(),
+  tags: text("tags"),
+  isRead: boolean("isRead").default(false).notNull(),
+  isStarred: boolean("isStarred").default(false).notNull(),
+  isSpam: boolean("isSpam").default(false).notNull(),
+  threadId: varchar("threadId", { length: 512 }),
+  receivedAt: timestamp("receivedAt"),
+  sentAt: timestamp("sentAt"),
+  sizeBytes: int("sizeBytes"),
+  hasAttachments: boolean("hasAttachments").default(false).notNull(),
+  attachmentCount: int("attachmentCount").default(0).notNull(),
+  smtpMessageId: varchar("smtpMessageId", { length: 512 }),
+  sendAttempts: int("sendAttempts").default(0).notNull(),
+  lastSendError: text("lastSendError"),
+  scheduledAt: timestamp("scheduledAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  mailboxIdx: index("emi_mailbox_idx").on(table.mailboxId),
+  nupIdx: index("emi_nup_idx").on(table.nup),
+  threadIdx: index("emi_thread_idx").on(table.threadId),
+  statusIdx: index("emi_status_idx").on(table.status),
+  sectorIdx: index("emi_sector_idx").on(table.sectorId),
+  receivedIdx: index("emi_received_idx").on(table.receivedAt),
+}));
+export type EmailMessage = typeof emailMessages.$inferSelect;
+export type InsertEmailMessage = typeof emailMessages.$inferInsert;
+
+// ─── Anexos de E-mail ─────────────────────────────────────────────────────────
+export const emailAttachments = mysqlTable("emailAttachments", {
+  id: int("id").autoincrement().primaryKey(),
+  emailMessageId: int("emailMessageId").notNull(),
+  filename: varchar("filename", { length: 512 }).notNull(),
+  mimeType: varchar("mimeType", { length: 128 }).notNull(),
+  sizeBytes: int("sizeBytes").notNull(),
+  storageKey: varchar("storageKey", { length: 1024 }),
+  storageUrl: text("storageUrl"),
+  isInline: boolean("isInline").default(false).notNull(),
+  contentId: varchar("contentId", { length: 512 }),
+  md5: varchar("md5", { length: 32 }),
+  sha256: varchar("sha256", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  messageIdx: index("ema_msg_idx").on(table.emailMessageId),
+}));
+export type EmailAttachment = typeof emailAttachments.$inferSelect;
+export type InsertEmailAttachment = typeof emailAttachments.$inferInsert;
+
+// ─── Vínculos NUP ↔ E-mail ────────────────────────────────────────────────────
+export const emailNupLinks = mysqlTable("emailNupLinks", {
+  id: int("id").autoincrement().primaryKey(),
+  emailMessageId: int("emailMessageId").notNull(),
+  nup: varchar("nup", { length: 32 }).notNull(),
+  entityType: mysqlEnum("entityType", ["protocol", "process", "ombudsman", "conversation", "document"]).notNull(),
+  entityId: int("entityId").notNull(),
+  linkMethod: mysqlEnum("linkMethod", ["auto_message_id", "auto_subject", "auto_sender", "manual"]).notNull(),
+  linkedById: int("linkedById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  msgIdx: index("enl_msg_idx").on(table.emailMessageId),
+  nupIdx: index("enl_nup_idx").on(table.nup),
+}));
+export type EmailNupLink = typeof emailNupLinks.$inferSelect;
+export type InsertEmailNupLink = typeof emailNupLinks.$inferInsert;
+
+// ─── Regras de Roteamento Automático ─────────────────────────────────────────
+export const emailRoutingRules = mysqlTable("emailRoutingRules", {
+  id: int("id").autoincrement().primaryKey(),
+  mailboxId: int("mailboxId"),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  priority: int("priority").default(100).notNull(),
+  conditions: json("conditions").notNull(),
+  conditionLogic: mysqlEnum("conditionLogic", ["and", "or"]).default("and").notNull(),
+  actions: json("actions").notNull(),
+  matchCount: int("matchCount").default(0).notNull(),
+  lastMatchAt: timestamp("lastMatchAt"),
+  createdById: int("createdById").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  priorityIdx: index("err_priority_idx").on(table.priority),
+  activeIdx: index("err_active_idx").on(table.isActive),
+}));
+export type EmailRoutingRule = typeof emailRoutingRules.$inferSelect;
+export type InsertEmailRoutingRule = typeof emailRoutingRules.$inferInsert;
+
+// ─── Fila de Envio ────────────────────────────────────────────────────────────
+export const emailSendQueue = mysqlTable("emailSendQueue", {
+  id: int("id").autoincrement().primaryKey(),
+  mailboxId: int("mailboxId").notNull(),
+  emailMessageId: int("emailMessageId"),
+  toAddresses: text("toAddresses").notNull(),
+  ccAddresses: text("ccAddresses"),
+  bccAddresses: text("bccAddresses"),
+  replyTo: varchar("replyTo", { length: 320 }),
+  subject: varchar("subject", { length: 998 }).notNull(),
+  bodyText: text("bodyText"),
+  bodyHtml: text("bodyHtml"),
+  inReplyTo: varchar("inReplyTo", { length: 512 }),
+  references: text("references"),
+  nup: varchar("nup", { length: 32 }),
+  status: mysqlEnum("status", ["pending", "processing", "sent", "failed", "cancelled"]).default("pending").notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  maxAttempts: int("maxAttempts").default(3).notNull(),
+  lastAttemptAt: timestamp("lastAttemptAt"),
+  nextAttemptAt: timestamp("nextAttemptAt"),
+  sentAt: timestamp("sentAt"),
+  errorMessage: text("errorMessage"),
+  scheduledAt: timestamp("scheduledAt"),
+  priority: int("priority").default(5).notNull(),
+  createdById: int("createdById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  statusIdx: index("esq_status_idx").on(table.status),
+  mailboxIdx: index("esq_mailbox_idx").on(table.mailboxId),
+}));
+export type EmailSendQueue = typeof emailSendQueue.$inferSelect;
+export type InsertEmailSendQueue = typeof emailSendQueue.$inferInsert;
+
+// ─── Logs Técnicos de Sincronização ──────────────────────────────────────────
+export const emailSyncLogs = mysqlTable("emailSyncLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  mailboxId: int("mailboxId").notNull(),
+  operation: mysqlEnum("operation", ["imap_sync", "smtp_send", "rule_apply", "nup_link", "auto_reply"]).notNull(),
+  status: mysqlEnum("status", ["success", "partial", "error"]).notNull(),
+  messagesProcessed: int("messagesProcessed").default(0),
+  messagesNew: int("messagesNew").default(0),
+  messagesFailed: int("messagesFailed").default(0),
+  durationMs: int("durationMs"),
+  errorMessage: text("errorMessage"),
+  details: json("details"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  mailboxIdx: index("esl_mailbox_idx").on(table.mailboxId),
+  createdIdx: index("esl_created_idx").on(table.createdAt),
+}));
+export type EmailSyncLog = typeof emailSyncLogs.$inferSelect;
+export type InsertEmailSyncLog = typeof emailSyncLogs.$inferInsert;
+
+// ─── Auditoria de E-mail Institucional ───────────────────────────────────────
+export const emailAuditTrail = mysqlTable("emailAuditTrail", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId"),
+  userName: varchar("userName", { length: 255 }),
+  userIp: varchar("userIp", { length: 64 }),
+  action: mysqlEnum("action", [
+    "mailbox_created", "mailbox_updated", "mailbox_deleted", "mailbox_synced",
+    "message_received", "message_read", "message_replied", "message_forwarded",
+    "message_archived", "message_spam", "message_deleted", "message_restored",
+    "message_assigned", "message_transferred",
+    "nup_linked", "nup_unlinked", "nup_created",
+    "rule_created", "rule_updated", "rule_deleted", "rule_matched",
+    "attachment_downloaded", "attachment_deleted",
+    "queue_sent", "queue_failed", "queue_retried",
+  ]).notNull(),
+  entityType: mysqlEnum("entityType", ["mailbox", "message", "attachment", "rule", "queue"]).notNull(),
+  entityId: int("entityId"),
+  mailboxId: int("mailboxId"),
+  emailMessageId: int("emailMessageId"),
+  nup: varchar("nup", { length: 32 }),
+  previousValue: json("previousValue"),
+  newValue: json("newValue"),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("eat_user_idx").on(table.userId),
+  actionIdx: index("eat_action_idx").on(table.action),
+  mailboxIdx: index("eat_mailbox_idx").on(table.mailboxId),
+  nupIdx: index("eat_nup_idx").on(table.nup),
+  createdIdx: index("eat_created_idx").on(table.createdAt),
+}));
+export type EmailAuditTrail = typeof emailAuditTrail.$inferSelect;
+export type InsertEmailAuditTrail = typeof emailAuditTrail.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// cAIus — Agente Institucional de IA
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Agentes cAIus (perfis de instrução) ─────────────────────────────────────
+export const caiusAgents = mysqlTable("caiusAgents", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  slug: varchar("slug", { length: 64 }).notNull(),
+  context: mysqlEnum("context", ["external", "internal", "both"]).default("both").notNull(),
+  systemPrompt: text("systemPrompt").notNull(),
+  description: text("description"),
+  model: varchar("model", { length: 128 }).default("gemini-2.5-flash"),
+  maxTokens: int("maxTokens").default(2048),
+  temperature: varchar("temperature", { length: 8 }).default("0.4"),
+  isActive: boolean("isActive").default(true).notNull(),
+  isDefault: boolean("isDefault").default(false).notNull(),
+  allowVoice: boolean("allowVoice").default(true).notNull(),
+  allowKnowledgeBase: boolean("allowKnowledgeBase").default(true).notNull(),
+  createdById: int("createdById").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  slugIdx: index("ca_slug_idx").on(table.slug),
+  contextIdx: index("ca_context_idx").on(table.context),
+}));
+export type CaiusAgent = typeof caiusAgents.$inferSelect;
+export type InsertCaiusAgent = typeof caiusAgents.$inferInsert;
+
+// ─── Sessões de Conversa com o cAIus ─────────────────────────────────────────
+export const caiusSessions = mysqlTable("caiusSessions", {
+  id: int("id").autoincrement().primaryKey(),
+  agentId: int("agentId").notNull(),
+  userId: int("userId"),
+  citizenId: int("citizenId"),
+  context: mysqlEnum("context", ["external", "internal"]).notNull(),
+  channel: mysqlEnum("channel", ["chat", "whatsapp", "email", "voice", "internal"]).default("chat").notNull(),
+  nup: varchar("nup", { length: 32 }),
+  protocolId: int("protocolId"),
+  emailMessageId: int("emailMessageId"),
+  conversationId: int("conversationId"),
+  title: varchar("title", { length: 512 }),
+  status: mysqlEnum("status", ["active", "closed", "archived"]).default("active").notNull(),
+  summary: text("summary"),
+  metadata: json("metadata"),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  closedAt: timestamp("closedAt"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  agentIdx: index("cs_agent_idx").on(table.agentId),
+  userIdx: index("cs_user_idx").on(table.userId),
+  nupIdx: index("cs_nup_idx").on(table.nup),
+  statusIdx: index("cs_status_idx").on(table.status),
+  channelIdx: index("cs_channel_idx").on(table.channel),
+}));
+export type CaiusSession = typeof caiusSessions.$inferSelect;
+export type InsertCaiusSession = typeof caiusSessions.$inferInsert;
+
+// ─── Mensagens das Sessões cAIus ─────────────────────────────────────────────
+export const caiusMessages = mysqlTable("caiusMessages", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(),
+  role: mysqlEnum("role", ["user", "assistant", "system"]).notNull(),
+  contentType: mysqlEnum("contentType", ["text", "audio", "image", "file"]).default("text").notNull(),
+  content: text("content").notNull(),
+  audioUrl: varchar("audioUrl", { length: 1024 }),
+  audioTranscription: text("audioTranscription"),
+  audioDurationSeconds: int("audioDurationSeconds"),
+  audioConfidence: varchar("audioConfidence", { length: 8 }),
+  fileUrl: varchar("fileUrl", { length: 1024 }),
+  fileName: varchar("fileName", { length: 512 }),
+  tokensUsed: int("tokensUsed"),
+  sourcesUsed: json("sourcesUsed"),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  sessionIdx: index("cm_session_idx").on(table.sessionId),
+  roleIdx: index("cm_role_idx").on(table.role),
+  createdIdx: index("cm_created_idx").on(table.createdAt),
+}));
+export type CaiusMessage = typeof caiusMessages.$inferSelect;
+export type InsertCaiusMessage = typeof caiusMessages.$inferInsert;
+
+// ─── Ações Sugeridas pelo cAIus ───────────────────────────────────────────────
+export const caiusSuggestedActions = mysqlTable("caiusSuggestedActions", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(),
+  messageId: int("messageId"),
+  actionType: mysqlEnum("actionType", [
+    "open_protocol", "link_nup", "assign_sector", "suggest_response",
+    "classify_email", "summarize", "identify_service", "set_priority",
+    "request_document", "escalate", "close_protocol", "other",
+  ]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  payload: json("payload"),
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "edited", "applied"]).default("pending").notNull(),
+  reviewedById: int("reviewedById"),
+  reviewedAt: timestamp("reviewedAt"),
+  reviewNote: text("reviewNote"),
+  appliedAt: timestamp("appliedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  sessionIdx: index("csa_session_idx").on(table.sessionId),
+  statusIdx: index("csa_status_idx").on(table.status),
+  actionTypeIdx: index("csa_type_idx").on(table.actionType),
+}));
+export type CaiusSuggestedAction = typeof caiusSuggestedActions.$inferSelect;
+export type InsertCaiusSuggestedAction = typeof caiusSuggestedActions.$inferInsert;
+
+// ─── Base de Conhecimento do cAIus ────────────────────────────────────────────
+export const caiusKnowledgeItems = mysqlTable("caiusKnowledgeItems", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 512 }).notNull(),
+  sourceType: mysqlEnum("sourceType", ["document", "text", "link", "faq", "regulation", "manual", "flow", "template"]).notNull(),
+  content: longtext("content"),
+  summary: text("summary"),
+  fileUrl: varchar("fileUrl", { length: 1024 }),
+  fileName: varchar("fileName", { length: 512 }),
+  fileMimeType: varchar("fileMimeType", { length: 128 }),
+  fileSizeBytes: int("fileSizeBytes"),
+  linkUrl: varchar("linkUrl", { length: 2048 }),
+  linkLastFetchedAt: timestamp("linkLastFetchedAt"),
+  linkAutoUpdate: boolean("linkAutoUpdate").default(false),
+  category: varchar("category", { length: 128 }),
+  sectorId: int("sectorId"),
+  serviceId: int("serviceId"),
+  tags: json("tags"),
+  keywords: text("keywords"),
+  status: mysqlEnum("status", ["draft", "active", "archived", "revoked"]).default("draft").notNull(),
+  version: int("version").default(1).notNull(),
+  validFrom: timestamp("validFrom"),
+  validUntil: timestamp("validUntil"),
+  authorId: int("authorId").notNull(),
+  reviewedById: int("reviewedById"),
+  reviewedAt: timestamp("reviewedAt"),
+  approvedById: int("approvedById"),
+  approvedAt: timestamp("approvedAt"),
+  embedding: json("embedding"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  statusIdx: index("cki_status_idx").on(table.status),
+  sourceTypeIdx: index("cki_source_idx").on(table.sourceType),
+  categoryIdx: index("cki_category_idx").on(table.category),
+  sectorIdx: index("cki_sector_idx").on(table.sectorId),
+}));
+export type CaiusKnowledgeItem = typeof caiusKnowledgeItems.$inferSelect;
+export type InsertCaiusKnowledgeItem = typeof caiusKnowledgeItems.$inferInsert;
+
+// ─── Versões da Base de Conhecimento ─────────────────────────────────────────
+export const caiusKnowledgeVersions = mysqlTable("caiusKnowledgeVersions", {
+  id: int("id").autoincrement().primaryKey(),
+  itemId: int("itemId").notNull(),
+  version: int("version").notNull(),
+  content: longtext("content"),
+  changedById: int("changedById").notNull(),
+  changeNote: text("changeNote"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  itemIdx: index("ckv_item_idx").on(table.itemId),
+}));
+export type CaiusKnowledgeVersion = typeof caiusKnowledgeVersions.$inferSelect;
+export type InsertCaiusKnowledgeVersion = typeof caiusKnowledgeVersions.$inferInsert;
+
+// ─── Logs de Uso da Base de Conhecimento ─────────────────────────────────────
+export const caiusKnowledgeUsageLogs = mysqlTable("caiusKnowledgeUsageLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId"),
+  messageId: int("messageId"),
+  itemId: int("itemId").notNull(),
+  relevanceScore: varchar("relevanceScore", { length: 8 }),
+  usedInResponse: boolean("usedInResponse").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  sessionIdx: index("ckul_session_idx").on(table.sessionId),
+  itemIdx: index("ckul_item_idx").on(table.itemId),
+}));
+export type CaiusKnowledgeUsageLog = typeof caiusKnowledgeUsageLogs.$inferSelect;
+export type InsertCaiusKnowledgeUsageLog = typeof caiusKnowledgeUsageLogs.$inferInsert;
+
+// ─── Interações de Voz do cAIus ───────────────────────────────────────────────
+export const caiusVoiceInteractions = mysqlTable("caiusVoiceInteractions", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(),
+  messageId: int("messageId"),
+  direction: mysqlEnum("direction", ["input", "output"]).notNull(),
+  audioUrl: varchar("audioUrl", { length: 1024 }),
+  audioStorageKey: varchar("audioStorageKey", { length: 1024 }),
+  durationSeconds: int("durationSeconds"),
+  transcription: text("transcription"),
+  transcriptionConfidence: varchar("transcriptionConfidence", { length: 8 }),
+  language: varchar("language", { length: 8 }).default("pt-BR"),
+  ttsVoice: varchar("ttsVoice", { length: 64 }),
+  status: mysqlEnum("status", ["pending", "processing", "done", "error"]).default("pending").notNull(),
+  errorMessage: text("errorMessage"),
+  requiresHumanReview: boolean("requiresHumanReview").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  sessionIdx: index("cvi_session_idx").on(table.sessionId),
+  directionIdx: index("cvi_direction_idx").on(table.direction),
+}));
+export type CaiusVoiceInteraction = typeof caiusVoiceInteractions.$inferSelect;
+export type InsertCaiusVoiceInteraction = typeof caiusVoiceInteractions.$inferInsert;
+
+// ─── Auditoria do cAIus ───────────────────────────────────────────────────────
+export const caiusAuditLogs = mysqlTable("caiusAuditLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId"),
+  messageId: int("messageId"),
+  actionId: int("actionId"),
+  userId: int("userId"),
+  userName: varchar("userName", { length: 255 }),
+  userIp: varchar("userIp", { length: 64 }),
+  citizenId: int("citizenId"),
+  event: mysqlEnum("event", [
+    "session_started", "session_closed",
+    "message_sent", "message_received",
+    "voice_transcribed", "voice_synthesized",
+    "knowledge_queried", "knowledge_used",
+    "action_suggested", "action_approved", "action_rejected", "action_applied",
+    "email_analyzed", "protocol_linked", "nup_linked",
+    "error_occurred",
+  ]).notNull(),
+  channel: mysqlEnum("channel", ["chat", "whatsapp", "email", "voice", "internal"]),
+  nup: varchar("nup", { length: 32 }),
+  protocolId: int("protocolId"),
+  emailMessageId: int("emailMessageId"),
+  inputSummary: text("inputSummary"),
+  outputSummary: text("outputSummary"),
+  sourcesUsed: json("sourcesUsed"),
+  tokensUsed: int("tokensUsed"),
+  durationMs: int("durationMs"),
+  metadata: json("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  sessionIdx: index("cal_session_idx").on(table.sessionId),
+  userIdx: index("cal_user_idx").on(table.userId),
+  eventIdx: index("cal_event_idx").on(table.event),
+  nupIdx: index("cal_nup_idx").on(table.nup),
+  createdIdx: index("cal_created_idx").on(table.createdAt),
+}));
+export type CaiusAuditLog = typeof caiusAuditLogs.$inferSelect;
+export type InsertCaiusAuditLog = typeof caiusAuditLogs.$inferInsert;
+
+// ─── Feedback do Usuário sobre o cAIus ───────────────────────────────────────
+export const caiusFeedback = mysqlTable("caiusFeedback", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionId: int("sessionId").notNull(),
+  messageId: int("messageId"),
+  userId: int("userId"),
+  citizenId: int("citizenId"),
+  rating: mysqlEnum("rating", ["positive", "negative", "neutral"]).notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  sessionIdx: index("cf_session_idx").on(table.sessionId),
+  ratingIdx: index("cf_rating_idx").on(table.rating),
+}));
+export type CaiusFeedback = typeof caiusFeedback.$inferSelect;
+export type InsertCaiusFeedback = typeof caiusFeedback.$inferInsert;

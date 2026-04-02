@@ -184,3 +184,17 @@
 
 - [x] Adicionar item "Atendimento" no menu de navegação superior da Central do Cidadão
 - [x] Incluir item no menu mobile (hambúrguer) também
+
+## Sincronização GitHub (commits até 16:48)
+
+- [x] Incorporar 5 commits do GitHub: fix inbox barra de ações, E-mail Institucional, cAIus Agente IA
+- [x] Copiar arquivos novos: EmailInstitucional.tsx, CaiusAgent.tsx, email-institutional.ts, caius-agent.ts, routers-email-institutional.ts, routers-caius-agent.ts
+- [x] Adicionar rotas EmailInstitucional e CaiusAgent no App.tsx
+- [x] Adicionar itens de menu E-mail Institucional e cAIus no OmniLayout.tsx
+- [x] Registrar emailInstitutionalRouter e caiusAgentRouter no routers.ts
+- [x] Inicializar módulos E-mail Institucional e cAIus no server/_core/index.ts
+- [x] Instalar dependências: imap, @types/imap, mailparser
+- [x] Aplicar migrações SQL 0004 (E-mail Institucional) e 0005 (cAIus) no banco TiDB
+- [x] Corrigir erros TypeScript: ctx.ip→ctx.req.ip, emailjs-imap-client→imap, apply→applyAction, content cast String(), entityId.protocolId
+- [x] Zero erros TypeScript (tsc --noEmit --skipLibCheck)
+- [x] 109/109 testes passando

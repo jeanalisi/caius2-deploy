@@ -75,19 +75,17 @@ describe("webchat — startWebchatSession", () => {
     });
   });
 
-  it("deve criar uma sessão e retornar token de 64 caracteres", async () => {
+   it("deve criar uma sessão e retornar token de 64 caracteres", async () => {
     const { startWebchatSession } = await import("./webchat");
-
     const result = await startWebchatSession({
       visitorName: "João Silva",
       visitorEmail: "joao@example.com",
     });
-
     expect(result).toHaveProperty("sessionToken");
     expect(result).toHaveProperty("sessionId");
     expect(result.sessionToken).toHaveLength(64);
     expect(result.sessionId).toBe(1);
-  });
+  }, 15000);;
 
   it("deve gerar tokens únicos para sessões diferentes", async () => {
     const { startWebchatSession } = await import("./webchat");

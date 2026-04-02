@@ -46,6 +46,7 @@ import {
   Wifi,
   Workflow,
   Bot,
+  MailOpen,
 } from "lucide-react";
 import React, { useState, useRef, createContext, useContext, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -89,8 +90,10 @@ const caiusItems = [
 
 const channelItems = [
   { href: "/channel-health", icon: Activity, label: "Saúde dos Canais" },
+  { href: "/email-institucional", icon: MailOpen, label: "E-mail Institucional" },
   { href: "/chatbot", icon: Bot, label: "Chatbot WhatsApp" },
   { href: "/atendimento", icon: MessageSquare, label: "Webchat Cidadão" },
+  { href: "/caius", icon: Sparkles, label: "cAIus — Agente de IA" },
 ];
 
 const adminItems = [
