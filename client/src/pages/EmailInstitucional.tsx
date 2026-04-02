@@ -280,6 +280,16 @@ function InboxTab() {
   const [composeMailboxId, setComposeMailboxId] = useState<number | undefined>();
   const [composeNup, setComposeNup] = useState("");
 
+  // Estado de forward
+  const [forwardOpen, setForwardOpen] = useState(false);
+  const [forwardTo, setForwardTo] = useState("");
+  const [forwardNoteHtml, setForwardNoteHtml] = useState("");
+  const [forwardAttachments, setForwardAttachments] = useState<{ file: File; name: string; size: number; s3Url?: string; uploading?: boolean; error?: string }[]>([]);
+  const forwardFileRef = useRef<HTMLInputElement>(null);
+
+  // Agendamento de envio
+  const [composeScheduledAt, setComposeScheduledAt] = useState("");
+
   // Estado de anexos (reply + compose compartilham listas separadas)
   const [replyAttachments, setReplyAttachments] = useState<{ file: File; name: string; size: number; s3Url?: string; uploading?: boolean; error?: string }[]>([]);
   const [composeAttachments, setComposeAttachments] = useState<{ file: File; name: string; size: number; s3Url?: string; uploading?: boolean; error?: string }[]>([]);
@@ -317,11 +327,56 @@ function InboxTab() {
   const sendMutation = trpc.emailInstitutional.compose.send.useMutation({
     onSuccess: () => {
       setComposeOpen(false);
-      setComposeTo(""); setComposeCc(""); setComposeSubject(""); setComposeBodyHtml(""); setComposeNup("");
+      setComposeTo(""); setComposeCc(""); setComposeSubject(""); setComposeBodyHtml(""); setComposeNup(""); setComposeScheduledAt("");
       setComposeAttachments([]);
       refetch();
     },
   });
+
+  const forwardMutation = trpc.emailInstitutional.compose.forward.useMutation({
+    onSuccess: () => {
+      setForwardOpen(false);
+      setForwardTo("");
+      setForwardNoteHtml("");
+      setForwardAttachments([]);
+      refetch();
+    },
+  });
+
+  /** Retorna o HTML da assinatura da caixa postal selecionada */
+  const getSignatureHtml = (mailboxId?: number): string => {
+    if (!mailboxId || !mailboxes) return "";
+    const mb = (mailboxes as any[]).find((m: any) => m.id === mailboxId);
+    if (!mb?.signature) return "";
+    return `<br/><br/><hr/><p style="color:#666;font-size:13px">${mb.signature.replace(/\n/g, "<br/>")}</p>`;
+  };
+
+  /** Abre o dialog de reply com assinatura pré-carregada */
+  const openReply = () => {
+    const mailboxId = selectedMessage?.mailboxId;
+    const sig = getSignatureHtml(mailboxId);
+    setReplyBodyHtml(sig ? `<p><br/></p>${sig}` : "");
+    setReplyOpen(true);
+  };
+
+  /** Abre o dialog de compose com assinatura da caixa selecionada */
+  const openCompose = (mailboxId?: number) => {
+    const mid = mailboxId ?? composeMailboxId;
+    const sig = getSignatureHtml(mid);
+    setComposeBodyHtml(sig ? `<p><br/></p>${sig}` : "");
+    setComposeOpen(true);
+  };
+
+  /** Abre o dialog de forward com assinatura */
+  const openForward = () => {
+    const mailboxId = selectedMessage?.mailboxId;
+    const sig = getSignatureHtml(mailboxId);
+    const originalBlock = msgDetail
+      ? `<br/><br/><hr/><p><strong>--- Mensagem encaminhada ---</strong><br/>De: ${msgDetail.fromAddress}<br/>Assunto: ${msgDetail.subject}</p><br/>${msgDetail.bodyHtml ?? msgDetail.bodyText ?? ""}`
+      : "";
+    setForwardNoteHtml(`<p><br/></p>${sig}${originalBlock}`);
+    setForwardOpen(true);
+  };
 
   /** Upload de um arquivo para S3 via attachments.upload tRPC */
   const uploadAttachmentFile = async (
@@ -388,7 +443,7 @@ function InboxTab() {
       <div className={cn("flex flex-col gap-3", selectedMessage ? "w-80 shrink-0" : "flex-1")}>
         {/* Filtros */}
           <div className="flex gap-2">
-          <Button onClick={() => setComposeOpen(true)} className="shrink-0 gap-1.5">
+          <Button onClick={() => openCompose()} className="shrink-0 gap-1.5">
             <PenSquare className="h-4 w-4" />
             Novo E-mail
           </Button>
@@ -507,10 +562,18 @@ function InboxTab() {
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => setReplyOpen(true)}
+                onClick={openReply}
               >
                 <Reply className="h-4 w-4 mr-1" />
                 Responder
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openForward}
+              >
+                <Forward className="h-4 w-4 mr-1" />
+                Encaminhar
               </Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -823,14 +886,32 @@ function InboxTab() {
                 </Button>
               </div>
             </div>
+
+            {/* Agendamento */}
+            <div className="border rounded-lg p-3 bg-muted/30">
+              <Label className="flex items-center gap-2 mb-2">
+                <Clock className="h-4 w-4" />
+                Agendar envio (opcional)
+              </Label>
+              <Input
+                type="datetime-local"
+                value={composeScheduledAt}
+                onChange={e => setComposeScheduledAt(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+              />
+              {composeScheduledAt && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  O e-mail será enviado em {format(new Date(composeScheduledAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                </p>
+              )}
+            </div>
           </div>
 
           <DialogFooter className="mt-2">
-            <Button variant="outline" onClick={() => { setComposeOpen(false); setComposeAttachments([]); }}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setComposeOpen(false); setComposeAttachments([]); setComposeScheduledAt(""); }}>Cancelar</Button>
             <Button
               onClick={() => {
                 if (!composeMailboxId || !composeTo.trim() || !composeSubject.trim()) return;
-                // Parsear destinatários separados por vírgula
                 const toList = composeTo.split(",").map(s => s.trim()).filter(Boolean).map(addr => ({ address: addr }));
                 const ccList = composeCc ? composeCc.split(",").map(s => s.trim()).filter(Boolean).map(addr => ({ address: addr })) : undefined;
                 sendMutation.mutate({
@@ -841,12 +922,116 @@ function InboxTab() {
                   bodyHtml: composeBodyHtml || undefined,
                   bodyText: composeBodyHtml.replace(/<[^>]+>/g, "") || undefined,
                   nup: composeNup || undefined,
+                  scheduledAt: composeScheduledAt ? new Date(composeScheduledAt).toISOString() : undefined,
                 });
               }}
               disabled={sendMutation.isPending || !composeMailboxId || !composeTo.trim() || !composeSubject.trim()}
             >
-              {sendMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-              Enviar E-mail
+              {sendMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> :
+               composeScheduledAt ? <Clock className="h-4 w-4 mr-2" /> :
+               <Send className="h-4 w-4 mr-2" />}
+              {composeScheduledAt ? "Agendar Envio" : "Enviar E-mail"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Encaminhar ────────────────────────────────────────────── */}
+      <Dialog open={forwardOpen} onOpenChange={open => { if (!open) { setForwardOpen(false); setForwardAttachments([]); } }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Forward className="h-5 w-5" /> Encaminhar mensagem
+            </DialogTitle>
+          </DialogHeader>
+          {selectedMessage && (
+            <div className="text-sm text-muted-foreground bg-muted/40 rounded p-2">
+              Encaminhando: <strong>{selectedMessage.subject}</strong>
+            </div>
+          )}
+          <div className="space-y-3">
+            {/* Para */}
+            <div>
+              <Label>Para</Label>
+              <Input
+                placeholder="destinatario@exemplo.com.br"
+                value={forwardTo}
+                onChange={e => setForwardTo(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-0.5">Separe múltiplos endereços com vírgula</p>
+            </div>
+
+            {/* Nota adicional + corpo original */}
+            <div>
+              <Label>Mensagem (nota + conteúdo encaminhado)</Label>
+              <RichTextEditor
+                value={forwardNoteHtml}
+                onChange={setForwardNoteHtml}
+                placeholder="Adicione uma nota antes da mensagem encaminhada..."
+                minHeight="220px"
+              />
+            </div>
+
+            {/* Anexos */}
+            <div>
+              <Label>Anexos adicionais</Label>
+              <input
+                ref={forwardFileRef}
+                type="file"
+                multiple
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                onChange={e => handleAddFile(e.target.files, setForwardAttachments)}
+              />
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {forwardAttachments.map((att, i) => (
+                  <div key={i} className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium",
+                    att.error ? "bg-red-50 border-red-200 text-red-700" :
+                    att.uploading ? "bg-blue-50 border-blue-200 text-blue-700" :
+                    att.s3Url ? "bg-green-50 border-green-200 text-green-700" :
+                    "bg-gray-50 border-gray-200 text-gray-700"
+                  )}>
+                    {att.uploading ? <Loader2 className="h-3 w-3 animate-spin" /> :
+                     att.error ? <AlertCircle className="h-3 w-3" /> :
+                     att.s3Url ? <CheckCircle2 className="h-3 w-3" /> :
+                     <Paperclip className="h-3 w-3" />}
+                    <span className="truncate max-w-[140px]" title={att.error ?? att.name}>{att.name}</span>
+                    <span className="text-muted-foreground">({Math.round(att.size / 1024)} KB)</span>
+                    {!att.uploading && (
+                      <button onClick={() => setForwardAttachments(prev => prev.filter((_, idx) => idx !== i))}>
+                        <X className="h-3 w-3 hover:text-red-500" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button" variant="outline" size="sm"
+                  onClick={() => forwardFileRef.current?.click()}
+                  className="h-7 gap-1.5 text-xs"
+                >
+                  <Paperclip className="h-3.5 w-3.5" /> Anexar arquivo
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => { setForwardOpen(false); setForwardAttachments([]); }}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (!selectedMessage || !forwardTo.trim()) return;
+                const toList = forwardTo.split(",").map(s => s.trim()).filter(Boolean).map(addr => ({ address: addr }));
+                forwardMutation.mutate({
+                  emailMessageId: selectedMessage.id,
+                  to: toList,
+                  note: forwardNoteHtml.replace(/<[^>]+>/g, "") || undefined,
+                });
+              }}
+              disabled={forwardMutation.isPending || !forwardTo.trim()}
+            >
+              {forwardMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Forward className="h-4 w-4 mr-2" />}
+              Encaminhar
             </Button>
           </DialogFooter>
         </DialogContent>
