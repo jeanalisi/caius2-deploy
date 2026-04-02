@@ -125,20 +125,18 @@ const defaultInviteForm: InviteForm = {
   expiresInDays: 7,
 };
 
-// ─── Dialog de Permissões de Menu ────────────────────────────────────────────
-function MenuPermissionsDialog({
+// ─── Painel Inline de Permissões de Menu ─────────────────────────────────────
+function MenuPermissionsPanel({
   user,
-  open,
   onClose,
 }: {
   user: any;
-  open: boolean;
   onClose: () => void;
 }) {
   const utils = trpc.useUtils();
   const { data: perms, isLoading } = trpc.users.getMenuPermissions.useQuery(
     { userId: user?.id ?? 0 },
-    { enabled: open && !!user }
+    { enabled: !!user }
   );
 
   const setPermMutation = trpc.users.setMenuPermission.useMutation({
@@ -146,11 +144,8 @@ function MenuPermissionsDialog({
     onError: (e) => toast.error(e.message),
   });
 
-  // Admins têm acesso total — mostrar aviso
   const isAdmin = user?.role === "admin";
 
-  // Determina se um item está habilitado:
-  // - Se não há registro, padrão = true (acesso liberado)
   const isEnabled = (key: string) => {
     if (!perms) return true;
     if (key in perms) return (perms as Record<string, boolean>)[key];
@@ -158,11 +153,10 @@ function MenuPermissionsDialog({
   };
 
   const handleToggle = (key: string, value: boolean) => {
-    if (isAdmin) return; // admins sempre têm acesso total
+    if (isAdmin) return;
     setPermMutation.mutate({ userId: user.id, menuKey: key, enabled: value });
   };
 
-  // Habilitar/desabilitar grupo inteiro
   const handleGroupToggle = (items: { key: string }[], value: boolean) => {
     if (isAdmin) return;
     items.forEach(item => {
@@ -171,88 +165,94 @@ function MenuPermissionsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Permissões de Menu — {user?.name ?? user?.email ?? "Usuário"}
-          </DialogTitle>
-        </DialogHeader>
-
-        {isAdmin && (
-          <div className="rounded-lg bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-primary font-medium">
-            Administradores têm acesso irrestrito a todos os itens de menu.
+    <div className="col-span-12 border-t border-border/60 bg-muted/20 animate-in slide-in-from-top-2 duration-200">
+      {/* Cabeçalho do painel */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/60">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 border border-primary/20">
+            <Settings className="h-4 w-4 text-primary" />
           </div>
-        )}
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Permissões de Menu
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {user?.name ?? user?.email ?? "Usuário"}
+            </p>
           </div>
-        ) : (
-          <ScrollArea className="flex-1 pr-2">
-            <div className="space-y-5 pb-2">
-              {MENU_GROUPS.map(({ group, items }) => {
-                const allEnabled = items.every(i => isEnabled(i.key));
-                const someEnabled = items.some(i => isEnabled(i.key));
-                return (
-                  <Card key={group} className="border-border/60">
-                    <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
-                      <CardTitle className="text-sm font-semibold text-foreground/80 uppercase tracking-wider">
-                        {group}
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          {items.filter(i => isEnabled(i.key)).length}/{items.length} habilitados
-                        </span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 text-xs"
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClose} className="h-7 gap-1.5 text-xs">
+          Fechar painel
+        </Button>
+      </div>
+
+      {/* Aviso admin */}
+      {isAdmin && (
+        <div className="mx-6 mt-4 rounded-lg bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-primary font-medium">
+          Administradores têm acesso irrestrito a todos os itens de menu.
+        </div>
+      )}
+
+      {/* Conteúdo */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        </div>
+      ) : (
+        <div className="px-6 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {MENU_GROUPS.map(({ group, items }) => {
+              const allEnabled = items.every(i => isEnabled(i.key));
+              return (
+                <Card key={group} className="border-border/60 bg-card">
+                  <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
+                    <CardTitle className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
+                      {group}
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground">
+                        {items.filter(i => isEnabled(i.key)).length}/{items.length}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[10px] px-2"
+                        disabled={isAdmin || setPermMutation.isPending}
+                        onClick={() => handleGroupToggle(items, !allEnabled)}
+                      >
+                        {allEnabled ? "Desabilitar" : "Habilitar"} todos
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-3 pt-0 space-y-1">
+                    {items.map(({ key, label, icon: Icon }) => (
+                      <div
+                        key={key}
+                        className={cn(
+                          "flex items-center justify-between rounded-md px-2.5 py-1.5 transition-colors",
+                          isEnabled(key) ? "bg-muted/30" : "bg-muted/10 opacity-50"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-xs truncate">{label}</span>
+                        </div>
+                        <Switch
+                          checked={isEnabled(key)}
                           disabled={isAdmin || setPermMutation.isPending}
-                          onClick={() => handleGroupToggle(items, !allEnabled)}
-                        >
-                          {allEnabled ? "Desabilitar todos" : "Habilitar todos"}
-                        </Button>
+                          onCheckedChange={(v) => handleToggle(key, v)}
+                          className="scale-90 shrink-0"
+                        />
                       </div>
-                    </CardHeader>
-                    <CardContent className="px-4 pb-3 pt-0">
-                      <div className="grid grid-cols-1 gap-1">
-                        {items.map(({ key, label, icon: Icon }) => (
-                          <div
-                            key={key}
-                            className={cn(
-                              "flex items-center justify-between rounded-md px-3 py-2 transition-colors",
-                              isEnabled(key) ? "bg-muted/30" : "bg-muted/10 opacity-60"
-                            )}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                              <span className="text-sm">{label}</span>
-                              <span className="text-[10px] text-muted-foreground font-mono">{key}</span>
-                            </div>
-                            <Switch
-                              checked={isEnabled(key)}
-                              disabled={isAdmin || setPermMutation.isPending}
-                              onCheckedChange={(v) => handleToggle(key, v)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        )}
-
-        <DialogFooter className="mt-2">
-          <Button variant="outline" onClick={onClose}>Fechar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                    ))}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -375,67 +375,85 @@ export default function Agents() {
                   <div className="col-span-1">Menu</div>
                 </div>
                 {filteredUsers.map((user) => (
-                  <div key={user.id} className="grid grid-cols-12 gap-3 px-4 py-3 items-center hover:bg-accent/30 transition-colors">
-                    <div className="col-span-3 flex items-center gap-2.5">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                          {(user.name ?? "U").charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{user.name ?? "—"}</p>
-                        <p className="text-xs text-muted-foreground">{user.email ?? "—"}</p>
+                  <div key={user.id}>
+                    {/* Linha do usuário */}
+                    <div
+                      className={cn(
+                        "grid grid-cols-12 gap-3 px-4 py-3 items-center transition-colors",
+                        permUser?.id === user.id
+                          ? "bg-primary/5 border-l-2 border-primary"
+                          : "hover:bg-accent/30"
+                      )}
+                    >
+                      <div className="col-span-3 flex items-center gap-2.5">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                            {(user.name ?? "U").charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{user.name ?? "—"}</p>
+                          <p className="text-xs text-muted-foreground">{user.email ?? "—"}</p>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <Select
+                          value={user.role}
+                          onValueChange={(v) => update.mutate({ id: user.id, role: v as any })}
+                        >
+                          <SelectTrigger className={cn(
+                            "h-7 text-[10px] border rounded-full px-2 w-24",
+                            user.role === "admin"
+                              ? "bg-primary/10 text-primary border-primary/20"
+                              : "bg-secondary text-muted-foreground border-border"
+                          )}>
+                            <Shield className="h-2.5 w-2.5 mr-1" />
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="user">Usuário</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="col-span-2">
+                        <Switch
+                          checked={user.isAgent}
+                          onCheckedChange={(v) => update.mutate({ id: user.id, isAgent: v })}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <Switch
+                          checked={user.isAvailable}
+                          disabled={!user.isAgent}
+                          onCheckedChange={(v) => update.mutate({ id: user.id, isAvailable: v })}
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">
+                          {user.lastSignedIn ? new Date(user.lastSignedIn).toLocaleDateString("pt-BR") : "—"}
+                        </p>
+                      </div>
+                      <div className="col-span-1">
+                        <Button
+                          variant={permUser?.id === user.id ? "default" : "ghost"}
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Gerenciar permissões de menu"
+                          onClick={() => setPermUser(permUser?.id === user.id ? null : user)}
+                        >
+                          <Settings className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="col-span-2">
-                      <Select
-                        value={user.role}
-                        onValueChange={(v) => update.mutate({ id: user.id, role: v as any })}
-                      >
-                        <SelectTrigger className={cn(
-                          "h-7 text-[10px] border rounded-full px-2 w-24",
-                          user.role === "admin"
-                            ? "bg-primary/10 text-primary border-primary/20"
-                            : "bg-secondary text-muted-foreground border-border"
-                        )}>
-                          <Shield className="h-2.5 w-2.5 mr-1" />
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">Usuário</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="col-span-2">
-                      <Switch
-                        checked={user.isAgent}
-                        onCheckedChange={(v) => update.mutate({ id: user.id, isAgent: v })}
+
+                    {/* Painel inline de permissões — abre abaixo da linha */}
+                    {permUser?.id === user.id && (
+                      <MenuPermissionsPanel
+                        user={user}
+                        onClose={() => setPermUser(null)}
                       />
-                    </div>
-                    <div className="col-span-2">
-                      <Switch
-                        checked={user.isAvailable}
-                        disabled={!user.isAgent}
-                        onCheckedChange={(v) => update.mutate({ id: user.id, isAvailable: v })}
-                      />
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-xs text-muted-foreground">
-                        {user.lastSignedIn ? new Date(user.lastSignedIn).toLocaleDateString("pt-BR") : "—"}
-                      </p>
-                    </div>
-                    <div className="col-span-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        title="Gerenciar permissões de menu"
-                        onClick={() => setPermUser(user)}
-                      >
-                        <Settings className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -444,12 +462,7 @@ export default function Agents() {
         </Card>
       </div>
 
-      {/* Dialog: Permissões de Menu */}
-      <MenuPermissionsDialog
-        user={permUser}
-        open={!!permUser}
-        onClose={() => setPermUser(null)}
-      />
+
 
       {/* Invite Dialog */}
       <Dialog open={showInvite} onOpenChange={(open) => { if (!open) { setShowInvite(false); setGeneratedLink(null); } }}>
