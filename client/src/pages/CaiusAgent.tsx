@@ -6,11 +6,9 @@
  * Abas:
  *  1. Chat — conversa com o agente (texto + voz)
  *  2. Sessões — histórico de conversas
- *  3. Base de Conhecimento — gestão de documentos e fontes
- *  4. Ações Sugeridas — revisão e aplicação de ações da IA
- *  5. Agentes — configuração de perfis de instrução
- *  6. Auditoria — trilha completa de eventos
- *  7. Dashboard — estatísticas e painel de uso
+ *
+ * Configurações (Base de Conhecimento, Agentes, Ações, Dashboard, Auditoria)
+ * estão em /caius-config (CaiusConfig.tsx)
  */
 
 import { useState, useRef, useEffect } from "react";
@@ -958,11 +956,6 @@ export default function CaiusAgent() {
               {[
                 { value: "chat", label: "Chat", icon: Bot },
                 { value: "sessions", label: "Sessões", icon: MessageSquare },
-                { value: "knowledge", label: "Base de Conhecimento", icon: BookOpen },
-                { value: "actions", label: "Ações Sugeridas", icon: Zap },
-                { value: "agents", label: "Agentes", icon: Settings },
-                { value: "audit", label: "Auditoria", icon: Shield },
-                { value: "dashboard", label: "Dashboard", icon: BarChart3 },
               ].map(tab => (
                 <TabsTrigger
                   key={tab.value}
@@ -979,11 +972,6 @@ export default function CaiusAgent() {
           <div className="flex-1" style={{ minHeight: 0, overflow: "hidden" }}>
             <TabsContent value="chat" className="h-full m-0"><ChatTab /></TabsContent>
             <TabsContent value="sessions" className="h-full m-0"><SessionsTab /></TabsContent>
-            <TabsContent value="knowledge" className="h-full m-0"><KnowledgeTab /></TabsContent>
-            <TabsContent value="actions" className="h-full m-0"><ActionsTab /></TabsContent>
-            <TabsContent value="agents" className="h-full m-0"><AgentsTab /></TabsContent>
-            <TabsContent value="audit" className="h-full m-0"><AuditTab /></TabsContent>
-            <TabsContent value="dashboard" className="h-full m-0"><DashboardTab /></TabsContent>
           </div>
         </Tabs>
       </div>

@@ -47,6 +47,7 @@ import {
   Workflow,
   Bot,
   MailOpen,
+  Settings,
 } from "lucide-react";
 import React, { useState, useRef, createContext, useContext, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -94,6 +95,7 @@ const channelItems = [
   { href: "/chatbot", icon: Bot, label: "Chatbot WhatsApp" },
   { href: "/atendimento", icon: MessageSquare, label: "Webchat Cidadão" },
   { href: "/caius", icon: Sparkles, label: "cAIus — Agente de IA" },
+  { href: "/caius-config", icon: Settings, label: "Configurações do cAIus" },
 ];
 
 const adminItems = [
