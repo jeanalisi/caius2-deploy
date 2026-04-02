@@ -467,7 +467,7 @@ export default function Inbox() {
 
         {/* ── Right panel: conversation view ── */}
         {selectedId && selectedConv ? (
-          <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="flex flex-1 flex-col" style={{ minHeight: 0, height: '100%', overflow: 'hidden' }}>
 
             {/* Incoming call banner (demo — shown when channel is phone) */}
             {incomingCall && (
@@ -485,7 +485,7 @@ export default function Inbox() {
               />
             )}
 
-            {/* Conversation header */}
+            {/* Conversation header — fixo no topo, nunca rola com as mensagens */}
             <div className="shrink-0 flex items-center justify-between border-b border-border px-4 py-3 bg-card/20">
               <div className="flex items-center gap-3 min-w-0">
                 <Avatar className="h-8 w-8 shrink-0">
@@ -564,8 +564,8 @@ export default function Inbox() {
               </div>
             </div>
 
-            {/* Messages area */}
-            <ScrollArea className="flex-1 px-4 py-4">
+            {/* Messages area — ocupa o espaço restante entre o header e o input */}
+            <div className="flex-1 overflow-y-auto px-4 py-4" style={{ minHeight: 0 }}>
               {msgsLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -617,9 +617,9 @@ export default function Inbox() {
                   <div ref={messagesEndRef} />
                 </div>
               )}
-            </ScrollArea>
+            </div>
 
-            {/* Message input */}
+            {/* Message input — fixo na base, nunca rola */}
             <div className="shrink-0 border-t border-border p-3 bg-card/20">
               <div className="flex items-end gap-2">
                 <Textarea
