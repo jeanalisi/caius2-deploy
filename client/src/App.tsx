@@ -49,6 +49,7 @@ import KnowledgeBase from "./pages/KnowledgeBase";
 import SignExternalPDF from "./pages/SignExternalPDF";
 import ChatbotAdmin from "./pages/ChatbotAdmin";
 import ChatCidadao from "./pages/ChatCidadao";
+import EmailInstitucional from "./pages/EmailInstitucional";
 
 function ProtocolDetailWrapper() {
   const params = useParams<{ id: string }>();
@@ -129,6 +130,8 @@ function Router() {
       <Route path={"/knowledge-base"} component={KnowledgeBase} />
       <Route path={"/sign-external-pdf"} component={SignExternalPDF} />
       <Route path={"/chatbot"} component={ChatbotAdmin} />
+      {/* E-mail Institucional */}
+      <Route path={"/email-institucional"} component={EmailInstitucional} />
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

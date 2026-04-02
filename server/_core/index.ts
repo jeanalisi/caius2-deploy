@@ -9,6 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { initSocketIO } from "./socketio";
 import { initChannelGateway } from "../channel-gateway";
+import { initEmailInstitutional } from "../email-institutional";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -95,6 +96,14 @@ async function startServer() {
       }
     }, 2 * 60 * 1000); // a cada 2 minutos
     console.log("[Server] Polling automático de e-mails iniciado (intervalo: 2 min).");
+
+    // Inicializar módulo de E-mail Institucional (caixas postais + polling)
+    try {
+      await initEmailInstitutional();
+      console.log("[Server] Módulo E-mail Institucional inicializado.");
+    } catch (err) {
+      console.error("[Server] Erro ao inicializar E-mail Institucional:", err);
+    }
   }, 3000); // aguardar 3s para o banco estar pronto
 }
 

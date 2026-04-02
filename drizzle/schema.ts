@@ -1809,3 +1809,246 @@ export const webchatSessions = mysqlTable("webchatSessions", {
 }));
 export type WebchatSession = typeof webchatSessions.$inferSelect;
 export type InsertWebchatSession = typeof webchatSessions.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── MÓDULO: E-MAIL INSTITUCIONAL ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Caixas Postais Institucionais ────────────────────────────────────────────
+export const emailMailboxes = mysqlTable("emailMailboxes", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  address: varchar("address", { length: 320 }).notNull(),
+  displayName: varchar("displayName", { length: 255 }),
+  description: text("description"),
+  sectorId: int("sectorId"),
+  imapHost: varchar("imapHost", { length: 255 }).notNull(),
+  imapPort: int("imapPort").default(993).notNull(),
+  imapUser: varchar("imapUser", { length: 320 }).notNull(),
+  imapPassword: text("imapPassword").notNull(),
+  imapSecure: boolean("imapSecure").default(true).notNull(),
+  imapMailbox: varchar("imapMailbox", { length: 128 }).default("INBOX").notNull(),
+  smtpHost: varchar("smtpHost", { length: 255 }).notNull(),
+  smtpPort: int("smtpPort").default(587).notNull(),
+  smtpUser: varchar("smtpUser", { length: 320 }).notNull(),
+  smtpPassword: text("smtpPassword").notNull(),
+  smtpSecure: boolean("smtpSecure").default(false).notNull(),
+  status: mysqlEnum("status", ["active", "inactive", "error", "syncing"]).default("inactive").notNull(),
+  lastSyncAt: timestamp("lastSyncAt"),
+  lastSyncError: text("lastSyncError"),
+  lastUid: bigint("lastUid", { mode: "number" }).default(0).notNull(),
+  syncIntervalMinutes: int("syncIntervalMinutes").default(5).notNull(),
+  autoReplyEnabled: boolean("autoReplyEnabled").default(true).notNull(),
+  autoReplyTemplate: text("autoReplyTemplate"),
+  signature: text("signature"),
+  isActive: boolean("isActive").default(true).notNull(),
+  createdById: int("createdById").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  sectorIdx: index("emb_sector_idx").on(table.sectorId),
+  statusIdx: index("emb_status_idx").on(table.status),
+}));
+export type EmailMailbox = typeof emailMailboxes.$inferSelect;
+export type InsertEmailMailbox = typeof emailMailboxes.$inferInsert;
+
+// ─── Mensagens de E-mail Institucionais ───────────────────────────────────────
+export const emailMessages = mysqlTable("emailMessages", {
+  id: int("id").autoincrement().primaryKey(),
+  mailboxId: int("mailboxId").notNull(),
+  messageId: varchar("messageId", { length: 512 }),
+  inReplyTo: varchar("inReplyTo", { length: 512 }),
+  references: text("references"),
+  imapUid: bigint("imapUid", { mode: "number" }),
+  fromAddress: varchar("fromAddress", { length: 320 }).notNull(),
+  fromName: varchar("fromName", { length: 255 }),
+  toAddresses: text("toAddresses").notNull(),
+  ccAddresses: text("ccAddresses"),
+  bccAddresses: text("bccAddresses"),
+  replyTo: varchar("replyTo", { length: 320 }),
+  subject: varchar("subject", { length: 998 }).notNull(),
+  bodyText: text("bodyText"),
+  bodyHtml: text("bodyHtml"),
+  direction: mysqlEnum("direction", ["inbound", "outbound"]).notNull(),
+  status: mysqlEnum("status", ["received", "triaged", "in_progress", "replied", "archived", "spam", "bounced", "failed", "sent"]).default("received").notNull(),
+  nup: varchar("nup", { length: 32 }),
+  conversationId: int("conversationId"),
+  contactId: int("contactId"),
+  sectorId: int("sectorId"),
+  assignedUserId: int("assignedUserId"),
+  priority: mysqlEnum("priority", ["low", "normal", "high", "urgent"]).default("normal").notNull(),
+  tags: text("tags"),
+  isRead: boolean("isRead").default(false).notNull(),
+  isStarred: boolean("isStarred").default(false).notNull(),
+  isSpam: boolean("isSpam").default(false).notNull(),
+  threadId: varchar("threadId", { length: 512 }),
+  receivedAt: timestamp("receivedAt"),
+  sentAt: timestamp("sentAt"),
+  sizeBytes: int("sizeBytes"),
+  hasAttachments: boolean("hasAttachments").default(false).notNull(),
+  attachmentCount: int("attachmentCount").default(0).notNull(),
+  smtpMessageId: varchar("smtpMessageId", { length: 512 }),
+  sendAttempts: int("sendAttempts").default(0).notNull(),
+  lastSendError: text("lastSendError"),
+  scheduledAt: timestamp("scheduledAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  mailboxIdx: index("emi_mailbox_idx").on(table.mailboxId),
+  nupIdx: index("emi_nup_idx").on(table.nup),
+  threadIdx: index("emi_thread_idx").on(table.threadId),
+  statusIdx: index("emi_status_idx").on(table.status),
+  sectorIdx: index("emi_sector_idx").on(table.sectorId),
+  receivedIdx: index("emi_received_idx").on(table.receivedAt),
+}));
+export type EmailMessage = typeof emailMessages.$inferSelect;
+export type InsertEmailMessage = typeof emailMessages.$inferInsert;
+
+// ─── Anexos de E-mail ─────────────────────────────────────────────────────────
+export const emailAttachments = mysqlTable("emailAttachments", {
+  id: int("id").autoincrement().primaryKey(),
+  emailMessageId: int("emailMessageId").notNull(),
+  filename: varchar("filename", { length: 512 }).notNull(),
+  mimeType: varchar("mimeType", { length: 128 }).notNull(),
+  sizeBytes: int("sizeBytes").notNull(),
+  storageKey: varchar("storageKey", { length: 1024 }),
+  storageUrl: text("storageUrl"),
+  isInline: boolean("isInline").default(false).notNull(),
+  contentId: varchar("contentId", { length: 512 }),
+  md5: varchar("md5", { length: 32 }),
+  sha256: varchar("sha256", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  messageIdx: index("ema_msg_idx").on(table.emailMessageId),
+}));
+export type EmailAttachment = typeof emailAttachments.$inferSelect;
+export type InsertEmailAttachment = typeof emailAttachments.$inferInsert;
+
+// ─── Vínculos NUP ↔ E-mail ────────────────────────────────────────────────────
+export const emailNupLinks = mysqlTable("emailNupLinks", {
+  id: int("id").autoincrement().primaryKey(),
+  emailMessageId: int("emailMessageId").notNull(),
+  nup: varchar("nup", { length: 32 }).notNull(),
+  entityType: mysqlEnum("entityType", ["protocol", "process", "ombudsman", "conversation", "document"]).notNull(),
+  entityId: int("entityId").notNull(),
+  linkMethod: mysqlEnum("linkMethod", ["auto_message_id", "auto_subject", "auto_sender", "manual"]).notNull(),
+  linkedById: int("linkedById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  msgIdx: index("enl_msg_idx").on(table.emailMessageId),
+  nupIdx: index("enl_nup_idx").on(table.nup),
+}));
+export type EmailNupLink = typeof emailNupLinks.$inferSelect;
+export type InsertEmailNupLink = typeof emailNupLinks.$inferInsert;
+
+// ─── Regras de Roteamento Automático ─────────────────────────────────────────
+export const emailRoutingRules = mysqlTable("emailRoutingRules", {
+  id: int("id").autoincrement().primaryKey(),
+  mailboxId: int("mailboxId"),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  priority: int("priority").default(100).notNull(),
+  conditions: json("conditions").notNull(),
+  conditionLogic: mysqlEnum("conditionLogic", ["and", "or"]).default("and").notNull(),
+  actions: json("actions").notNull(),
+  matchCount: int("matchCount").default(0).notNull(),
+  lastMatchAt: timestamp("lastMatchAt"),
+  createdById: int("createdById").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  priorityIdx: index("err_priority_idx").on(table.priority),
+  activeIdx: index("err_active_idx").on(table.isActive),
+}));
+export type EmailRoutingRule = typeof emailRoutingRules.$inferSelect;
+export type InsertEmailRoutingRule = typeof emailRoutingRules.$inferInsert;
+
+// ─── Fila de Envio ────────────────────────────────────────────────────────────
+export const emailSendQueue = mysqlTable("emailSendQueue", {
+  id: int("id").autoincrement().primaryKey(),
+  mailboxId: int("mailboxId").notNull(),
+  emailMessageId: int("emailMessageId"),
+  toAddresses: text("toAddresses").notNull(),
+  ccAddresses: text("ccAddresses"),
+  bccAddresses: text("bccAddresses"),
+  replyTo: varchar("replyTo", { length: 320 }),
+  subject: varchar("subject", { length: 998 }).notNull(),
+  bodyText: text("bodyText"),
+  bodyHtml: text("bodyHtml"),
+  inReplyTo: varchar("inReplyTo", { length: 512 }),
+  references: text("references"),
+  nup: varchar("nup", { length: 32 }),
+  status: mysqlEnum("status", ["pending", "processing", "sent", "failed", "cancelled"]).default("pending").notNull(),
+  attempts: int("attempts").default(0).notNull(),
+  maxAttempts: int("maxAttempts").default(3).notNull(),
+  lastAttemptAt: timestamp("lastAttemptAt"),
+  nextAttemptAt: timestamp("nextAttemptAt"),
+  sentAt: timestamp("sentAt"),
+  errorMessage: text("errorMessage"),
+  scheduledAt: timestamp("scheduledAt"),
+  priority: int("priority").default(5).notNull(),
+  createdById: int("createdById"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  statusIdx: index("esq_status_idx").on(table.status),
+  mailboxIdx: index("esq_mailbox_idx").on(table.mailboxId),
+}));
+export type EmailSendQueue = typeof emailSendQueue.$inferSelect;
+export type InsertEmailSendQueue = typeof emailSendQueue.$inferInsert;
+
+// ─── Logs Técnicos de Sincronização ──────────────────────────────────────────
+export const emailSyncLogs = mysqlTable("emailSyncLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  mailboxId: int("mailboxId").notNull(),
+  operation: mysqlEnum("operation", ["imap_sync", "smtp_send", "rule_apply", "nup_link", "auto_reply"]).notNull(),
+  status: mysqlEnum("status", ["success", "partial", "error"]).notNull(),
+  messagesProcessed: int("messagesProcessed").default(0),
+  messagesNew: int("messagesNew").default(0),
+  messagesFailed: int("messagesFailed").default(0),
+  durationMs: int("durationMs"),
+  errorMessage: text("errorMessage"),
+  details: json("details"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  mailboxIdx: index("esl_mailbox_idx").on(table.mailboxId),
+  createdIdx: index("esl_created_idx").on(table.createdAt),
+}));
+export type EmailSyncLog = typeof emailSyncLogs.$inferSelect;
+export type InsertEmailSyncLog = typeof emailSyncLogs.$inferInsert;
+
+// ─── Auditoria de E-mail Institucional ───────────────────────────────────────
+export const emailAuditTrail = mysqlTable("emailAuditTrail", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId"),
+  userName: varchar("userName", { length: 255 }),
+  userIp: varchar("userIp", { length: 64 }),
+  action: mysqlEnum("action", [
+    "mailbox_created", "mailbox_updated", "mailbox_deleted", "mailbox_synced",
+    "message_received", "message_read", "message_replied", "message_forwarded",
+    "message_archived", "message_spam", "message_deleted", "message_restored",
+    "message_assigned", "message_transferred",
+    "nup_linked", "nup_unlinked", "nup_created",
+    "rule_created", "rule_updated", "rule_deleted", "rule_matched",
+    "attachment_downloaded", "attachment_deleted",
+    "queue_sent", "queue_failed", "queue_retried",
+  ]).notNull(),
+  entityType: mysqlEnum("entityType", ["mailbox", "message", "attachment", "rule", "queue"]).notNull(),
+  entityId: int("entityId"),
+  mailboxId: int("mailboxId"),
+  emailMessageId: int("emailMessageId"),
+  nup: varchar("nup", { length: 32 }),
+  previousValue: json("previousValue"),
+  newValue: json("newValue"),
+  description: text("description"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  userIdx: index("eat_user_idx").on(table.userId),
+  actionIdx: index("eat_action_idx").on(table.action),
+  mailboxIdx: index("eat_mailbox_idx").on(table.mailboxId),
+  nupIdx: index("eat_nup_idx").on(table.nup),
+  createdIdx: index("eat_created_idx").on(table.createdAt),
+}));
+export type EmailAuditTrail = typeof emailAuditTrail.$inferSelect;
+export type InsertEmailAuditTrail = typeof emailAuditTrail.$inferInsert;
