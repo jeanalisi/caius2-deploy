@@ -18,6 +18,8 @@ import { z } from "zod";
 import { protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { ImapFlow } from "imapflow";
+import * as nodemailer from "nodemailer";
 import { getDb } from "./db";
 import {
   emailMailboxes,
@@ -262,32 +264,32 @@ export const emailInstitutionalRouter = router({
       .mutation(async ({ input }) => {
         const results = { imap: false, smtp: false, imapError: "", smtpError: "" };
 
-        // Testar IMAP
+        // Testar IMAP via ImapFlow (ESM nativo)
         try {
-          const Imap = require("imap");
-          await new Promise<void>((resolve, reject) => {
-            const imap = new Imap({
-              user: input.imapUser,
-              password: input.imapPassword,
-              host: input.imapHost,
-              port: input.imapPort,
-              tls: input.imapSecure,
-              tlsOptions: { rejectUnauthorized: false },
-              connTimeout: 15000,
-              authTimeout: 10000,
-            });
-            imap.once("ready", () => { imap.end(); resolve(); });
-            imap.once("error", (err: any) => reject(err));
-            imap.connect();
+          const client = new ImapFlow({
+            host: input.imapHost,
+            port: input.imapPort,
+            secure: input.imapSecure,
+            auth: { user: input.imapUser, pass: input.imapPassword },
+            tls: { rejectUnauthorized: false, minVersion: "TLSv1" as any },
+            logger: false,
+            connectionTimeout: 15000,
+            greetingTimeout: 10000,
           });
+          await client.connect();
+          await client.logout();
           results.imap = true;
         } catch (err: any) {
-          results.imapError = err?.message ?? String(err);
+          const msg = err?.message ?? String(err);
+          if (msg.includes("ECONNREFUSED")) results.imapError = `Conexão recusada em ${input.imapHost}:${input.imapPort}. Verifique o host e a porta.`;
+          else if (msg.includes("ENOTFOUND")) results.imapError = `Host IMAP não encontrado: "${input.imapHost}". Verifique o endereço.`;
+          else if (msg.includes("ETIMEDOUT") || msg.includes("ESOCKETTIMEDOUT")) results.imapError = `Timeout ao conectar em ${input.imapHost}. Verifique firewall ou porta.`;
+          else if (msg.includes("Invalid credentials") || msg.includes("AUTHENTICATIONFAILED") || msg.includes("535")) results.imapError = "Credenciais IMAP inválidas. Verifique usuário e senha.";
+          else results.imapError = msg;
         }
 
         // Testar SMTP
         try {
-          const nodemailer = require("nodemailer");
           const transporter = nodemailer.createTransport({
             host: input.smtpHost,
             port: input.smtpPort,

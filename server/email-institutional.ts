@@ -14,6 +14,7 @@
  */
 
 import * as nodemailer from "nodemailer";
+import { ImapFlow } from "imapflow";
 import { simpleParser, ParsedMail, AddressObject } from "mailparser";
 import { and, desc, eq, gte, isNull, lte, or, sql } from "drizzle-orm";
 import { requireDb } from "./db";
@@ -317,115 +318,59 @@ export async function syncMailbox(mailbox: EmailMailbox): Promise<void> {
     .where(eq(emailMailboxes.id, mailbox.id));
 
   try {
-    // Configurar cliente IMAP usando imap-simple (via emailjs-imap-client)
-    const Imap = require("imap");
-    const imap = new Imap({
-      user: mailbox.imapUser,
-      password: mailbox.imapPassword,
+    // Configurar cliente IMAP via ImapFlow (ESM nativo)
+    const client = new ImapFlow({
       host: mailbox.imapHost,
       port: mailbox.imapPort,
-      tls: mailbox.imapSecure,
-      tlsOptions: tlsOptions(),
-      connTimeout: 30000,
-      authTimeout: 15000,
+      secure: !!mailbox.imapSecure,
+      auth: { user: mailbox.imapUser, pass: mailbox.imapPassword },
+      tls: { rejectUnauthorized: false, minVersion: "TLSv1" as any },
+      logger: false,
+      connectionTimeout: 30000,
+      greetingTimeout: 15000,
     });
 
-    await new Promise<void>((resolve, reject) => {
-      imap.once("ready", async () => {
-        try {
-          // Abrir mailbox
-          await new Promise<void>((res, rej) => {
-            imap.openBox(mailbox.imapMailbox, false, (err: any) => {
-              if (err) rej(err);
-              else res();
-            });
-          });
+    await client.connect();
 
-          // Buscar mensagens não lidas com UID maior que o último processado
-          const lastUid = mailbox.lastUid ?? 0;
-          const searchCriteria = lastUid > 0
-            ? [["UID", `${lastUid + 1}:*`], "UNSEEN"]
-            : ["UNSEEN"];
+    try {
+      const lastUid = mailbox.lastUid ?? 0;
+      // Buscar mensagens não lidas (e opcionalmente com UID > lastUid)
+      const searchQuery = lastUid > 0
+        ? { uid: `${lastUid + 1}:*`, seen: false }
+        : { seen: false };
 
-          const uids: number[] = await new Promise((res, rej) => {
-            imap.search(searchCriteria, (err: any, results: number[]) => {
-              if (err) rej(err);
-              else res(results ?? []);
-            });
-          });
-
-          if (uids.length === 0) {
-            imap.end();
-            resolve();
-            return;
-          }
-
-          // Limitar a 50 mensagens por ciclo
-          const batch = uids.slice(0, 50);
-          const fetch = imap.fetch(batch, {
-            bodies: "",
-            struct: true,
-            envelope: true,
-          });
-
-          const fetchPromises: Promise<void>[] = [];
-
-          fetch.on("message", (msg: any, seqno: number) => {
-            const p = new Promise<void>((msgRes) => {
-              let rawEmail = "";
-              let uid = 0;
-
-              msg.on("attributes", (attrs: any) => {
-                uid = attrs.uid ?? 0;
-              });
-
-              msg.on("body", (stream: any) => {
-                stream.on("data", (chunk: Buffer) => {
-                  rawEmail += chunk.toString("utf8");
-                });
-              });
-
-              msg.once("end", async () => {
-                try {
-                  await processRawEmail(rawEmail, uid, mailbox);
-                  messagesProcessed++;
-                  messagesNew++;
-                  // Atualizar lastUid
-                  if (uid > (mailbox.lastUid ?? 0)) {
-                    await db.update(emailMailboxes)
-                      .set({ lastUid: uid })
-                      .where(eq(emailMailboxes.id, mailbox.id));
-                    mailbox.lastUid = uid;
-                  }
-                } catch (err) {
-                  console.error(`[EmailInst] Erro ao processar mensagem UID ${uid}:`, err);
-                  messagesFailed++;
-                }
-                msgRes();
-              });
-            });
-            fetchPromises.push(p);
-          });
-
-          fetch.once("error", (err: any) => {
-            console.error("[EmailInst] Fetch error:", err);
-            reject(err);
-          });
-
-          fetch.once("end", async () => {
-            await Promise.all(fetchPromises);
-            imap.end();
-            resolve();
-          });
-        } catch (err) {
-          imap.end();
-          reject(err);
+      const lock = await client.getMailboxLock(mailbox.imapMailbox);
+      try {
+        const messages: any[] = [];
+        for await (const msg of client.fetch(searchQuery as any, { uid: true, source: true })) {
+          messages.push(msg);
+          if (messages.length >= 50) break; // limitar a 50 por ciclo
         }
-      });
 
-      imap.once("error", reject);
-      imap.connect();
-    });
+        for (const msg of messages) {
+          try {
+            const rawEmail = msg.source?.toString("utf8") ?? "";
+            const uid = msg.uid ?? 0;
+            await processRawEmail(rawEmail, uid, mailbox);
+            messagesProcessed++;
+            messagesNew++;
+            if (uid > (mailbox.lastUid ?? 0)) {
+              await db.update(emailMailboxes)
+                .set({ lastUid: uid })
+                .where(eq(emailMailboxes.id, mailbox.id));
+              mailbox.lastUid = uid;
+            }
+          } catch (err) {
+            console.error(`[EmailInst] Erro ao processar mensagem UID ${msg.uid}:`, err);
+            messagesFailed++;
+          }
+        }
+      } finally {
+        lock.release();
+      }
+    } finally {
+      await client.logout();
+    }
 
     // Sucesso
     await db.update(emailMailboxes)

@@ -39,7 +39,7 @@ async function generateQRCodeSVG(url: string): Promise<string> {
 }
 
 function getVerificationUrl(key: string, origin = ""): string {
-  const base = origin || "https://multichat-ve5tpunf.manus.space";
+  const base = origin || "https://cac.itabaiana.pb.gov.br";
   return `${base}/verificar/${key}`;
 }
 
@@ -610,7 +610,7 @@ export const verificationRouter = router({
       y -= 44;
 
       // ── Link de verificação ──
-      const verifyUrl = doc.verificationUrl ?? `${input.origin ?? "https://multichat-ve5tpunf.manus.space"}/verificar/${doc.verificationKey}`;
+      const verifyUrl = doc.verificationUrl ?? `${input.origin ?? "https://cac.itabaiana.pb.gov.br"}/verificar/${doc.verificationKey}`;
       ensureSpace(30);
       currentPage.drawText("LINK DE VERIFICAÇÃO", { x: MARGIN, y, size: 6.5, font: fontBold, color: gray });
       y -= 12;

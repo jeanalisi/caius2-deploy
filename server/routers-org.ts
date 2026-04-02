@@ -9,6 +9,7 @@ import { z } from "zod";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { sendEmail } from "./email";
 import { getAllAccounts } from "./db";
+import { getSystemEmailAccount } from "./system-email";
 import {
   getOrgUnits, getOrgUnitById, getOrgUnitTree, getOrgUnitWithBreadcrumb,
   createOrgUnit, updateOrgUnit, deleteOrgUnit, getOrgUnitStats,
@@ -311,7 +312,8 @@ export const orgInvitesRouter = router({
       let emailError: string | null = null;
       try {
         const accounts = await getAllAccounts();
-        const emailAccount = accounts.find((a) => a.channel === "email" && a.smtpHost && a.smtpUser && a.smtpPassword);
+        const dbEmailAccount = accounts.find((a) => a.channel === "email" && a.smtpHost && a.smtpUser && a.smtpPassword);
+        const emailAccount = dbEmailAccount ?? getSystemEmailAccount();
         if (emailAccount) {
           const orgUnit = await import("./db-org").then((m) => m.getOrgUnitById(input.orgUnitId));
           const unitName = orgUnit?.name ?? "Unidade Organizacional";
@@ -332,7 +334,7 @@ export const orgInvitesRouter = router({
           );
           emailSent = true;
         } else {
-          emailError = "Nenhuma conta de e-mail SMTP configurada. Configure uma conta de e-mail nas configurações para enviar convites automáticos.";
+          emailError = "E-mail padrão do sistema não configurado. Defina SYSTEM_EMAIL_* nas variáveis de ambiente.";
         }
       } catch (err: any) {
         emailError = err?.message ?? "Falha ao enviar e-mail de convite";

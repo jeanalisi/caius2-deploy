@@ -11,8 +11,9 @@
 import crypto from "crypto";
 import { sendEmail } from "./email";
 import { getAllAccounts, createNupNotification, updateNupNotificationStatus } from "./db";
+import { getSystemEmailAccount } from "./system-email";
 
-const APP_URL = process.env.VITE_APP_URL || "https://multichat-ve5tpunf.manus.space";
+const APP_URL = process.env.VITE_APP_URL || "https://cac.itabaiana.pb.gov.br";
 
 /**
  * Gera um token seguro de rastreamento para o link de acompanhamento
@@ -137,7 +138,8 @@ export async function sendNupNotification(params: {
   try {
     if (channel === "email" && recipientAddress) {
       const accounts = await getAllAccounts();
-      const emailAccount = accounts.find((a: any) => a.type === "email" && a.isActive);
+      const dbEmailAccount = accounts.find((a: any) => a.type === "email" && a.isActive);
+      const emailAccount = dbEmailAccount ?? getSystemEmailAccount();
 
       if (!emailAccount) {
         await updateNupNotificationStatus(notificationId, "skipped", "Nenhuma conta de e-mail configurada");
