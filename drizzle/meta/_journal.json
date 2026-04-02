@@ -36,6 +36,13 @@
       "when": 1775158984704,
       "tag": "0004_tan_carnage",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1775160148613,
+      "tag": "0005_bent_wrecker",
+      "breakpoints": true
     }
   ]
 }

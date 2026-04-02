@@ -67,6 +67,7 @@ import { publicServicesRouter } from "./routers-public-services";
 import { chatbotRouter } from "./routers-chatbot";
 import { webchatRouter } from "./routers-webchat";
 import { emailInstitutionalRouter } from "./routers-email-institutional";
+import { caiusAgentRouter } from "./routers-caius-agent";
 import {
   serviceTypesRouter,
   serviceSubjectsRouter,
@@ -99,6 +100,7 @@ async function notifyUser(userId: number, type: any, title: string, body?: strin
 export const appRouter = router({
   system: systemRouter,
   emailInstitutional: emailInstitutionalRouter,
+  caiusAgent: caiusAgentRouter,
 
   // ── Auth ──────────────────────────────────────────────────────────────────
   auth: router({

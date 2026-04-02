@@ -93,6 +93,7 @@ const channelItems = [
   { href: "/email-institucional", icon: MailOpen, label: "E-mail Institucional" },
   { href: "/chatbot", icon: Bot, label: "Chatbot WhatsApp" },
   { href: "/atendimento", icon: MessageSquare, label: "Webchat Cidadão" },
+  { href: "/caius", icon: Sparkles, label: "cAIus — Agente de IA" },
 ];
 
 const adminItems = [

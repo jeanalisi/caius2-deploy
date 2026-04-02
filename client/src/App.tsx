@@ -50,6 +50,7 @@ import SignExternalPDF from "./pages/SignExternalPDF";
 import ChatbotAdmin from "./pages/ChatbotAdmin";
 import ChatCidadao from "./pages/ChatCidadao";
 import EmailInstitucional from "./pages/EmailInstitucional";
+import CaiusAgent from "./pages/CaiusAgent";
 
 function ProtocolDetailWrapper() {
   const params = useParams<{ id: string }>();
@@ -132,6 +133,8 @@ function Router() {
       <Route path={"/chatbot"} component={ChatbotAdmin} />
       {/* E-mail Institucional */}
       <Route path={"/email-institucional"} component={EmailInstitucional} />
+      {/* cAIus — Agente Institucional de IA */}
+      <Route path={"/caius"} component={CaiusAgent} />
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

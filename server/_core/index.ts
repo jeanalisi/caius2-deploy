@@ -10,6 +10,7 @@ import { serveStatic, setupVite } from "./vite";
 import { initSocketIO } from "./socketio";
 import { initChannelGateway } from "../channel-gateway";
 import { startEmailPolling } from "../email-institutional";
+import { initCaiusAgent } from "../caius-agent";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -103,6 +104,13 @@ async function startServer() {
       console.log("[Server] Módulo E-mail Institucional inicializado.");
     } catch (err) {
       console.error("[Server] Erro ao inicializar E-mail Institucional:", err);
+    }
+    // Inicializar módulo cAIus — Agente Institucional de IA
+    try {
+      await initCaiusAgent();
+      console.log("[Server] Módulo cAIus inicializado com sucesso.");
+    } catch (err) {
+      console.error("[Server] Erro ao inicializar cAIus:", err);
     }
   }, 3000); // aguardar 3s para o banco estar pronto
 }
