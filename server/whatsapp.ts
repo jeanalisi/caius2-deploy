@@ -20,6 +20,7 @@ import { useAuthStateDB, clearAccountSession, hasAccountSession } from "./wa-ses
 const sessions = new Map<number, ReturnType<typeof makeWASocket>>();
 const qrCallbacks = new Map<number, (qr: string) => void>();
 const statusCallbacks = new Map<number, (status: string) => void>();
+const reconnectAttempts = new Map<number, number>(); // controle de tentativas de reconexão
 
 // Cache em memória para retry de mensagens enviadas (necessário para o Baileys reenviar
 // mensagens que o destinatário não conseguiu descriptografar na primeira tentativa)
@@ -193,11 +194,17 @@ export async function connectWhatsApp(accountId: number) {
       statusCallbacks.get(accountId)?.("disconnected");
       sessions.delete(accountId);
       if (shouldReconnect) {
-        setTimeout(() => connectWhatsApp(accountId), 5000);
+        // Backoff exponencial: 5s, 10s, 20s, 40s, máx 60s — evita loop de reconexão agressivo
+        const attempts = (reconnectAttempts.get(accountId) ?? 0) + 1;
+        reconnectAttempts.set(accountId, attempts);
+        const delay = Math.min(5000 * Math.pow(2, attempts - 1), 60000);
+        console.log(`[WhatsApp] Tentativa de reconexão #${attempts} para conta #${accountId} em ${delay / 1000}s...`);
+        setTimeout(() => connectWhatsApp(accountId), delay);
       }
     } else if (connection === "open") {
       console.log(`[WhatsApp] Conta #${accountId} conectada com sucesso.`);
       await updateAccount(accountId, { status: "connected", waQrCode: null });
+      reconnectAttempts.delete(accountId); // resetar contador ao conectar com sucesso
       statusCallbacks.get(accountId)?.("connected");
     }
   });

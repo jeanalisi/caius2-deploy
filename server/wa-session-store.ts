@@ -88,11 +88,11 @@ export async function hasAccountSession(accountId: number): Promise<boolean> {
  * mas persiste no banco TiDB em vez de no disco.
  */
 export async function useAuthStateDB(accountId: number) {
-  const { proto, initAuthCreds } = await import("@whiskeysockets/baileys");
+  const { initAuthCreds, BufferJSON } = await import("@whiskeysockets/baileys");
 
   // Carregar credenciais do banco
   const credsRaw = await getSessionData(accountId, "creds");
-  const creds = credsRaw ? JSON.parse(credsRaw) : initAuthCreds();
+  const creds = credsRaw ? JSON.parse(credsRaw, BufferJSON.reviver) : initAuthCreds();
 
   const state = {
     creds,
@@ -103,17 +103,8 @@ export async function useAuthStateDB(accountId: number) {
           const key = `${type}:${id}`;
           const raw = await getSessionData(accountId, key);
           if (raw) {
-            let value = JSON.parse(raw);
-            // Baileys espera que pre-keys sejam objetos proto
-            if (type === "pre-key") {
-              value = proto.Message.fromObject(value);
-            } else if (type === "session") {
-              value = proto.Message.fromObject(value);
-            } else if (type === "sender-key") {
-              value = proto.Message.fromObject(value);
-            } else if (type === "app-state-sync-key") {
-              value = proto.Message.AppStateSyncKeyData.fromObject(value);
-            }
+            // Usar BufferJSON.reviver para restaurar corretamente Buffers e objetos proto
+            const value = JSON.parse(raw, BufferJSON.reviver);
             data[id] = value;
           }
         }
@@ -124,7 +115,7 @@ export async function useAuthStateDB(accountId: number) {
           for (const [id, value] of Object.entries(entries)) {
             const key = `${type}:${id}`;
             if (value) {
-              await setSessionData(accountId, key, JSON.stringify(value));
+              await setSessionData(accountId, key, JSON.stringify(value, BufferJSON.replacer));
             } else {
               await deleteSessionData(accountId, key);
             }
@@ -135,7 +126,7 @@ export async function useAuthStateDB(accountId: number) {
   };
 
   const saveCreds = async () => {
-    await setSessionData(accountId, "creds", JSON.stringify(state.creds));
+    await setSessionData(accountId, "creds", JSON.stringify(state.creds, BufferJSON.replacer));
   };
 
   return { state, saveCreds };

@@ -75,6 +75,26 @@ async function startServer() {
     } catch (err) {
       console.error("[Server] Erro ao inicializar ChannelGateway:", err);
     }
+
+    // Polling automático de e-mails a cada 2 minutos para todas as contas de e-mail ativas
+    setInterval(async () => {
+      try {
+        const { getAllAccounts } = await import("../db");
+        const { fetchEmails } = await import("../email");
+        const accounts = await getAllAccounts();
+        for (const account of accounts) {
+          if (account.channel === "email" && account.status === "connected" &&
+              account.imapHost && account.imapUser && account.imapPassword) {
+            fetchEmails(account).catch(err =>
+              console.error(`[EmailPoller] Erro ao buscar e-mails da conta #${account.id}:`, err)
+            );
+          }
+        }
+      } catch (err) {
+        console.error("[EmailPoller] Erro no ciclo de polling:", err);
+      }
+    }, 2 * 60 * 1000); // a cada 2 minutos
+    console.log("[Server] Polling automático de e-mails iniciado (intervalo: 2 min).");
   }, 3000); // aguardar 3s para o banco estar pronto
 }
 
