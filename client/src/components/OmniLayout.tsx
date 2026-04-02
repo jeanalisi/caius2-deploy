@@ -428,6 +428,19 @@ export default function OmniLayout({ children, title, fullHeight }: OmniLayoutPr
     refetchInterval: 30000,
   });
 
+  // Permissões de menu: admins têm acesso total; demais usuários seguem a tabela
+  const { data: menuPerms } = trpc.users.getMyMenuPermissions.useQuery(undefined, {
+    enabled: isAuthenticated && user?.role !== "admin",
+  });
+
+  // Retorna true se o item deve aparecer no menu
+  const canSeeItem = (href: string): boolean => {
+    if (user?.role === "admin") return true;
+    if (!menuPerms) return true; // enquanto carrega, mostra tudo
+    if (href in menuPerms) return (menuPerms as Record<string, boolean>)[href];
+    return true; // padrão = visível
+  };
+
   const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
   const markRead = trpc.notifications.markRead.useMutation();
 
@@ -475,23 +488,29 @@ export default function OmniLayout({ children, title, fullHeight }: OmniLayoutPr
           {/* Navigation */}
           <ScrollArea className="flex-1 px-3 py-3">
             <div className="space-y-4">
-              <NavGroup label="Atendimento">
-                {atendimentoItems.map((item) => (
-                  <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
-                ))}
-              </NavGroup>
+              {atendimentoItems.filter(i => canSeeItem(i.href)).length > 0 && (
+                <NavGroup label="Atendimento">
+                  {atendimentoItems.filter(i => canSeeItem(i.href)).map((item) => (
+                    <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
+                  ))}
+                </NavGroup>
+              )}
 
-              <NavGroup label="Gestão Pública">
-                {caiusItems.map((item) => (
-                  <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
-                ))}
-              </NavGroup>
+              {caiusItems.filter(i => canSeeItem(i.href)).length > 0 && (
+                <NavGroup label="Gestão Pública">
+                  {caiusItems.filter(i => canSeeItem(i.href)).map((item) => (
+                    <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
+                  ))}
+                </NavGroup>
+              )}
 
-              <NavGroup label="Canais">
-                {channelItems.map((item) => (
-                  <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
-                ))}
-              </NavGroup>
+              {channelItems.filter(i => canSeeItem(i.href)).length > 0 && (
+                <NavGroup label="Canais">
+                  {channelItems.filter(i => canSeeItem(i.href)).map((item) => (
+                    <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
+                  ))}
+                </NavGroup>
+              )}
 
               {user?.role === "admin" && (
                 <>

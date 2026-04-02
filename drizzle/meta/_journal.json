@@ -43,6 +43,13 @@
       "when": 1775165809945,
       "tag": "0005_romantic_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1775167675394,
+      "tag": "0006_lucky_metal_master",
+      "breakpoints": true
     }
   ]
 }

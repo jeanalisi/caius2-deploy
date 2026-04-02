@@ -2347,3 +2347,25 @@ export const webchatAttachments = mysqlTable("webchatAttachments", {
 }));
 export type WebchatAttachment = typeof webchatAttachments.$inferSelect;
 export type InsertWebchatAttachment = typeof webchatAttachments.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── Permissões de Menu por Usuário ──────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+/**
+ * Controle granular de acesso: cada linha habilita ou desabilita um item de menu
+ * para um usuário específico. Se não existir registro para um usuário, aplica-se
+ * o comportamento padrão baseado no perfil (admin vê tudo; attendant vê apenas
+ * atendimento; etc.).
+ */
+export const userMenuPermissions = mysqlTable("userMenuPermissions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  menuKey: varchar("menuKey", { length: 128 }).notNull(), // ex: "/inbox", "/protocols"
+  enabled: boolean("enabled").default(true).notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  userMenuIdx: index("ump_user_menu_idx").on(table.userId, table.menuKey),
+  userIdx: index("ump_user_idx").on(table.userId),
+}));
+export type UserMenuPermission = typeof userMenuPermissions.$inferSelect;
+export type InsertUserMenuPermission = typeof userMenuPermissions.$inferInsert;

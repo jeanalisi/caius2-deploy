@@ -67,6 +67,9 @@ import { publicServicesRouter } from "./routers-public-services";
 import { chatbotRouter } from "./routers-chatbot";
 import { webchatRouter } from "./routers-webchat";
 import { emailInstitutionalRouter } from "./routers-email-institutional";
+import { requireDb } from "./db";
+import { userMenuPermissions } from "../drizzle/schema";
+import { eq, and } from "drizzle-orm";
 import { caiusAgentRouter } from "./routers-caius-agent";
 import {
   serviceTypesRouter,
@@ -127,6 +130,55 @@ export const appRouter = router({
     setAvailability: protectedProcedure
       .input(z.object({ isAvailable: z.boolean() }))
       .mutation(({ ctx, input }) => updateUser(ctx.user.id, { isAvailable: input.isAvailable })),
+
+    // ── Permissões de menu por usuário ──────────────────────────────────────
+    getMenuPermissions: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        const db = await requireDb();
+        const rows = await db.select().from(userMenuPermissions)
+          .where(eq(userMenuPermissions.userId, input.userId));
+        // Retorna mapa { menuKey: enabled }
+        return Object.fromEntries(rows.map(r => [r.menuKey, r.enabled]));
+      }),
+
+    setMenuPermission: adminProcedure
+      .input(z.object({
+        userId: z.number(),
+        menuKey: z.string(),
+        enabled: z.boolean(),
+      }))
+      .mutation(async ({ input }) => {
+        const db = await requireDb();
+        const existing = await db.select().from(userMenuPermissions)
+          .where(and(
+            eq(userMenuPermissions.userId, input.userId),
+            eq(userMenuPermissions.menuKey, input.menuKey)
+          )).limit(1);
+        if (existing.length > 0) {
+          await db.update(userMenuPermissions)
+            .set({ enabled: input.enabled })
+            .where(and(
+              eq(userMenuPermissions.userId, input.userId),
+              eq(userMenuPermissions.menuKey, input.menuKey)
+            ));
+        } else {
+          await db.insert(userMenuPermissions).values({
+            userId: input.userId,
+            menuKey: input.menuKey,
+            enabled: input.enabled,
+          });
+        }
+        return { ok: true };
+      }),
+
+    getMyMenuPermissions: protectedProcedure
+      .query(async ({ ctx }) => {
+        const db = await requireDb();
+        const rows = await db.select().from(userMenuPermissions)
+          .where(eq(userMenuPermissions.userId, ctx.user.id));
+        return Object.fromEntries(rows.map(r => [r.menuKey, r.enabled]));
+      }),
   }),
 
   // ── Accounts (WhatsApp / Instagram / Email) ───────────────────────────────

@@ -5,6 +5,7 @@
  */
 
 import { useState, useRef } from "react";
+import { toast as toastLib } from "sonner";
 import OmniLayout from "@/components/OmniLayout";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -46,6 +47,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
@@ -343,6 +345,20 @@ function InboxTab() {
     },
   });
 
+  // Vincular e-mail a NUP existente
+  const [linkNupOpen, setLinkNupOpen] = useState(false);
+  const [linkNupInput, setLinkNupInput] = useState("");
+  const linkNupMutation = trpc.emailInstitutional.messages.linkNup.useMutation({
+    onSuccess: () => {
+      setLinkNupOpen(false);
+      setLinkNupInput("");
+      utils.emailInstitutional.messages.get.invalidate({ id: selectedMessage?.id });
+      refetch();
+      toastLib.success("E-mail vinculado ao NUP com sucesso!");
+    },
+    onError: (e) => toastLib.error(e.message),
+  });
+
   /** Retorna o HTML da assinatura da caixa postal selecionada */
   const getSignatureHtml = (mailboxId?: number): string => {
     if (!mailboxId || !mailboxes) return "";
@@ -597,6 +613,10 @@ function InboxTab() {
                   >
                     <AlertTriangle className="h-4 w-4 mr-2" /> Marcar como spam
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setLinkNupInput(selectedMessage?.nup ?? ""); setLinkNupOpen(true); }}>
+                    <Link2 className="h-4 w-4 mr-2" /> Vincular a NUP
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -666,6 +686,47 @@ function InboxTab() {
           </div>
         </div>
       )}
+
+      {/* Dialog: Vincular a NUP */}
+      <Dialog open={linkNupOpen} onOpenChange={setLinkNupOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              Vincular E-mail a Protocolo NUP
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Informe o NUP do protocolo existente para vincular este e-mail.
+              O vínculo ficará registrado no histórico do protocolo.
+            </p>
+            <div className="space-y-1.5">
+              <Label>NUP do Protocolo</Label>
+              <Input
+                placeholder="Ex: 2025.001.000001"
+                value={linkNupInput}
+                onChange={e => setLinkNupInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === "Enter" && linkNupInput.trim()) {
+                    linkNupMutation.mutate({ emailMessageId: selectedMessage?.id, nup: linkNupInput.trim(), entityType: "protocol", entityId: 0 });
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkNupOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => linkNupMutation.mutate({ emailMessageId: selectedMessage?.id, nup: linkNupInput.trim(), entityType: "protocol", entityId: 0 })}
+              disabled={!linkNupInput.trim() || linkNupMutation.isPending}
+            >
+              {linkNupMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />}
+              Vincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog de resposta */}
       <Dialog open={replyOpen} onOpenChange={setReplyOpen}>
@@ -1260,6 +1321,18 @@ function MailboxesTab() {
                 <p className="text-xs text-muted-foreground mt-1">Variáveis: {"{{name}}"}, {"{{subject}}"}, {"{{nup}}"}, {"{{mailbox}}"}</p>
               </div>
             )}
+
+            {/* Assinatura */}
+            <div>
+              <Label>Assinatura do E-mail</Label>
+              <Textarea
+                rows={4}
+                placeholder="Atenciosamente,\nNome do Atendente\nPrefeitura de Itabaiana - PB\nTel: (79) 0000-0000"
+                value={form.signature}
+                onChange={e => setForm(f => ({ ...f, signature: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Será inserida automaticamente ao responder, encaminhar ou criar novos e-mails.</p>
+            </div>
 
             {/* Teste de conexão */}
             <div className="border rounded-lg p-3 space-y-2">
