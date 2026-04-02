@@ -319,13 +319,13 @@ export const orgInvitesRouter = router({
             emailAccount,
             input.email,
             `Convite para integrar ${unitName} — CAIUS`,
-            `Olá${input.name ? ` ${input.name}` : ""},\n\nVocê foi convidado para integrar ${unitName} no sistema CAIUS.\n\nAcesse o link abaixo para aceitar o convite:\n${window?.location?.origin ?? "https://multichat-ve5tpunf.manus.space"}${inviteUrl}\n\nEste convite expira em ${input.expiresInDays ?? 7} dias.\n\nAtenciosamente,\nEquipe CAIUS`,
+            `Olá${input.name ? ` ${input.name}` : ""},\n\nVocê foi convidado para integrar ${unitName} no sistema CAIUS.\n\nAcesse o link abaixo para aceitar o convite:\n${process.env.PUBLIC_URL ?? ""}${inviteUrl}\n\nEste convite expira em ${input.expiresInDays ?? 7} dias.\n\nAtenciosamente,\nEquipe CAIUS`,
             `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
               <h2 style="color:#1e40af">Convite CAIUS</h2>
               <p>Olá${input.name ? ` <strong>${input.name}</strong>` : ""},</p>
               <p>Você foi convidado para integrar <strong>${unitName}</strong> no sistema CAIUS.</p>
               <p style="margin:24px 0">
-                <a href="${inviteUrl}" style="background:#1e40af;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Aceitar Convite</a>
+                <a href="${process.env.PUBLIC_URL ?? ''}${inviteUrl}" style="background:#1e40af;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Aceitar Convite</a>
               </p>
               <p style="color:#6b7280;font-size:14px">Este convite expira em ${input.expiresInDays ?? 7} dias.</p>
             </div>`

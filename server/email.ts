@@ -109,7 +109,15 @@ export async function fetchEmails(account: Account): Promise<void> {
     await client.connect();
     const lock = await client.getMailboxLock("INBOX");
     try {
-      for await (const msg of client.fetch("1:10", { envelope: true, bodyStructure: true, source: true })) {
+      // Buscar apenas mensagens não lidas (UNSEEN) para evitar reprocessar e-mails antigos
+      const unseenUids = await client.search({ seen: false });
+      if (unseenUids.length === 0) {
+        // Nenhuma mensagem nova — encerrar normalmente pelo finally
+        return;
+      }
+      // Limitar a 20 mensagens por ciclo para evitar sobrecarga
+      const uidsToFetch = unseenUids.slice(-20);
+      for await (const msg of client.fetch(uidsToFetch, { envelope: true, bodyStructure: true, source: true, uid: true })) {
         const from = msg.envelope?.from?.[0];
         const fromEmail = from?.address ?? "";
         const fromName = from?.name ?? fromEmail;
