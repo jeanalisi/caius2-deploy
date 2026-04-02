@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import {
   MessageSquare, Send, Loader2, Bot, User, Shield, Copy,
   CheckCircle2, ExternalLink, ArrowLeft, Clock, Phone, Mail,
-  ChevronRight, Info, RefreshCw, X,
+  ChevronRight, Info, RefreshCw, X, Paperclip, FileText, Image, File, AlertCircle,
 } from "lucide-react";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
@@ -29,6 +29,15 @@ interface ChatMessage {
   senderName: string | null;
   createdAt: Date;
   isOptimistic?: boolean;
+  mediaUrl?: string;
+  type?: string;
+}
+
+interface PendingAttachment {
+  file: File;
+  previewUrl?: string;
+  status: "pending" | "uploading" | "done" | "error";
+  errorMsg?: string;
 }
 
 interface VisitorInfo {
@@ -70,7 +79,72 @@ function formatBotText(text: string): React.ReactNode {
 
 // ─── Bolha de mensagem ────────────────────────────────────────────────────────
 
+/** Ícone representando o tipo MIME de um anexo */
+function AttachmentIcon({ mimeType, className }: { mimeType?: string; className?: string }) {
+  if (!mimeType) return <File className={cn("w-4 h-4", className)} />;
+  if (mimeType.startsWith("image/")) return <Image className={cn("w-4 h-4", className)} />;
+  if (mimeType === "application/pdf") return <FileText className={cn("w-4 h-4 text-red-500", className)} />;
+  return <FileText className={cn("w-4 h-4", className)} />;
+}
+
+/** Renderiza uma mensagem de anexo (📎 link clicável) */
+function AttachmentBubble({ msg }: { msg: ChatMessage }) {
+  const isUser = msg.direction === "inbound";
+  const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const fileName = msg.content.replace(/^📎 Anexo enviado: /, "").replace(/^📎 /, "");
+  const isImage = msg.mediaUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.mediaUrl);
+
+  return (
+    <div className={cn("flex gap-3 mb-4", isUser ? "justify-end" : "justify-start")}>
+      {!isUser && (
+        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+          <Bot className="w-4 h-4 text-blue-600" />
+        </div>
+      )}
+      <div className={cn("max-w-[75%] md:max-w-[65%] flex flex-col gap-1", isUser ? "items-end" : "items-start")}>
+        <div className={cn(
+          "rounded-2xl shadow-sm overflow-hidden",
+          isUser ? "rounded-tr-sm" : "rounded-tl-sm",
+          msg.isOptimistic && "opacity-60"
+        )}>
+          {isImage && msg.mediaUrl ? (
+            <a href={msg.mediaUrl} target="_blank" rel="noopener noreferrer">
+              <img src={msg.mediaUrl} alt={fileName} className="max-w-[240px] max-h-[200px] object-cover rounded-2xl" />
+            </a>
+          ) : (
+            <a
+              href={msg.mediaUrl ?? "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors",
+                isUser
+                  ? "bg-blue-500 text-white hover:bg-blue-400"
+                  : "bg-white border border-gray-200 text-blue-700 hover:bg-blue-50"
+              )}
+            >
+              <Paperclip className="w-4 h-4 flex-shrink-0" />
+              <span className="truncate max-w-[180px]">{fileName}</span>
+            </a>
+          )}
+        </div>
+        <span className="text-[10px] text-gray-400 px-1">{time}</span>
+      </div>
+      {isUser && (
+        <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0 mt-1 shadow-sm">
+          <User className="w-4 h-4 text-white" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MessageBubble({ msg }: { msg: ChatMessage }) {
+  // Mensagens de anexo têm mediaUrl e conteúdo com emoji 📎
+  if (msg.mediaUrl && (msg.content.startsWith("📎") || msg.type === "document" || msg.type === "image")) {
+    return <AttachmentBubble msg={msg} />;
+  }
+
   const isUser = msg.direction === "inbound";
   const isSystem = msg.senderName === "Sistema";
   const time = new Date(msg.createdAt).toLocaleTimeString("pt-BR", {
@@ -410,11 +484,18 @@ export default function ChatCidadao() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const lastMessageCountRef = useRef(0);
+
+  // Estado de anexos pendentes
+  const [pendingAttachments, setPendingAttachments] = useState<PendingAttachment[]>([]);
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
   // Mutações tRPC
   const startMutation = trpc.webchat.start.useMutation();
   const sendMutation = trpc.webchat.send.useMutation();
+  const uploadAttachmentMutation = trpc.webchat.uploadAttachment.useMutation();
 
   // Polling de mensagens
   const { data: messagesData } = trpc.webchat.messages.useQuery(
@@ -444,6 +525,8 @@ export default function ChatCidadao() {
       content: m.content ?? "",
       senderName: m.senderName,
       createdAt: m.createdAt,
+      mediaUrl: (m as any).mediaUrl ?? undefined,
+      type: (m as any).type ?? undefined,
     }));
     setMessages(serverMessages);
     lastMessageCountRef.current = serverMessages.length;
@@ -553,7 +636,88 @@ export default function ChatCidadao() {
     setMessages([]);
     setNup(null);
     setSessionStatus("bot");
+    setPendingAttachments([]);
+    setAttachmentError(null);
   };
+
+  /** Lida com a seleção de arquivo pelo cidadão */
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ""; // reset para permitir re-seleção do mesmo arquivo
+
+    const MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+    const ALLOWED_TYPES = [
+      "image/jpeg", "image/png", "image/gif", "image/webp",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "text/plain",
+    ];
+
+    if (file.size > MAX_SIZE) {
+      setAttachmentError("Arquivo muito grande. O limite é 10 MB.");
+      return;
+    }
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setAttachmentError("Tipo não permitido. Use imagens, PDF, Word, Excel ou texto.");
+      return;
+    }
+
+    setAttachmentError(null);
+    const previewUrl = file.type.startsWith("image/") ? URL.createObjectURL(file) : undefined;
+    setPendingAttachments((prev) => [...prev, { file, previewUrl, status: "pending" }]);
+  }, []);
+
+  /** Envia todos os anexos pendentes para o S3 via tRPC */
+  const handleUploadAttachments = useCallback(async () => {
+    if (!sessionToken || pendingAttachments.length === 0) return;
+    setIsUploadingAttachment(true);
+
+    for (let i = 0; i < pendingAttachments.length; i++) {
+      const att = pendingAttachments[i];
+      if (att.status !== "pending") continue;
+
+      setPendingAttachments((prev) =>
+        prev.map((a, idx) => idx === i ? { ...a, status: "uploading" } : a)
+      );
+
+      try {
+        // Ler como base64
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve((reader.result as string).split(",")[1]);
+          reader.onerror = reject;
+          reader.readAsDataURL(att.file);
+        });
+
+        await uploadAttachmentMutation.mutateAsync({
+          sessionToken,
+          base64,
+          originalName: att.file.name,
+          mimeType: att.file.type,
+          fileSizeBytes: att.file.size,
+        });
+
+        setPendingAttachments((prev) =>
+          prev.map((a, idx) => idx === i ? { ...a, status: "done" } : a)
+        );
+      } catch (err: any) {
+        const msg = err?.message ?? "Erro ao enviar arquivo";
+        setPendingAttachments((prev) =>
+          prev.map((a, idx) => idx === i ? { ...a, status: "error", errorMsg: msg } : a)
+        );
+      }
+    }
+
+    setIsUploadingAttachment(false);
+    // Remover os que foram enviados com sucesso após 2s
+    setTimeout(() => {
+      setPendingAttachments((prev) => prev.filter((a) => a.status !== "done"));
+    }, 2000);
+  }, [sessionToken, pendingAttachments, uploadAttachmentMutation]);
 
   const isClosed = sessionStatus === "closed" || sessionStatus === "abandoned";
 
@@ -711,33 +875,130 @@ export default function ChatCidadao() {
                     )}
                   </div>
                 ) : (
-                  <div className="flex gap-3 max-w-3xl mx-auto">
-                    <Input
-                      ref={inputRef}
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="Digite sua mensagem..."
-                      disabled={isSending}
-                      className="flex-1 h-12 bg-gray-50 border-gray-200 focus:border-blue-400 rounded-xl text-sm"
-                      maxLength={4096}
-                    />
-                    <Button
-                      onClick={handleSend}
-                      disabled={!inputText.trim() || isSending}
-                      className="h-12 w-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0 shadow-md"
-                      size="icon"
-                    >
-                      {isSending ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                  <div className="flex flex-col gap-2 max-w-3xl mx-auto">
+                    {/* Pré-visualização de anexos pendentes */}
+                    {pendingAttachments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 px-1">
+                        {pendingAttachments.map((att, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium",
+                              att.status === "done" && "bg-green-50 border-green-200 text-green-700",
+                              att.status === "uploading" && "bg-blue-50 border-blue-200 text-blue-700",
+                              att.status === "error" && "bg-red-50 border-red-200 text-red-700",
+                              att.status === "pending" && "bg-gray-50 border-gray-200 text-gray-700",
+                            )}
+                          >
+                            {att.status === "uploading" ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : att.status === "done" ? (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            ) : att.status === "error" ? (
+                              <AlertCircle className="w-3.5 h-3.5" />
+                            ) : (
+                              <Paperclip className="w-3.5 h-3.5" />
+                            )}
+                            {att.previewUrl ? (
+                              <img src={att.previewUrl} alt={att.file.name} className="w-6 h-6 object-cover rounded" />
+                            ) : null}
+                            <span className="truncate max-w-[140px]">{att.file.name}</span>
+                            {att.status === "pending" && (
+                              <button
+                                onClick={() => setPendingAttachments((prev) => prev.filter((_, idx) => idx !== i))}
+                                className="ml-1 hover:text-red-500 transition-colors"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Mensagem de erro de validação */}
+                    {attachmentError && (
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700">
+                        <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                        {attachmentError}
+                        <button onClick={() => setAttachmentError(null)} className="ml-auto">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Input de texto + botões */}
+                    <div className="flex gap-2">
+                      {/* Input oculto para seleção de arquivo */}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                        onChange={handleFileSelect}
+                        disabled={isSending || isUploadingAttachment}
+                      />
+
+                      {/* Botão de anexo */}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isSending || isUploadingAttachment}
+                        title="Anexar arquivo (máx. 10 MB)"
+                        className="h-12 w-12 rounded-xl border-gray-200 bg-white hover:bg-gray-50 flex-shrink-0"
+                      >
+                        {isUploadingAttachment ? (
+                          <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                        ) : (
+                          <Paperclip className="w-5 h-5 text-gray-500" />
+                        )}
+                      </Button>
+
+                      <Input
+                        ref={inputRef}
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Digite sua mensagem..."
+                        disabled={isSending}
+                        className="flex-1 h-12 bg-gray-50 border-gray-200 focus:border-blue-400 rounded-xl text-sm"
+                        maxLength={4096}
+                      />
+
+                      {/* Botão de enviar (envia texto ou faz upload dos anexos) */}
+                      {pendingAttachments.some((a) => a.status === "pending") ? (
+                        <Button
+                          onClick={handleUploadAttachments}
+                          disabled={isUploadingAttachment}
+                          className="h-12 px-4 rounded-xl bg-green-600 hover:bg-green-700 text-white flex-shrink-0 shadow-md gap-2"
+                        >
+                          {isUploadingAttachment ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <><Paperclip className="w-4 h-4" /><span className="text-xs font-semibold">Enviar</span></>
+                          )}
+                        </Button>
                       ) : (
-                        <Send className="w-5 h-5" />
+                        <Button
+                          onClick={handleSend}
+                          disabled={!inputText.trim() || isSending}
+                          className="h-12 w-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0 shadow-md"
+                          size="icon"
+                        >
+                          {isSending ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Send className="w-5 h-5" />
+                          )}
+                        </Button>
                       )}
-                    </Button>
+                    </div>
                   </div>
                 )}
                 <p className="text-center text-[10px] text-gray-400 mt-2">
-                  Pressione Enter para enviar · Shift+Enter para nova linha
+                  Pressione Enter para enviar · Clique em 📎 para anexar arquivos (máx. 10 MB)
                 </p>
               </div>
             </>

@@ -4,7 +4,7 @@
  * Inclui: Dashboard, Caixa de Entrada, Envio, Regras, Fila, Auditoria
  */
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import OmniLayout from "@/components/OmniLayout";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import {
   Select,
   SelectContent,
@@ -81,6 +82,11 @@ import {
   FileText,
   Eye,
   ArrowLeft,
+  Paperclip,
+  X,
+  PenSquare,
+  Upload,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
@@ -262,8 +268,25 @@ function InboxTab() {
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedMessage, setSelectedMessage] = useState<any>(null);
   const [replyOpen, setReplyOpen] = useState(false);
-  const [replyBody, setReplyBody] = useState("");
+  const [replyBodyHtml, setReplyBodyHtml] = useState("");
   const [search, setSearch] = useState("");
+
+  // Estado do compose de novo e-mail
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeTo, setComposeTo] = useState("");
+  const [composeCc, setComposeCc] = useState("");
+  const [composeSubject, setComposeSubject] = useState("");
+  const [composeBodyHtml, setComposeBodyHtml] = useState("");
+  const [composeMailboxId, setComposeMailboxId] = useState<number | undefined>();
+  const [composeNup, setComposeNup] = useState("");
+
+  // Estado de anexos (reply + compose compartilham listas separadas)
+  const [replyAttachments, setReplyAttachments] = useState<{ file: File; name: string; size: number; s3Url?: string; uploading?: boolean; error?: string }[]>([]);
+  const [composeAttachments, setComposeAttachments] = useState<{ file: File; name: string; size: number; s3Url?: string; uploading?: boolean; error?: string }[]>([]);
+  const replyFileRef = useRef<HTMLInputElement>(null);
+  const composeFileRef = useRef<HTMLInputElement>(null);
+
+  const utils = trpc.useUtils();
 
   const { data: mailboxes } = trpc.emailInstitutional.mailboxes.list.useQuery();
   const { data: msgData, isLoading, refetch } = trpc.emailInstitutional.messages.list.useQuery({
@@ -285,10 +308,69 @@ function InboxTab() {
   const replyMutation = trpc.emailInstitutional.compose.reply.useMutation({
     onSuccess: () => {
       setReplyOpen(false);
-      setReplyBody("");
+      setReplyBodyHtml("");
+      setReplyAttachments([]);
       refetch();
     },
   });
+
+  const sendMutation = trpc.emailInstitutional.compose.send.useMutation({
+    onSuccess: () => {
+      setComposeOpen(false);
+      setComposeTo(""); setComposeCc(""); setComposeSubject(""); setComposeBodyHtml(""); setComposeNup("");
+      setComposeAttachments([]);
+      refetch();
+    },
+  });
+
+  /** Upload de um arquivo para S3 via attachments.upload tRPC */
+  const uploadAttachmentFile = async (
+    file: File,
+    setList: React.Dispatch<React.SetStateAction<{ file: File; name: string; size: number; s3Url?: string; uploading?: boolean; error?: string }[]>>,
+    index: number
+  ) => {
+    const MAX = 10 * 1024 * 1024;
+    if (file.size > MAX) {
+      setList(prev => prev.map((a, i) => i === index ? { ...a, error: "Arquivo muito grande (máx. 10 MB)", uploading: false } : a));
+      return;
+    }
+    setList(prev => prev.map((a, i) => i === index ? { ...a, uploading: true, error: undefined } : a));
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      // Usa o endpoint genérico de attachments para upload
+      const result = await utils.client.attachments.upload.mutate({
+        entityType: "email_compose",
+        entityId: 0,
+        fileName: file.name,
+        mimeType: file.type || "application/octet-stream",
+        base64Data: base64,
+      });
+      setList(prev => prev.map((a, i) => i === index ? { ...a, uploading: false, s3Url: result.s3Url } : a));
+    } catch (err: any) {
+      setList(prev => prev.map((a, i) => i === index ? { ...a, uploading: false, error: err?.message ?? "Erro no upload" } : a));
+    }
+  };
+
+  const handleAddFile = (
+    files: FileList | null,
+    setList: React.Dispatch<React.SetStateAction<{ file: File; name: string; size: number; s3Url?: string; uploading?: boolean; error?: string }[]>>
+  ) => {
+    if (!files) return;
+    Array.from(files).forEach(file => {
+      setList(prev => {
+        const idx = prev.length;
+        const newList = [...prev, { file, name: file.name, size: file.size }];
+        // Upload imediato
+        setTimeout(() => uploadAttachmentFile(file, setList, idx), 0);
+        return newList;
+      });
+    });
+  };
 
   const messages = msgData?.messages ?? [];
   const filtered = search
@@ -305,7 +387,11 @@ function InboxTab() {
       {/* Lista de mensagens */}
       <div className={cn("flex flex-col gap-3", selectedMessage ? "w-80 shrink-0" : "flex-1")}>
         {/* Filtros */}
-        <div className="flex gap-2">
+          <div className="flex gap-2">
+          <Button onClick={() => setComposeOpen(true)} className="shrink-0 gap-1.5">
+            <PenSquare className="h-4 w-4" />
+            Novo E-mail
+          </Button>
           <div className="relative flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -541,28 +627,226 @@ function InboxTab() {
             )}
             <div>
               <Label>Mensagem</Label>
-              <Textarea
-                rows={8}
+              <RichTextEditor
+                value={replyBodyHtml}
+                onChange={setReplyBodyHtml}
                 placeholder="Digite sua resposta..."
-                value={replyBody}
-                onChange={e => setReplyBody(e.target.value)}
+                minHeight="180px"
               />
+            </div>
+
+            {/* Anexos da resposta */}
+            <div>
+              <Label>Anexos</Label>
+              <input
+                ref={replyFileRef}
+                type="file"
+                multiple
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                onChange={e => handleAddFile(e.target.files, setReplyAttachments)}
+              />
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {replyAttachments.map((att, i) => (
+                  <div key={i} className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium",
+                    att.error ? "bg-red-50 border-red-200 text-red-700" :
+                    att.uploading ? "bg-blue-50 border-blue-200 text-blue-700" :
+                    att.s3Url ? "bg-green-50 border-green-200 text-green-700" :
+                    "bg-gray-50 border-gray-200 text-gray-700"
+                  )}>
+                    {att.uploading ? <Loader2 className="h-3 w-3 animate-spin" /> :
+                     att.error ? <AlertCircle className="h-3 w-3" /> :
+                     att.s3Url ? <CheckCircle2 className="h-3 w-3" /> :
+                     <Paperclip className="h-3 w-3" />}
+                    <span className="truncate max-w-[140px]" title={att.error ?? att.name}>{att.name}</span>
+                    <span className="text-muted-foreground">({Math.round(att.size / 1024)} KB)</span>
+                    {!att.uploading && (
+                      <button onClick={() => setReplyAttachments(prev => prev.filter((_, idx) => idx !== i))}>
+                        <X className="h-3 w-3 hover:text-red-500" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button" variant="outline" size="sm"
+                  onClick={() => replyFileRef.current?.click()}
+                  className="h-7 gap-1.5 text-xs"
+                >
+                  <Paperclip className="h-3.5 w-3.5" /> Anexar arquivo
+                </Button>
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setReplyOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => { setReplyOpen(false); setReplyBodyHtml(""); setReplyAttachments([]); }}>Cancelar</Button>
             <Button
               onClick={() => {
                 if (!selectedMessage) return;
                 replyMutation.mutate({
                   emailMessageId: selectedMessage.id,
-                  bodyText: replyBody,
+                  bodyHtml: replyBodyHtml || undefined,
+                  bodyText: replyBodyHtml.replace(/<[^>]+>/g, "") || undefined,
                 });
               }}
-              disabled={replyMutation.isPending || !replyBody.trim()}
+              disabled={replyMutation.isPending || !replyBodyHtml.trim()}
             >
               {replyMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
               Enviar Resposta
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog: Novo E-mail ────────────────────────────────────────────── */}
+      <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PenSquare className="h-5 w-5" /> Novo E-mail
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            {/* Caixa de origem */}
+            <div>
+              <Label>De (Caixa Postal)</Label>
+              <Select
+                value={composeMailboxId?.toString() ?? ""}
+                onValueChange={v => setComposeMailboxId(Number(v))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a caixa de origem..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {mailboxes?.map((mb: any) => (
+                    <SelectItem key={mb.id} value={mb.id.toString()}>
+                      {mb.name} &lt;{mb.address}&gt;
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Para */}
+            <div>
+              <Label>Para</Label>
+              <Input
+                placeholder="destinatario@exemplo.com.br"
+                value={composeTo}
+                onChange={e => setComposeTo(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-0.5">Separe múltiplos endereços com vírgula</p>
+            </div>
+
+            {/* CC */}
+            <div>
+              <Label>CC (opcional)</Label>
+              <Input
+                placeholder="cc@exemplo.com.br"
+                value={composeCc}
+                onChange={e => setComposeCc(e.target.value)}
+              />
+            </div>
+
+            {/* Assunto */}
+            <div>
+              <Label>Assunto</Label>
+              <Input
+                placeholder="Assunto do e-mail"
+                value={composeSubject}
+                onChange={e => setComposeSubject(e.target.value)}
+                maxLength={998}
+              />
+            </div>
+
+            {/* NUP (opcional) */}
+            <div>
+              <Label>NUP (opcional)</Label>
+              <Input
+                placeholder="Ex: 2024.001.000001"
+                value={composeNup}
+                onChange={e => setComposeNup(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-0.5">Se informado, será incluído no assunto e vinculado ao protocolo</p>
+            </div>
+
+            {/* Editor de corpo */}
+            <div>
+              <Label>Mensagem</Label>
+              <RichTextEditor
+                value={composeBodyHtml}
+                onChange={setComposeBodyHtml}
+                placeholder="Escreva o corpo do e-mail..."
+                minHeight="220px"
+              />
+            </div>
+
+            {/* Anexos */}
+            <div>
+              <Label>Anexos</Label>
+              <input
+                ref={composeFileRef}
+                type="file"
+                multiple
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+                onChange={e => handleAddFile(e.target.files, setComposeAttachments)}
+              />
+              <div className="flex flex-wrap gap-2 mt-1.5">
+                {composeAttachments.map((att, i) => (
+                  <div key={i} className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-xs font-medium",
+                    att.error ? "bg-red-50 border-red-200 text-red-700" :
+                    att.uploading ? "bg-blue-50 border-blue-200 text-blue-700" :
+                    att.s3Url ? "bg-green-50 border-green-200 text-green-700" :
+                    "bg-gray-50 border-gray-200 text-gray-700"
+                  )}>
+                    {att.uploading ? <Loader2 className="h-3 w-3 animate-spin" /> :
+                     att.error ? <AlertCircle className="h-3 w-3" /> :
+                     att.s3Url ? <CheckCircle2 className="h-3 w-3" /> :
+                     <Paperclip className="h-3 w-3" />}
+                    <span className="truncate max-w-[140px]" title={att.error ?? att.name}>{att.name}</span>
+                    <span className="text-muted-foreground">({Math.round(att.size / 1024)} KB)</span>
+                    {!att.uploading && (
+                      <button onClick={() => setComposeAttachments(prev => prev.filter((_, idx) => idx !== i))}>
+                        <X className="h-3 w-3 hover:text-red-500" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <Button
+                  type="button" variant="outline" size="sm"
+                  onClick={() => composeFileRef.current?.click()}
+                  className="h-7 gap-1.5 text-xs"
+                >
+                  <Paperclip className="h-3.5 w-3.5" /> Anexar arquivo
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-2">
+            <Button variant="outline" onClick={() => { setComposeOpen(false); setComposeAttachments([]); }}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (!composeMailboxId || !composeTo.trim() || !composeSubject.trim()) return;
+                // Parsear destinatários separados por vírgula
+                const toList = composeTo.split(",").map(s => s.trim()).filter(Boolean).map(addr => ({ address: addr }));
+                const ccList = composeCc ? composeCc.split(",").map(s => s.trim()).filter(Boolean).map(addr => ({ address: addr })) : undefined;
+                sendMutation.mutate({
+                  mailboxId: composeMailboxId,
+                  to: toList,
+                  cc: ccList,
+                  subject: composeNup ? `${composeSubject} [${composeNup}]` : composeSubject,
+                  bodyHtml: composeBodyHtml || undefined,
+                  bodyText: composeBodyHtml.replace(/<[^>]+>/g, "") || undefined,
+                  nup: composeNup || undefined,
+                });
+              }}
+              disabled={sendMutation.isPending || !composeMailboxId || !composeTo.trim() || !composeSubject.trim()}
+            >
+              {sendMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
+              Enviar E-mail
             </Button>
           </DialogFooter>
         </DialogContent>

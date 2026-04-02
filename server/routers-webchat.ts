@@ -26,8 +26,9 @@ import {
 } from "./webchat";
 import { createDefaultWebchatFlow } from "./webchat-bot";
 import { getDb } from "./db";
-import { webchatSessions } from "../drizzle/schema";
+import { webchatSessions, webchatAttachments } from "../drizzle/schema";
 import { eq, desc, inArray } from "drizzle-orm";
+import { storagePut } from "./storage";
 
 export const webchatRouter = router({
   // ── Cidadão: Iniciar sessão ──────────────────────────────────────────────
@@ -200,6 +201,122 @@ export const webchatRouter = router({
     .mutation(async () => {
       const flowId = await createDefaultWebchatFlow();
       return { success: true, flowId };
+    }),
+
+  // ── Cidadão: Upload de anexo ─────────────────────────────────────────────
+  // Recebe o arquivo em base64 e armazena no S3, vinculando à sessão.
+  // Limite: 10 MB por arquivo. Tipos permitidos: imagens, PDF, Word, Excel.
+  uploadAttachment: publicProcedure
+    .input(
+      z.object({
+        sessionToken: z.string().length(64),
+        base64: z.string().max(14_000_000), // ~10 MB em base64
+        originalName: z.string().max(512),
+        mimeType: z.string().max(128),
+        fileSizeBytes: z.number().int().max(10 * 1024 * 1024), // 10 MB
+      })
+    )
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+      // Verificar se a sessão existe e está ativa
+      const [session] = await db
+        .select({
+          sessionToken: webchatSessions.sessionToken,
+          conversationId: webchatSessions.conversationId,
+          nup: webchatSessions.nup,
+          visitorName: webchatSessions.visitorName,
+          status: webchatSessions.status,
+        })
+        .from(webchatSessions)
+        .where(eq(webchatSessions.sessionToken, input.sessionToken))
+        .limit(1);
+
+      if (!session) throw new TRPCError({ code: "NOT_FOUND", message: "Sessão não encontrada" });
+      if (session.status === "closed" || session.status === "abandoned") {
+        throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Sessão encerrada" });
+      }
+
+      // Validar tipo MIME permitido
+      const ALLOWED_MIMES = [
+        "image/jpeg", "image/png", "image/gif", "image/webp",
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "text/plain",
+      ];
+      if (!ALLOWED_MIMES.includes(input.mimeType)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Tipo de arquivo não permitido. Use imagens, PDF, Word, Excel ou texto.",
+        });
+      }
+
+      // Gerar chave S3 única
+      const ext = input.originalName.split(".").pop() ?? "bin";
+      const safeExt = ext.replace(/[^a-zA-Z0-9]/g, "").slice(0, 10);
+      const s3Key = `webchat-attachments/${input.sessionToken.slice(0, 8)}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${safeExt}`;
+
+      // Upload para S3
+      const buffer = Buffer.from(input.base64, "base64");
+      const { url: s3Url } = await storagePut(s3Key, buffer, input.mimeType);
+
+      // Salvar no banco
+      const [result] = await db.insert(webchatAttachments).values({
+        sessionToken: input.sessionToken,
+        conversationId: session.conversationId ?? undefined,
+        nup: session.nup ?? undefined,
+        originalName: input.originalName,
+        mimeType: input.mimeType,
+        fileSizeBytes: input.fileSizeBytes,
+        s3Key,
+        s3Url,
+        uploadedByName: session.visitorName ?? undefined,
+      });
+
+      // Enviar mensagem automática no chat informando o anexo
+      try {
+        await processWebchatMessage({
+          sessionToken: input.sessionToken,
+          content: `📎 Anexo enviado: ${input.originalName}`,
+          contentType: "document",
+          mediaUrl: s3Url,
+        });
+      } catch {
+        // Não falhar se o envio da mensagem falhar
+      }
+
+      return {
+        id: (result as any).insertId as number,
+        s3Url,
+        originalName: input.originalName,
+        mimeType: input.mimeType,
+        fileSizeBytes: input.fileSizeBytes,
+      };
+    }),
+
+  // ── Agente/Admin: Listar anexos de uma sessão ───────────────────────────
+  attachments: protectedProcedure
+    .input(z.object({ sessionToken: z.string().optional(), conversationId: z.number().optional() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return [];
+      if (!input.sessionToken && !input.conversationId) return [];
+
+      const rows = await db
+        .select()
+        .from(webchatAttachments)
+        .where(
+          input.conversationId
+            ? eq(webchatAttachments.conversationId, input.conversationId)
+            : eq(webchatAttachments.sessionToken, input.sessionToken!)
+        )
+        .orderBy(desc(webchatAttachments.createdAt));
+
+      return rows.filter((r) => !r.isDeleted);
     }),
 
   // ── Admin: Listar todas as sessões (com filtro de status) ────────────────

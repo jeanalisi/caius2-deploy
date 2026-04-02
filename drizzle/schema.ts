@@ -2314,3 +2314,36 @@ export const caiusFeedback = mysqlTable("caiusFeedback", {
 }));
 export type CaiusFeedback = typeof caiusFeedback.$inferSelect;
 export type InsertCaiusFeedback = typeof caiusFeedback.$inferInsert;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ─── MÓDULO: ANEXOS DO WEBCHAT ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Anexos enviados pelo cidadão via webchat.
+ * Cada registro vincula um arquivo (armazenado no S3) a uma sessão de webchat
+ * e opcionalmente a uma mensagem específica e ao NUP do protocolo.
+ */
+export const webchatAttachments = mysqlTable("webchatAttachments", {
+  id: int("id").autoincrement().primaryKey(),
+  sessionToken: varchar("sessionToken", { length: 128 }).notNull(),
+  conversationId: int("conversationId"),
+  messageId: int("messageId"),
+  nup: varchar("nup", { length: 64 }),
+  // Dados do arquivo
+  originalName: varchar("originalName", { length: 512 }).notNull(),
+  mimeType: varchar("mimeType", { length: 128 }).notNull(),
+  fileSizeBytes: int("fileSizeBytes").notNull(),
+  s3Key: varchar("s3Key", { length: 1024 }).notNull(),
+  s3Url: text("s3Url").notNull(),
+  // Metadados
+  uploadedByName: varchar("uploadedByName", { length: 256 }),
+  isDeleted: boolean("isDeleted").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, (table) => ({
+  sessionIdx: index("wca_session_idx").on(table.sessionToken),
+  convIdx: index("wca_conv_idx").on(table.conversationId),
+  nupIdx: index("wca_nup_idx").on(table.nup),
+}));
+export type WebchatAttachment = typeof webchatAttachments.$inferSelect;
+export type InsertWebchatAttachment = typeof webchatAttachments.$inferInsert;
