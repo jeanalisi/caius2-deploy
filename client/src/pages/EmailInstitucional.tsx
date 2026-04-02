@@ -578,10 +578,10 @@ function MailboxesTab() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [testResult, setTestResult] = useState<any>(null);
   const [form, setForm] = useState({
-    name: "", address: "", displayName: "", description: "", sectorId: undefined as number | undefined,
-    imapHost: "", imapPort: 993, imapUser: "", imapPassword: "", imapSecure: true, imapMailbox: "INBOX",
-    smtpHost: "", smtpPort: 587, smtpUser: "", smtpPassword: "", smtpSecure: false,
-    syncIntervalMinutes: 5, autoReplyEnabled: true, autoReplyTemplate: "", signature: "",
+    name: "", address: "", displayName: "Prefeitura de Itabaiana - PB", description: "", sectorId: undefined as number | undefined,
+    imapHost: "itabaiana.pb.gov.br", imapPort: 993, imapUser: "", imapPassword: "", imapSecure: true, imapMailbox: "INBOX",
+    smtpHost: "itabaiana.pb.gov.br", smtpPort: 465, smtpUser: "", smtpPassword: "", smtpSecure: true,
+    syncIntervalMinutes: 2, autoReplyEnabled: true, autoReplyTemplate: "", signature: "",
   });
 
   const { data: mailboxes, isLoading, refetch } = trpc.emailInstitutional.mailboxes.list.useQuery();
@@ -594,10 +594,10 @@ function MailboxesTab() {
   });
 
   function resetForm() {
-    setForm({ name: "", address: "", displayName: "", description: "", sectorId: undefined,
-      imapHost: "", imapPort: 993, imapUser: "", imapPassword: "", imapSecure: true, imapMailbox: "INBOX",
-      smtpHost: "", smtpPort: 587, smtpUser: "", smtpPassword: "", smtpSecure: false,
-      syncIntervalMinutes: 5, autoReplyEnabled: true, autoReplyTemplate: "", signature: "" });
+    setForm({ name: "", address: "", displayName: "Prefeitura de Itabaiana - PB", description: "", sectorId: undefined,
+      imapHost: "itabaiana.pb.gov.br", imapPort: 993, imapUser: "", imapPassword: "", imapSecure: true, imapMailbox: "INBOX",
+      smtpHost: "itabaiana.pb.gov.br", smtpPort: 465, smtpUser: "", smtpPassword: "", smtpSecure: true,
+      syncIntervalMinutes: 2, autoReplyEnabled: true, autoReplyTemplate: "", signature: "" });
     setTestResult(null);
   }
 
@@ -708,7 +708,7 @@ function MailboxesTab() {
               </div>
               <div>
                 <Label>Endereço de E-mail *</Label>
-                <Input placeholder="atendimento@pmi.pb.gov.br" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
+                <Input placeholder="atendimento@itabaiana.pb.gov.br" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
               </div>
               <div>
                 <Label>Nome de Exibição</Label>
@@ -725,7 +725,7 @@ function MailboxesTab() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Servidor IMAP *</Label>
-                <Input placeholder="mail.pmi.pb.gov.br" value={form.imapHost} onChange={e => setForm(f => ({ ...f, imapHost: e.target.value }))} />
+                <Input placeholder="itabaiana.pb.gov.br" value={form.imapHost} onChange={e => setForm(f => ({ ...f, imapHost: e.target.value }))} />
               </div>
               <div>
                 <Label>Porta IMAP</Label>
@@ -733,7 +733,7 @@ function MailboxesTab() {
               </div>
               <div>
                 <Label>Usuário IMAP *</Label>
-                <Input placeholder="atendimento@pmi.pb.gov.br" value={form.imapUser} onChange={e => setForm(f => ({ ...f, imapUser: e.target.value }))} />
+                <Input placeholder="atendimento@itabaiana.pb.gov.br" value={form.imapUser} onChange={e => setForm(f => ({ ...f, imapUser: e.target.value }))} />
               </div>
               <div>
                 <Label>Senha IMAP *</Label>
@@ -754,7 +754,7 @@ function MailboxesTab() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Servidor SMTP *</Label>
-                <Input placeholder="mail.pmi.pb.gov.br" value={form.smtpHost} onChange={e => setForm(f => ({ ...f, smtpHost: e.target.value }))} />
+                <Input placeholder="itabaiana.pb.gov.br" value={form.smtpHost} onChange={e => setForm(f => ({ ...f, smtpHost: e.target.value }))} />
               </div>
               <div>
                 <Label>Porta SMTP</Label>
@@ -762,7 +762,7 @@ function MailboxesTab() {
               </div>
               <div>
                 <Label>Usuário SMTP *</Label>
-                <Input placeholder="atendimento@pmi.pb.gov.br" value={form.smtpUser} onChange={e => setForm(f => ({ ...f, smtpUser: e.target.value }))} />
+                <Input placeholder="atendimento@itabaiana.pb.gov.br" value={form.smtpUser} onChange={e => setForm(f => ({ ...f, smtpUser: e.target.value }))} />
               </div>
               <div>
                 <Label>Senha SMTP *</Label>
