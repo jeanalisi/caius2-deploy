@@ -1,0 +1,49 @@
+{
+  "query": "SHOW TABLES LIKE 'notification%';\nDESCRIBE notifications;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute SHOW TABLES LIKE 'notification%';\nDESCRIBE notifications;",
+  "rows": [
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "notifications"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "notifications_bkp"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "notifications_new"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "Field\tType\tNull\tKey\tDefault\tExtra"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "id\tint\tNO\tPRI\tNULL\tauto_increment"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "userId\tint\tNO\t\tNULL\t"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "type\tenum('new_message','ticket_assigned','ticket_resolved','queue_assigned','mention')\tNO\t\tNULL\t"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "title\tvarchar(255)\tNO\t\tNULL\t"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "body\ttext\tYES\t\tNULL\t"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "isRead\ttinyint(1)\tNO\t\t0\t"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "relatedConversationId\tint\tYES\t\tNULL\t"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "relatedTicketId\tint\tYES\t\tNULL\t"
+    },
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)": "createdAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_fNE9efXdCmnppeWra27xJs (notification%)\nnotifications\nnotifications_bkp\nnotifications_new\nField\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nuserId\tint\tNO\t\tNULL\t\ntype\tenum('new_message','ticket_assigned','ticket_resolved','queue_assigned','mention')\tNO\t\tNULL\t\ntitle\tvarchar(255)\tNO\t\tNULL\t\nbody\ttext\tYES\t\tNULL\t\nisRead\ttinyint(1)\tNO\t\t0\t\nrelatedConversationId\tint\tYES\t\tNULL\t\nrelatedTicketId\tint\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\n",
+  "stderr": "",
+  "execution_time_ms": 109
+}

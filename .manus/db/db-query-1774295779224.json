@@ -1,0 +1,24 @@
+{
+  "query": "SELECT id, openId, name, email, role FROM users WHERE name LIKE '%Jean%' OR email LIKE '%jeanalisi%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute SELECT id, openId, name, email, role FROM users WHERE name LIKE '%Jean%' OR email LIKE '%jeanalisi%' LIMIT 5;",
+  "rows": [
+    {
+      "id": "2",
+      "openId": "3fQYAWj8RZbiLQgvY5J2hh",
+      "name": "Jean Alisi Amorim",
+      "email": "jeanalisi.amorim@icloud.com",
+      "role": "admin"
+    },
+    {
+      "id": "5",
+      "openId": "TRRqk8Ku94KJ5uBjVmaukv",
+      "name": "Jean Alisi Amorim",
+      "email": "jeanalisi.amorim@icloud.com",
+      "role": "user"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\topenId\tname\temail\trole\n2\t3fQYAWj8RZbiLQgvY5J2hh\tJean Alisi Amorim\tjeanalisi.amorim@icloud.com\tadmin\n5\tTRRqk8Ku94KJ5uBjVmaukv\tJean Alisi Amorim\tjeanalisi.amorim@icloud.com\tuser\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

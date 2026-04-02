@@ -1,0 +1,13 @@
+{
+  "query": "SHOW TABLES LIKE 'accounts';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute SHOW TABLES LIKE 'accounts';",
+  "rows": [
+    {
+      "Tables_in_fNE9efXdCmnppeWra27xJs (accounts)": "accounts"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_fNE9efXdCmnppeWra27xJs (accounts)\naccounts\n",
+  "stderr": "",
+  "execution_time_ms": 99
+}

@@ -1,0 +1,9 @@
+{
+  "query": "-- Adicionar colunas faltantes na tabela notifications\nALTER TABLE `notifications`\n  ADD COLUMN IF NOT EXISTS `relatedProtocolId` int DEFAULT NULL,\n  ADD COLUMN IF NOT EXISTS `nup` varchar(32) DEFAULT NULL;\n\n-- Corrigir o enum type para incluir os novos valores\nALTER TABLE `notifications`\n  MODIFY COLUMN `type` enum('new_message','ticket_assigned','ticket_resolved','queue_assigned','mention','protocol_update','tramitation','signature_request') NOT NULL;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute -- Adicionar colunas faltantes na tabela notifications\nALTER TABLE `notifications`\n  ADD COLUMN IF NOT EXISTS `relatedProtocolId` int DEFAULT NULL,\n  ADD COLUMN IF NOT EXISTS `nup` varchar(32) DEFAULT NULL;\n\n-- Corrigir o enum type para incluir os novos valores\nALTER TABLE `notifications`\n  MODIFY COLUMN `type` enum('new_message','ticket_assigned','ticket_resolved','queue_assigned','mention','protocol_update','tramitation','signature_request') NOT NULL;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 890
+}

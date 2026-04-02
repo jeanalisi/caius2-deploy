@@ -1,0 +1,9 @@
+{
+  "query": "-- Adicionar colunas faltantes na tabela messages\nALTER TABLE `messages`\n  ADD COLUMN IF NOT EXISTS `aiGenerated` tinyint(1) NOT NULL DEFAULT 0,\n  ADD COLUMN IF NOT EXISTS `deliveryStatus` enum('pending','sent','delivered','failed') NOT NULL DEFAULT 'sent',\n  ADD COLUMN IF NOT EXISTS `deliveryError` text DEFAULT NULL;\n\n-- Resetar status da conta WhatsApp para disconnected (sessão perdida)\nUPDATE `accounts` SET `status` = 'disconnected', `waQrCode` = NULL WHERE `channel` = 'whatsapp' AND `id` = 2;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute -- Adicionar colunas faltantes na tabela messages\nALTER TABLE `messages`\n  ADD COLUMN IF NOT EXISTS `aiGenerated` tinyint(1) NOT NULL DEFAULT 0,\n  ADD COLUMN IF NOT EXISTS `deliveryStatus` enum('pending','sent','delivered','failed') NOT NULL DEFAULT 'sent',\n  ADD COLUMN IF NOT EXISTS `deliveryError` text DEFAULT NULL;\n\n-- Resetar status da conta WhatsApp para disconnected (sessão perdida)\nUPDATE `accounts` SET `status` = 'disconnected', `waQrCode` = NULL WHERE `channel` = 'whatsapp' AND `id` = 2;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1850
+}

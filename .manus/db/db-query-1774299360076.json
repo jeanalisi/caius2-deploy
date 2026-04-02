@@ -1,0 +1,13 @@
+{
+  "query": "-- Tabelas do schema Drizzle com AUTO_INCREMENT\nSELECT COUNT(*) as with_autoincrement\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE()\n  AND EXTRA LIKE '%auto_increment%'\n  AND TABLE_NAME NOT LIKE '%_bkp%'\n  AND TABLE_NAME NOT LIKE '%_bkp2%'\n  AND TABLE_NAME NOT LIKE '%_old%';\n\n-- Tabelas sem AUTO_INCREMENT (excluindo legadas e backups)\nSELECT TABLE_NAME\nFROM INFORMATION_SCHEMA.TABLES t\nWHERE t.TABLE_SCHEMA = DATABASE()\n  AND t.TABLE_TYPE = 'BASE TABLE'\n  AND t.TABLE_NAME NOT LIKE '%_bkp%'\n  AND t.TABLE_NAME NOT LIKE '%_bkp2%'\n  AND t.TABLE_NAME NOT LIKE '%_old%'\n  AND t.TABLE_NAME NOT IN (\n    '__drizzle_migrations', 'administradores', 'avaliacoes_documentos',\n    'messageReadEvents', 'serviceSubjectDocuments', 'serviceTypeOrgUnits', 'solicitacoes_endereco'\n  )\n  AND (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS c \n       WHERE c.TABLE_NAME = t.TABLE_NAME AND c.TABLE_SCHEMA = t.TABLE_SCHEMA \n       AND c.EXTRA LIKE '%auto_increment%') = 0\nORDER BY TABLE_NAME;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user rskERJxqepVxgiV.root --database fNE9efXdCmnppeWra27xJs --execute -- Tabelas do schema Drizzle com AUTO_INCREMENT\nSELECT COUNT(*) as with_autoincrement\nFROM INFORMATION_SCHEMA.COLUMNS\nWHERE TABLE_SCHEMA = DATABASE()\n  AND EXTRA LIKE '%auto_increment%'\n  AND TABLE_NAME NOT LIKE '%_bkp%'\n  AND TABLE_NAME NOT LIKE '%_bkp2%'\n  AND TABLE_NAME NOT LIKE '%_old%';\n\n-- Tabelas sem AUTO_INCREMENT (excluindo legadas e backups)\nSELECT TABLE_NAME\nFROM INFORMATION_SCHEMA.TABLES t\nWHERE t.TABLE_SCHEMA = DATABASE()\n  AND t.TABLE_TYPE = 'BASE TABLE'\n  AND t.TABLE_NAME NOT LIKE '%_bkp%'\n  AND t.TABLE_NAME NOT LIKE '%_bkp2%'\n  AND t.TABLE_NAME NOT LIKE '%_old%'\n  AND t.TABLE_NAME NOT IN (\n    '__drizzle_migrations', 'administradores', 'avaliacoes_documentos',\n    'messageReadEvents', 'serviceSubjectDocuments', 'serviceTypeOrgUnits', 'solicitacoes_endereco'\n  )\n  AND (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS c \n       WHERE c.TABLE_NAME = t.TABLE_NAME AND c.TABLE_SCHEMA = t.TABLE_SCHEMA \n       AND c.EXTRA LIKE '%auto_increment%') = 0\nORDER BY TABLE_NAME;",
+  "rows": [
+    {
+      "with_autoincrement": "165"
+    }
+  ],
+  "messages": [],
+  "stdout": "with_autoincrement\n165\n",
+  "stderr": "",
+  "execution_time_ms": 231
+}
