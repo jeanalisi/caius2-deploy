@@ -11,6 +11,7 @@ import { initSocketIO } from "./socketio";
 import { initChannelGateway } from "../channel-gateway";
 import { startEmailPolling } from "../email-institutional";
 import { initCaiusAgent } from "../caius-agent";
+import { initWhatsAppAccounts } from "../whatsapp";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -76,6 +77,14 @@ async function startServer() {
       console.log("[Server] ChannelGateway inicializado com sucesso.");
     } catch (err) {
       console.error("[Server] Erro ao inicializar ChannelGateway:", err);
+    }
+
+    // Reconectar contas WhatsApp com sessão salva no banco
+    try {
+      await initWhatsAppAccounts();
+      console.log("[Server] Reconexão automática de contas WhatsApp concluída.");
+    } catch (err) {
+      console.error("[Server] Erro ao reconectar contas WhatsApp:", err);
     }
 
     // Polling automático de e-mails a cada 2 minutos para todas as contas de e-mail ativas

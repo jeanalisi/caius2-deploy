@@ -1,15 +1,47 @@
 /**
  * wa-session-store.ts
- * Persistência de sessões Baileys no banco TiDB.
- * Substitui useMultiFileAuthState (disco) por armazenamento em banco,
- * garantindo que a sessão sobreviva a reinicializações do servidor.
+ * Persistência de sessões Baileys no banco TiDB/MySQL.
+ *
+ * A tabela `waSessions` é criada automaticamente na primeira execução
+ * (CREATE TABLE IF NOT EXISTS), eliminando a dependência de migrações manuais.
+ *
+ * Usa BufferJSON.replacer/reviver para serialização correta de Buffers e
+ * makeCacheableSignalKeyStore para evitar race conditions nas chaves Signal.
  */
 
 import { getDb } from "./db";
 import { sql } from "drizzle-orm";
 
-// ─── Helpers de banco direto (sem schema Drizzle para evitar dependência circular) ─
+// ─── Garantir que a tabela existe ────────────────────────────────────────────
+let tableEnsured = false;
+
+async function ensureTable(): Promise<void> {
+  if (tableEnsured) return;
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS waSessions (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        accountId   INT NOT NULL,
+        sessionKey  VARCHAR(255) NOT NULL,
+        sessionData LONGTEXT NOT NULL,
+        createdAt   DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updatedAt   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_account_key (accountId, sessionKey),
+        INDEX idx_accountId (accountId)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+    tableEnsured = true;
+    console.log("[WASessionStore] Tabela waSessions verificada/criada.");
+  } catch (err) {
+    console.error("[WASessionStore] Erro ao criar tabela waSessions:", err);
+  }
+}
+
+// ─── Helpers de acesso ao banco ───────────────────────────────────────────────
 async function getSessionData(accountId: number, key: string): Promise<string | null> {
+  await ensureTable();
   const db = await getDb();
   if (!db) return null;
   try {
@@ -19,12 +51,14 @@ async function getSessionData(accountId: number, key: string): Promise<string | 
     const data = (rows as any)[0];
     if (Array.isArray(data) && data.length > 0) return data[0].sessionData as string;
     return null;
-  } catch {
+  } catch (err) {
+    console.error(`[WASessionStore] Erro ao ler sessão "${key}":`, err);
     return null;
   }
 }
 
 async function setSessionData(accountId: number, key: string, value: string): Promise<void> {
+  await ensureTable();
   const db = await getDb();
   if (!db) return;
   try {
@@ -34,11 +68,12 @@ async function setSessionData(accountId: number, key: string, value: string): Pr
           ON DUPLICATE KEY UPDATE sessionData = ${value}, updatedAt = CURRENT_TIMESTAMP`
     );
   } catch (err) {
-    console.error(`[WASessionStore] Erro ao salvar sessão ${key}:`, err);
+    console.error(`[WASessionStore] Erro ao salvar sessão "${key}":`, err);
   }
 }
 
 async function deleteSessionData(accountId: number, key: string): Promise<void> {
+  await ensureTable();
   const db = await getDb();
   if (!db) return;
   try {
@@ -46,87 +81,104 @@ async function deleteSessionData(accountId: number, key: string): Promise<void> 
       sql`DELETE FROM waSessions WHERE accountId = ${accountId} AND sessionKey = ${key}`
     );
   } catch (err) {
-    console.error(`[WASessionStore] Erro ao deletar sessão ${key}:`, err);
+    console.error(`[WASessionStore] Erro ao deletar sessão "${key}":`, err);
   }
 }
 
-async function getAllSessionKeys(accountId: number): Promise<string[]> {
-  const db = await getDb();
-  if (!db) return [];
-  try {
-    const rows = await db.execute(
-      sql`SELECT sessionKey FROM waSessions WHERE accountId = ${accountId}`
-    );
-    const data = (rows as any)[0];
-    if (Array.isArray(data)) return data.map((r: any) => r.sessionKey as string);
-    return [];
-  } catch {
-    return [];
-  }
-}
-
+// ─── API pública ──────────────────────────────────────────────────────────────
 export async function clearAccountSession(accountId: number): Promise<void> {
+  await ensureTable();
   const db = await getDb();
   if (!db) return;
   try {
     await db.execute(
       sql`DELETE FROM waSessions WHERE accountId = ${accountId}`
     );
-    console.log(`[WASessionStore] Sessão da conta #${accountId} removida do banco.`);
+    console.log(`[WASessionStore] Sessão da conta #${accountId} removida.`);
   } catch (err) {
     console.error(`[WASessionStore] Erro ao limpar sessão da conta #${accountId}:`, err);
   }
 }
 
 export async function hasAccountSession(accountId: number): Promise<boolean> {
-  const keys = await getAllSessionKeys(accountId);
-  return keys.length > 0;
+  await ensureTable();
+  const db = await getDb();
+  if (!db) return false;
+  try {
+    const rows = await db.execute(
+      sql`SELECT COUNT(*) as cnt FROM waSessions WHERE accountId = ${accountId} AND sessionKey = 'creds'`
+    );
+    const data = (rows as any)[0];
+    if (Array.isArray(data) && data.length > 0) {
+      return Number(data[0].cnt) > 0;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 /**
- * Implementação de useAuthStateDB — equivalente ao useMultiFileAuthState do Baileys,
- * mas persiste no banco TiDB em vez de no disco.
+ * useAuthStateDB — equivalente ao useMultiFileAuthState do Baileys,
+ * mas persiste no banco MySQL/TiDB em vez de no disco.
+ *
+ * Usa makeCacheableSignalKeyStore para cache em memória das chaves Signal,
+ * evitando race conditions e melhorando a performance de mensagens.
  */
 export async function useAuthStateDB(accountId: number) {
-  const { initAuthCreds, BufferJSON } = await import("@whiskeysockets/baileys");
+  const {
+    initAuthCreds,
+    BufferJSON,
+    makeCacheableSignalKeyStore,
+  } = await import("@whiskeysockets/baileys");
 
-  // Carregar credenciais do banco
+  // Carregar credenciais persistidas (ou inicializar novas)
   const credsRaw = await getSessionData(accountId, "creds");
-  const creds = credsRaw ? JSON.parse(credsRaw, BufferJSON.reviver) : initAuthCreds();
+  const creds = credsRaw
+    ? JSON.parse(credsRaw, BufferJSON.reviver)
+    : initAuthCreds();
 
-  const state = {
-    creds,
-    keys: {
-      get: async (type: string, ids: string[]) => {
-        const data: Record<string, any> = {};
-        for (const id of ids) {
-          const key = `${type}:${id}`;
-          const raw = await getSessionData(accountId, key);
+  // Store de chaves Signal com acesso ao banco
+  const rawKeyStore = {
+    get: async (type: string, ids: string[]) => {
+      const data: Record<string, any> = {};
+      await Promise.all(
+        ids.map(async (id) => {
+          const raw = await getSessionData(accountId, `${type}:${id}`);
           if (raw) {
-            // Usar BufferJSON.reviver para restaurar corretamente Buffers e objetos proto
-            const value = JSON.parse(raw, BufferJSON.reviver);
-            data[id] = value;
+            data[id] = JSON.parse(raw, BufferJSON.reviver);
           }
-        }
-        return data;
-      },
-      set: async (data: Record<string, Record<string, any>>) => {
-        for (const [type, entries] of Object.entries(data)) {
-          for (const [id, value] of Object.entries(entries)) {
+        })
+      );
+      return data;
+    },
+    set: async (data: Record<string, Record<string, any>>) => {
+      await Promise.all(
+        Object.entries(data).flatMap(([type, entries]) =>
+          Object.entries(entries).map(async ([id, value]) => {
             const key = `${type}:${id}`;
-            if (value) {
+            if (value != null) {
               await setSessionData(accountId, key, JSON.stringify(value, BufferJSON.replacer));
             } else {
               await deleteSessionData(accountId, key);
             }
-          }
-        }
-      },
+          })
+        )
+      );
     },
   };
 
+  // Envolver com cache em memória para evitar race conditions Signal
+  const keys = makeCacheableSignalKeyStore(rawKeyStore as any);
+
+  const state = { creds, keys };
+
   const saveCreds = async () => {
-    await setSessionData(accountId, "creds", JSON.stringify(state.creds, BufferJSON.replacer));
+    await setSessionData(
+      accountId,
+      "creds",
+      JSON.stringify(state.creds, BufferJSON.replacer)
+    );
   };
 
   return { state, saveCreds };
