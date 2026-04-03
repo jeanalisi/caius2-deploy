@@ -429,6 +429,12 @@ function AuditTab() {
 function AgentsTab() {
   const { data: agents, isLoading, refetch } = trpc.caiusAgent.agents.list.useQuery();
   const [showForm, setShowForm] = useState(false);
+  const [editAgent, setEditAgent] = useState<any | null>(null);
+  const [editForm, setEditForm] = useState({
+    name: "", description: "", systemPrompt: "",
+    model: "", maxTokens: 2048, temperature: "0.7",
+    allowVoice: true, allowKnowledgeBase: true,
+  });
   const defaultForm = {
     name: "", slug: "", description: "", systemPrompt: "",
     context: "both" as "external" | "internal" | "both",
@@ -438,8 +444,22 @@ function AgentsTab() {
   const createMutation = trpc.caiusAgent.agents.create.useMutation({
     onSuccess: () => { setShowForm(false); setForm(defaultForm); refetch(); },
   });
-  // Ativar/desativar usa `update` com `isActive`, não existe `toggle`
-  const updateMutation = trpc.caiusAgent.agents.update.useMutation({ onSuccess: () => refetch() });
+  // Ativar/desativar e editar usam `update`, não existe `toggle`
+  const updateMutation = trpc.caiusAgent.agents.update.useMutation({ onSuccess: () => { refetch(); setEditAgent(null); } });
+
+  const openEdit = (agent: any) => {
+    setEditAgent(agent);
+    setEditForm({
+      name: agent.name ?? "",
+      description: agent.description ?? "",
+      systemPrompt: agent.systemPrompt ?? "",
+      model: agent.model ?? "",
+      maxTokens: agent.maxTokens ?? 2048,
+      temperature: agent.temperature ?? "0.7",
+      allowVoice: agent.allowVoice ?? true,
+      allowKnowledgeBase: agent.allowKnowledgeBase ?? true,
+    });
+  };
 
   const contextLabel: Record<string, string> = { external: "Cidadão", internal: "Servidor", both: "Ambos" };
 
@@ -497,6 +517,73 @@ function AgentsTab() {
           </div>
         )}
       </div>
+
+      {/* Dialog de Edição de Agente */}
+      <Dialog open={!!editAgent} onOpenChange={open => !open && setEditAgent(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Editar Agente: {editAgent?.name}</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto pr-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Nome</label>
+                <Input value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className="mt-1" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Modelo LLM</label>
+                <Input value={editForm.model} onChange={e => setEditForm(f => ({ ...f, model: e.target.value }))} className="mt-1" placeholder="ex: gpt-4o" />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Descrição</label>
+              <Input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Prompt do Sistema *</label>
+              <Textarea
+                value={editForm.systemPrompt}
+                onChange={e => setEditForm(f => ({ ...f, systemPrompt: e.target.value }))}
+                rows={10}
+                className="mt-1 font-mono text-xs"
+                placeholder="Instruções de comportamento do agente..."
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">{"Use variáveis: {municipio}, {servicos}, {horario}"}</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Temperatura (0.0–1.0)</label>
+                <Input value={editForm.temperature} onChange={e => setEditForm(f => ({ ...f, temperature: e.target.value }))} className="mt-1" placeholder="0.7" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Máx. Tokens</label>
+                <Input type="number" value={editForm.maxTokens} onChange={e => setEditForm(f => ({ ...f, maxTokens: Number(e.target.value) }))} className="mt-1" />
+              </div>
+            </div>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={editForm.allowVoice} onChange={e => setEditForm(f => ({ ...f, allowVoice: e.target.checked }))} className="rounded" />
+                Permitir Voz
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" checked={editForm.allowKnowledgeBase} onChange={e => setEditForm(f => ({ ...f, allowKnowledgeBase: e.target.checked }))} className="rounded" />
+                Usar Base de Conhecimento
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditAgent(null)}>Cancelar</Button>
+            <Button
+              onClick={() => updateMutation.mutate({ id: editAgent!.id, ...editForm, model: editForm.model || undefined })}
+              disabled={!editForm.systemPrompt || updateMutation.isPending}
+              className="bg-violet-600 hover:bg-violet-700"
+            >
+              {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Criação de Agente */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Novo Agente cAIus</DialogTitle></DialogHeader>

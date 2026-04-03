@@ -105,6 +105,218 @@ const MENU_GROUPS = [
   },
 ];
 
+// ─── Painel Inline de Vinculação Organizacional ─────────────────────────────
+function OrgAllocationPanel({
+  user,
+  orgUnits,
+  positions,
+  onClose,
+}: {
+  user: any;
+  orgUnits: any[];
+  positions: any[];
+  onClose: () => void;
+}) {
+  const utils = trpc.useUtils();
+  const { data: allocations = [], isLoading } = trpc.userAllocations.list.useQuery(
+    { userId: user?.id, isActive: true },
+    { enabled: !!user }
+  );
+
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    orgUnitId: "",
+    positionId: "",
+    systemProfile: "attendant",
+    isPrimary: false,
+    notes: "",
+  });
+
+  const allocate = trpc.userAllocations.allocate.useMutation({
+    onSuccess: () => {
+      utils.userAllocations.list.invalidate({ userId: user?.id });
+      setShowForm(false);
+      setForm({ orgUnitId: "", positionId: "", systemProfile: "attendant", isPrimary: false, notes: "" });
+      toast.success("Usuário vinculado com sucesso!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const deactivate = trpc.userAllocations.deactivate.useMutation({
+    onSuccess: () => {
+      utils.userAllocations.list.invalidate({ userId: user?.id });
+      toast.success("Vínculo removido.");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleAllocate = () => {
+    if (!form.orgUnitId) return toast.error("Selecione uma unidade organizacional.");
+    allocate.mutate({
+      userId: user.id,
+      orgUnitId: Number(form.orgUnitId),
+      positionId: form.positionId ? Number(form.positionId) : undefined,
+      systemProfile: form.systemProfile as any,
+      isPrimary: form.isPrimary,
+      notes: form.notes || undefined,
+    });
+  };
+
+  const filteredPositions = form.orgUnitId
+    ? positions.filter((p: any) => p.orgUnitId === Number(form.orgUnitId))
+    : positions;
+
+  return (
+    <div className="col-span-12 border-t border-border/60 bg-muted/20 animate-in slide-in-from-top-2 duration-200">
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/60">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <GitBranch className="h-4 w-4 text-blue-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Estrutura Organizacional</p>
+            <p className="text-xs text-muted-foreground">{user?.name ?? user?.email ?? "Usuário"}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" className="h-7 text-xs gap-1.5" onClick={() => setShowForm(v => !v)}>
+            <UserPlus className="h-3.5 w-3.5" />
+            Vincular Unidade
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onClose} className="h-7 gap-1.5 text-xs">
+            Fechar
+          </Button>
+        </div>
+      </div>
+
+      {/* Formulário de nova vinculação */}
+      {showForm && (
+        <div className="px-6 py-4 border-b border-border/40 bg-card/40">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Nova Vinculação</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Unidade Organizacional *</Label>
+              <Select value={form.orgUnitId} onValueChange={v => setForm(f => ({ ...f, orgUnitId: v, positionId: "" }))}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Selecionar unidade..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {orgUnits.map((u: any) => (
+                    <SelectItem key={u.id} value={String(u.id)}>{u.acronym ? `${u.acronym} — ` : ""}{u.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Cargo / Função</Label>
+              <Select value={form.positionId} onValueChange={v => setForm(f => ({ ...f, positionId: v }))}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Selecionar cargo..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem cargo específico</SelectItem>
+                  {filteredPositions.map((p: any) => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Perfil no Sistema</Label>
+              <Select value={form.systemProfile} onValueChange={v => setForm(f => ({ ...f, systemProfile: v }))}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PROFILE_LABELS).filter(([k]) => k !== "citizen").map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Observações</Label>
+              <Input
+                className="h-8 text-xs"
+                placeholder="Opcional..."
+                value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-4 mt-3">
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.isPrimary}
+                onChange={e => setForm(f => ({ ...f, isPrimary: e.target.checked }))}
+                className="rounded"
+              />
+              Lotação principal
+            </label>
+            <Button size="sm" className="h-7 text-xs" onClick={handleAllocate} disabled={allocate.isPending}>
+              {allocate.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Confirmar Vínculo"}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowForm(false)}>Cancelar</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Lista de alocações atuais */}
+      <div className="px-6 py-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        ) : (allocations as any[]).length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-6 gap-2 text-muted-foreground">
+            <GitBranch className="h-7 w-7 opacity-30" />
+            <p className="text-sm">Nenhuma vinculação organizacional ativa.</p>
+            <Button size="sm" variant="outline" className="text-xs" onClick={() => setShowForm(true)}>
+              <UserPlus className="h-3.5 w-3.5 mr-1" /> Vincular agora
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Vínculos Ativos</p>
+            {(allocations as any[]).map((alloc: any) => (
+              <div key={alloc.id} className="flex items-center justify-between rounded-lg border border-border/60 bg-card px-4 py-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-md bg-blue-500/10 border border-blue-500/20">
+                    <Building2 className="h-3.5 w-3.5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {alloc.orgUnit?.acronym ? `${alloc.orgUnit.acronym} — ` : ""}{alloc.orgUnit?.name ?? `Unidade #${alloc.orgUnitId}`}
+                      {alloc.isPrimary && (
+                        <Badge variant="outline" className="ml-2 text-[9px] h-4 border-primary/30 text-primary">Principal</Badge>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {alloc.position?.name ?? "Sem cargo"} · {PROFILE_LABELS[alloc.systemProfile] ?? alloc.systemProfile}
+                      {alloc.startDate && ` · desde ${new Date(alloc.startDate).toLocaleDateString("pt-BR")}`}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={() => deactivate.mutate({ id: alloc.id })}
+                  disabled={deactivate.isPending}
+                >
+                  Remover
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface InviteForm {
   email: string;
   name: string;
@@ -265,6 +477,7 @@ export default function Agents() {
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [permUser, setPermUser] = useState<any>(null);
+  const [orgUser, setOrgUser] = useState<any>(null);
 
   const { data: users, isLoading } = trpc.users.list.useQuery();
   const { data: orgUnits = [] } = trpc.orgUnits.list.useQuery({});
@@ -370,8 +583,9 @@ export default function Agents() {
                   <div className="col-span-3">Usuário</div>
                   <div className="col-span-2">Função</div>
                   <div className="col-span-2">É Agente</div>
-                  <div className="col-span-2">Disponível</div>
+                  <div className="col-span-1">Disponível</div>
                   <div className="col-span-2">Último acesso</div>
+                  <div className="col-span-1">Org</div>
                   <div className="col-span-1">Menu</div>
                 </div>
                 {filteredUsers.map((user) => (
@@ -422,7 +636,7 @@ export default function Agents() {
                           onCheckedChange={(v) => update.mutate({ id: user.id, isAgent: v })}
                         />
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-1">
                         <Switch
                           checked={user.isAvailable}
                           disabled={!user.isAgent}
@@ -436,11 +650,22 @@ export default function Agents() {
                       </div>
                       <div className="col-span-1">
                         <Button
+                          variant={orgUser?.id === user.id ? "default" : "ghost"}
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Vincular à estrutura organizacional"
+                          onClick={() => { setOrgUser(orgUser?.id === user.id ? null : user); setPermUser(null); }}
+                        >
+                          <GitBranch className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <div className="col-span-1">
+                        <Button
                           variant={permUser?.id === user.id ? "default" : "ghost"}
                           size="icon"
                           className="h-7 w-7"
                           title="Gerenciar permissões de menu"
-                          onClick={() => setPermUser(permUser?.id === user.id ? null : user)}
+                          onClick={() => { setPermUser(permUser?.id === user.id ? null : user); setOrgUser(null); }}
                         >
                           <Settings className="h-3.5 w-3.5" />
                         </Button>
@@ -452,6 +677,15 @@ export default function Agents() {
                       <MenuPermissionsPanel
                         user={user}
                         onClose={() => setPermUser(null)}
+                      />
+                    )}
+                    {/* Painel inline de vinculação org — abre abaixo da linha */}
+                    {orgUser?.id === user.id && (
+                      <OrgAllocationPanel
+                        user={user}
+                        orgUnits={orgUnits as any[]}
+                        positions={positions as any[]}
+                        onClose={() => setOrgUser(null)}
                       />
                     )}
                   </div>

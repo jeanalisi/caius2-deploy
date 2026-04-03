@@ -55,7 +55,7 @@ export type InsertSector = typeof sectors.$inferInsert;
 export const accounts = mysqlTable("accounts", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  channel: mysqlEnum("channel", ["whatsapp", "instagram", "email"]).notNull(),
+  channel: mysqlEnum("channel", ["whatsapp", "instagram", "email", "web"]).notNull(),
   name: varchar("name", { length: 255 }).notNull(),
   identifier: varchar("identifier", { length: 320 }),
   status: mysqlEnum("status", ["connecting", "connected", "disconnected", "active", "inactive", "error"]).default("disconnected").notNull(),

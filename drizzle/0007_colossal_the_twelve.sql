@@ -1,0 +1,1 @@
+ALTER TABLE `accounts` MODIFY COLUMN `channel` enum('whatsapp','instagram','email','web') NOT NULL;
