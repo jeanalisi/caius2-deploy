@@ -114,7 +114,7 @@ const adminItems = [
   { href: "/workflow", icon: Workflow, label: "Fluxos" },
   { href: "/accounts", icon: Wifi, label: "Contas Conectadas" },
   { href: "/agents", icon: Users, label: "Agentes e Usuários" },
-  { href: "/sectors", icon: Building2, label: "Setores" },
+  { href: "/org-structure", icon: Building2, label: "Estrutura Org." },
   { href: "/reports", icon: BarChart3, label: "Relatórios" },
   { href: "/audit", icon: ShieldCheck, label: "Auditoria" },
   { href: "/ai-settings", icon: Sparkles, label: "Integrações de IA" },

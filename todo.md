@@ -264,3 +264,11 @@
 - [x] Backend: aceitar nextNumber opcional no createControl (padrão = 1)
 - [x] Frontend: campo "Número Inicial" no formulário de criação com dica de continuidade
 - [x] Testes Vitest: validar que nextNumber é persistido corretamente
+
+## Vinculação de Setores à Estrutura Organizacional
+
+- [x] Mapear todas as tabelas e páginas que usam "setores" criados manualmente
+- [x] Backend: getSectors() retorna orgUnits (mesmas 143 unidades reais da Prefeitura)
+- [x] Frontend: página /sectors redireciona automaticamente para /org-structure
+- [x] Menu: item "Setores" no adminItems aponta para /org-structure
+- [x] 119 testes passando após a vinculação

@@ -25,6 +25,7 @@ import {
   ombudsmanManifestations,
   protocols,
   sectors,
+  orgUnits,
   tramitations,
   users,
   contacts,
@@ -75,11 +76,29 @@ export async function isNupUnique(nup: string): Promise<boolean> {
   return p.length === 0 && o.length === 0 && ap.length === 0 && om.length === 0;
 }
 
-// ─── Sectors ──────────────────────────────────────────────────────────────────
+// ─── Sectors (vinculado à estrutura organizacional orgUnits) ──────────────────────────────
 export async function getSectors() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(sectors).orderBy(sectors.name);
+  // Retorna orgUnits mapeadas para o formato de setor, eliminando a necessidade
+  // de criar setores manualmente. Todos os selects de setor no sistema passam
+  // a usar as unidades organizacionais reais da Prefeitura.
+  const units = await db
+    .select({
+      id: orgUnits.id,
+      name: orgUnits.name,
+      code: orgUnits.acronym,
+      description: orgUnits.description,
+      parentId: orgUnits.parentId,
+      managerId: orgUnits.managerId,
+      isActive: orgUnits.isActive,
+      createdAt: orgUnits.createdAt,
+      updatedAt: orgUnits.updatedAt,
+    })
+    .from(orgUnits)
+    .where(eq(orgUnits.isActive, true))
+    .orderBy(orgUnits.name);
+  return units;
 }
 
 export async function getSectorById(id: number) {
