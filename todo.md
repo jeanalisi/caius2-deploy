@@ -247,3 +247,7 @@
 - [x] Frontend: mensagem de aviso quando usuário não tem unidades vinculadas
 - [x] Frontend: coluna "Unidade" adicionada na tabela do histórico
 - [x] Frontend: badges coloridos por tipo documental
+
+## Bug: Erro ao Criar Controle
+
+- [x] Investigar e corrigir erro ao criar controle no módulo Controle

@@ -2388,10 +2388,10 @@ export type InsertDocOrganizationalUnit = typeof docOrganizationalUnits.$inferIn
 export const documentControls = mysqlTable("document_controls", {
   id: int("id").autoincrement().primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  documentType: mysqlEnum("doc_control_type", ["oficio", "memorando", "decreto", "lei", "diario_oficial", "contrato", "portaria"]).notNull(),
+  documentType: mysqlEnum("documentType", ["oficio", "memorando", "decreto", "lei", "diario_oficial", "contrato", "portaria"]).notNull(),
   unitId: int("unitId").notNull(),
   prefix: varchar("prefix", { length: 50 }),
-  numberFormat: mysqlEnum("doc_number_format", ["sequencial", "ano_sequencial", "sequencial_ano"]).default("sequencial").notNull(),
+  numberFormat: mysqlEnum("numberFormat", ["sequencial", "ano_sequencial", "sequencial_ano"]).default("sequencial").notNull(),
   digits: int("digits").default(4).notNull(),
   referenceYear: int("referenceYear").notNull(),
   resetAnnually: boolean("resetAnnually").default(true).notNull(),
