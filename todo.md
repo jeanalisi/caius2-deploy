@@ -272,3 +272,9 @@
 - [x] Frontend: página /sectors redireciona automaticamente para /org-structure
 - [x] Menu: item "Setores" no adminItems aponta para /org-structure
 - [x] 119 testes passando após a vinculação
+
+## Correção Google Maps — Proxy Integrado Manus
+
+- [x] Remover mensagem de "configure a chave de API" do Google Maps
+- [x] Usar proxy integrado do Manus (sem necessidade de chave)
+- [x] Centralizar mapa em Itabaiana-PB automaticamente (lat: -7.3259, lng: -35.8578)

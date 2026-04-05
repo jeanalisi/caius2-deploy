@@ -1,9 +1,10 @@
 /**
  * GeoMonitor — Georreferenciamento e mapa de ocorrências urbanas
  */
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import OmniLayout from "@/components/OmniLayout";
+import { MapView } from "@/components/Map";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -11,16 +12,19 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
-  MapPin, Plus, Search, Filter, Eye, CheckCircle2, Clock,
-  AlertCircle, Archive, Camera, Tag, ChevronRight, MoreHorizontal,
-  Layers, Navigation, Circle,
+  MapPin, Plus, Search, AlertCircle, Circle,
+  ChevronRight, Navigation,
 } from "lucide-react";
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string }> = {
-  open: { label: "Aberto", color: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
-  in_progress: { label: "Em Andamento", color: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500" },
-  resolved: { label: "Resolvido", color: "bg-green-100 text-green-700", dot: "bg-green-500" },
-  closed: { label: "Fechado", color: "bg-gray-100 text-gray-600", dot: "bg-gray-400" },
+// Coordenadas de Itabaiana-PB
+const ITABAIANA_CENTER = { lat: -7.3259, lng: -35.8578 };
+const ITABAIANA_ZOOM = 13;
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string; pinColor: string }> = {
+  open: { label: "Aberto", color: "bg-blue-100 text-blue-700", dot: "bg-blue-500", pinColor: "#3B82F6" },
+  in_progress: { label: "Em Andamento", color: "bg-yellow-100 text-yellow-700", dot: "bg-yellow-500", pinColor: "#F59E0B" },
+  resolved: { label: "Resolvido", color: "bg-green-100 text-green-700", dot: "bg-green-500", pinColor: "#10B981" },
+  closed: { label: "Fechado", color: "bg-gray-100 text-gray-600", dot: "bg-gray-400", pinColor: "#9CA3AF" },
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -32,6 +36,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   other: "bg-gray-100 text-gray-600",
 };
 
+const CATEGORIES = [
+  { value: "infrastructure", label: "Infraestrutura" },
+  { value: "environment", label: "Meio Ambiente" },
+  { value: "security", label: "Segurança" },
+  { value: "health", label: "Saúde" },
+  { value: "education", label: "Educação" },
+  { value: "other", label: "Outros" },
+];
+
 export default function GeoMonitor() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -42,19 +55,21 @@ export default function GeoMonitor() {
     latitude: "", longitude: "", address: "", neighborhood: "",
   });
 
-  const { data: points = [], refetch } = trpc.publicServices.geo.points.list.useQuery({});
+  const mainMapRef = useRef<google.maps.Map | null>(null);
+  const createMapRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
+  const createMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
 
-  const { data: events = [] } = trpc.publicServices.geo.events.list.useQuery({
-    status: "open",
-  });
+  const { data: points = [], refetch } = trpc.publicServices.geo.points.list.useQuery({});
+  const { data: events = [] } = trpc.publicServices.geo.events.list.useQuery({ status: "open" });
 
   const createPoint = trpc.publicServices.geo.points.create.useMutation({
-    onSuccess: () => { refetch(); setShowCreate(false); toast.success("Ponto georreferenciado criado!"); resetForm(); },
-    onError: (e: any) => toast.error(e.message),
-  });
-
-  const createEvent = trpc.publicServices.geo.events.create.useMutation({
-    onSuccess: () => { refetch(); toast.success("Ocorrência registrada!"); },
+    onSuccess: () => {
+      refetch();
+      setShowCreate(false);
+      toast.success("Ponto georreferenciado criado!");
+      resetForm();
+    },
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -62,20 +77,77 @@ export default function GeoMonitor() {
     onSuccess: () => { refetch(); toast.success("Status atualizado!"); },
   });
 
-  const resetForm = () => setForm({ title: "", description: "", category: "infrastructure", latitude: "", longitude: "", address: "", neighborhood: "" });
+  const resetForm = () => setForm({
+    title: "", description: "", category: "infrastructure",
+    latitude: "", longitude: "", address: "", neighborhood: "",
+  });
 
   const filteredPoints = (points as any[]).filter((p: any) =>
-    !search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.address?.toLowerCase().includes(search.toLowerCase())
+    (!search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.address?.toLowerCase().includes(search.toLowerCase())) &&
+    (statusFilter === "all" || p.status === statusFilter)
   );
 
-  const CATEGORIES = [
-    { value: "infrastructure", label: "Infraestrutura" },
-    { value: "environment", label: "Meio Ambiente" },
-    { value: "security", label: "Segurança" },
-    { value: "health", label: "Saúde" },
-    { value: "education", label: "Educação" },
-    { value: "other", label: "Outros" },
-  ];
+  // Inicializa o mapa principal e adiciona marcadores
+  const handleMainMapReady = useCallback((map: google.maps.Map) => {
+    mainMapRef.current = map;
+    // Adicionar marcadores para pontos existentes
+    (points as any[]).forEach((p: any) => {
+      if (!p.latitude || !p.longitude) return;
+      const sc = STATUS_CONFIG[p.status] ?? STATUS_CONFIG.open;
+      const pin = new google.maps.marker.PinElement({
+        background: sc.pinColor,
+        borderColor: "#fff",
+        glyphColor: "#fff",
+        scale: 1.1,
+      });
+      const marker = new google.maps.marker.AdvancedMarkerElement({
+        map,
+        position: { lat: Number(p.latitude), lng: Number(p.longitude) },
+        title: p.name,
+        content: pin.element,
+      });
+      marker.addListener("click", () => setSelected(p));
+      markersRef.current.push(marker);
+    });
+  }, [points]);
+
+  // Inicializa o mini-mapa no dialog de criação
+  const handleCreateMapReady = useCallback((map: google.maps.Map) => {
+    createMapRef.current = map;
+    // Clique no mapa define as coordenadas
+    map.addListener("click", (e: google.maps.MapMouseEvent) => {
+      if (!e.latLng) return;
+      const lat = e.latLng.lat().toFixed(6);
+      const lng = e.latLng.lng().toFixed(6);
+      setForm(f => ({ ...f, latitude: lat, longitude: lng }));
+      // Atualizar marcador
+      if (createMarkerRef.current) {
+        createMarkerRef.current.position = e.latLng;
+      } else {
+        createMarkerRef.current = new google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: e.latLng,
+          title: "Novo ponto",
+        });
+      }
+      // Geocodificar para preencher endereço
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: e.latLng }, (results, status) => {
+        if (status === "OK" && results?.[0]) {
+          setForm(f => ({ ...f, address: results[0].formatted_address }));
+        }
+      });
+    });
+  }, []);
+
+  // Centralizar mapa no ponto selecionado
+  const flyToPoint = (p: any) => {
+    if (mainMapRef.current && p.latitude && p.longitude) {
+      mainMapRef.current.panTo({ lat: Number(p.latitude), lng: Number(p.longitude) });
+      mainMapRef.current.setZoom(16);
+    }
+    setSelected(p);
+  };
 
   return (
     <OmniLayout title="Geo Monitor">
@@ -84,7 +156,7 @@ export default function GeoMonitor() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Georreferenciamento</h1>
-            <p className="text-gray-500 text-sm mt-0.5">Monitoramento de pontos e ocorrências urbanas georreferenciadas</p>
+            <p className="text-gray-500 text-sm mt-0.5">Monitoramento de pontos e ocorrências urbanas — Itabaiana-PB</p>
           </div>
           <Button onClick={() => { resetForm(); setShowCreate(true); }} className="gap-2">
             <Plus className="w-4 h-4" />Novo Ponto
@@ -104,6 +176,21 @@ export default function GeoMonitor() {
               <p className={cn("text-2xl font-bold", s.color)}>{s.value}</p>
             </div>
           ))}
+        </div>
+
+        {/* Mapa principal — Itabaiana-PB */}
+        <div className="mb-6 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+            <Navigation className="w-4 h-4 text-blue-600" />
+            <span className="text-sm font-semibold text-gray-700">Mapa Interativo — Itabaiana-PB</span>
+            <span className="ml-auto text-xs text-gray-400">{(points as any[]).filter((p: any) => p.latitude && p.longitude).length} pontos mapeados</span>
+          </div>
+          <MapView
+            className="w-full h-[420px]"
+            initialCenter={ITABAIANA_CENTER}
+            initialZoom={ITABAIANA_ZOOM}
+            onMapReady={handleMainMapReady}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -137,7 +224,11 @@ export default function GeoMonitor() {
                     const sc = STATUS_CONFIG[p.status] ?? STATUS_CONFIG.open;
                     const cc = CATEGORY_COLORS[p.category] ?? CATEGORY_COLORS.other;
                     return (
-                      <div key={p.id} className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => setSelected(p)}>
+                      <div
+                        key={p.id}
+                        className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={() => flyToPoint(p)}
+                      >
                         <div className="mt-0.5">
                           <div className={cn("w-2.5 h-2.5 rounded-full mt-1", sc.dot)} />
                         </div>
@@ -214,20 +305,13 @@ export default function GeoMonitor() {
                 )}
               </div>
             </div>
-
-            {/* Map placeholder */}
-            <div className="mt-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6 text-center">
-              <Navigation className="w-10 h-10 text-blue-400 mx-auto mb-3" />
-              <p className="text-sm font-medium text-blue-700 mb-1">Mapa Interativo</p>
-              <p className="text-xs text-blue-500">Integração com Google Maps disponível — configure a chave de API nas configurações para visualizar os pontos no mapa.</p>
-            </div>
           </div>
         </div>
       </div>
 
       {/* Create Point Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapPin className="w-5 h-5 text-blue-600" />Novo Ponto Georreferenciado
@@ -248,26 +332,42 @@ export default function GeoMonitor() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
               <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none" />
             </div>
+
+            {/* Mini-mapa para selecionar localização */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Localização <span className="text-xs text-gray-400 font-normal">(clique no mapa para definir as coordenadas)</span>
+              </label>
+              <div className="rounded-lg overflow-hidden border border-gray-300">
+                <MapView
+                  className="w-full h-[220px]"
+                  initialCenter={ITABAIANA_CENTER}
+                  initialZoom={13}
+                  onMapReady={handleCreateMapReady}
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                <Input value={form.latitude} onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))} placeholder="-10.9234" />
+                <Input value={form.latitude} onChange={e => setForm(f => ({ ...f, latitude: e.target.value }))} placeholder="-7.3259" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                <Input value={form.longitude} onChange={e => setForm(f => ({ ...f, longitude: e.target.value }))} placeholder="-37.4234" />
+                <Input value={form.longitude} onChange={e => setForm(f => ({ ...f, longitude: e.target.value }))} placeholder="-35.8578" />
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Endereço</label>
-              <Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Rua, número, bairro" />
+              <Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Preenchido automaticamente ao clicar no mapa" />
             </div>
             <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
               <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
               <Button
                 onClick={() => createPoint.mutate({
-                  latitude: form.latitude || "0",
-                  longitude: form.longitude || "0",
+                  latitude: form.latitude || String(ITABAIANA_CENTER.lat),
+                  longitude: form.longitude || String(ITABAIANA_CENTER.lng),
                   address: form.address || undefined,
                   neighborhood: form.neighborhood || undefined,
                   entityType: form.category,
@@ -294,6 +394,22 @@ export default function GeoMonitor() {
               </SheetHeader>
               <div className="p-6 space-y-4">
                 {selected.description && <p className="text-sm text-muted-foreground">{selected.description}</p>}
+                {selected.latitude && selected.longitude && (
+                  <div className="rounded-lg overflow-hidden border border-border">
+                    <MapView
+                      className="w-full h-[200px]"
+                      initialCenter={{ lat: Number(selected.latitude), lng: Number(selected.longitude) }}
+                      initialZoom={16}
+                      onMapReady={(map) => {
+                        new google.maps.marker.AdvancedMarkerElement({
+                          map,
+                          position: { lat: Number(selected.latitude), lng: Number(selected.longitude) },
+                          title: selected.name,
+                        });
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   {selected.address && (
                     <div className="p-3 bg-muted/30 rounded-lg border border-border col-span-2">
@@ -314,6 +430,17 @@ export default function GeoMonitor() {
                     </span>
                   </div>
                 </div>
+                {selected.latitude && selected.longitude && (
+                  <a
+                    href={`https://www.google.com/maps?q=${selected.latitude},${selected.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
+                  >
+                    <Navigation className="w-4 h-4" />
+                    Abrir no Google Maps
+                  </a>
+                )}
               </div>
             </>
           )}
