@@ -190,9 +190,27 @@ export const controleRouter = router({
   // ─── Histórico ──────────────────────────────────────────────────────────────
   historico: router({
     list: protectedProcedure
-      .input(z.object({ controlId: z.number().optional(), limit: z.number().min(1).max(500).default(100) }))
-      .query(async ({ input }) => {
-        return getUsageHistory(input.controlId, input.limit);
+      .input(z.object({
+        controlId: z.number().optional(),
+        unitId: z.number().optional(),
+        limit: z.number().min(1).max(500).default(100),
+      }))
+      .query(async ({ input, ctx }) => {
+        // Admins vêem tudo; usuários comuns só vêem suas unidades vinculadas
+        if (ctx.user.role === "admin") {
+          return getUsageHistory({ controlId: input.controlId, unitId: input.unitId, limit: input.limit });
+        }
+        // Buscar unidades vinculadas ao usuário
+        const userUnits = await getDocUserUnits(ctx.user.id);
+        const userUnitIds = userUnits.map((u: { id: number }) => u.id);
+        if (userUnitIds.length === 0) return [];
+        // Se o usuário filtrou por uma unidade específica, verificar se tem acesso
+        if (input.unitId) {
+          if (!userUnitIds.includes(input.unitId)) return [];
+          return getUsageHistory({ controlId: input.controlId, unitId: input.unitId, limit: input.limit });
+        }
+        // Sem filtro de unidade: retorna apenas das unidades vinculadas
+        return getUsageHistory({ controlId: input.controlId, unitIds: userUnitIds, limit: input.limit });
       }),
   }),
 
@@ -276,6 +294,10 @@ export const controleRouter = router({
         await setDocUserUnits(input.userId, input.unitIds);
         return { success: true };
       }),
+    getMyUnits: protectedProcedure.query(async ({ ctx }) => {
+      if (ctx.user.role === "admin") return null; // admin vê tudo
+      return getDocUserUnits(ctx.user.id);
+    }),
   }),
 
   // ─── Dashboard ──────────────────────────────────────────────────────────────

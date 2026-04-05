@@ -1,4 +1,4 @@
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, inArray } from "drizzle-orm";
 import { requireDb } from "./db";
 import {
   orgUnits,
@@ -179,52 +179,47 @@ export async function reserveAndUseNumber(
 
 // ─── Histórico de Utilização ──────────────────────────────────────────────────
 
-export async function getUsageHistory(controlId?: number, limit = 100) {
+export async function getUsageHistory(
+  opts: { controlId?: number; unitId?: number; unitIds?: number[]; limit?: number } = {}
+) {
+  const { controlId, unitId, unitIds, limit = 100 } = opts;
   const db = await requireDb();
-  const base = db
-    .select({
-      id: numberUsages.id,
-      controlId: numberUsages.controlId,
-      controlName: documentControls.name,
-      documentType: documentControls.documentType,
-      number: numberUsages.number,
-      formattedNumber: numberUsages.formattedNumber,
-      documentDescription: numberUsages.documentDescription,
-      usedBy: numberUsages.usedBy,
-      userName: users.name,
-      usedAt: numberUsages.usedAt,
-      year: numberUsages.year,
-    })
+
+  const conditions: any[] = [];
+  if (controlId) conditions.push(eq(numberUsages.controlId, controlId));
+  if (unitId) conditions.push(eq(documentControls.unitId, unitId));
+  if (unitIds && unitIds.length > 0) conditions.push(inArray(documentControls.unitId, unitIds));
+
+  const baseSelect = {
+    id: numberUsages.id,
+    controlId: numberUsages.controlId,
+    controlName: documentControls.name,
+    documentType: documentControls.documentType,
+    unitId: documentControls.unitId,
+    unitName: orgUnits.name,
+    unitAcronym: orgUnits.acronym,
+    number: numberUsages.number,
+    formattedNumber: numberUsages.formattedNumber,
+    documentDescription: numberUsages.documentDescription,
+    usedBy: numberUsages.usedBy,
+    userName: users.name,
+    usedAt: numberUsages.usedAt,
+    year: numberUsages.year,
+  };
+
+  const query = db
+    .select(baseSelect)
     .from(numberUsages)
     .leftJoin(documentControls, eq(numberUsages.controlId, documentControls.id))
-    .leftJoin(users, eq(numberUsages.usedBy, users.id))
-    .orderBy(desc(numberUsages.usedAt))
-    .limit(limit);
+    .leftJoin(orgUnits, eq(documentControls.unitId, orgUnits.id))
+    .leftJoin(users, eq(numberUsages.usedBy, users.id));
 
-  if (controlId) {
-    return db
-      .select({
-        id: numberUsages.id,
-        controlId: numberUsages.controlId,
-        controlName: documentControls.name,
-        documentType: documentControls.documentType,
-        number: numberUsages.number,
-        formattedNumber: numberUsages.formattedNumber,
-        documentDescription: numberUsages.documentDescription,
-        usedBy: numberUsages.usedBy,
-        userName: users.name,
-        usedAt: numberUsages.usedAt,
-        year: numberUsages.year,
-      })
-      .from(numberUsages)
-      .leftJoin(documentControls, eq(numberUsages.controlId, documentControls.id))
-      .leftJoin(users, eq(numberUsages.usedBy, users.id))
-      .where(eq(numberUsages.controlId, controlId))
-      .orderBy(desc(numberUsages.usedAt))
-      .limit(limit);
+  if (conditions.length === 1) {
+    return query.where(conditions[0]).orderBy(desc(numberUsages.usedAt)).limit(limit);
+  } else if (conditions.length > 1) {
+    return query.where(and(...conditions)).orderBy(desc(numberUsages.usedAt)).limit(limit);
   }
-
-  return base;
+  return query.orderBy(desc(numberUsages.usedAt)).limit(limit);
 }
 
 // ─── Auditoria ────────────────────────────────────────────────────────────────

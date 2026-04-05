@@ -228,3 +228,22 @@
 - [x] Importar contacts, conversations e messages no db-caius.ts
 - [x] Criar componente CitizenReportPanel no ProtocolDetail.tsx: relatório consolidado com dados do cidadão, conversa vinculada, localização e histórico de mensagens
 - [x] Inserir CitizenReportPanel no ProtocolDetail antes do grid principal
+
+## Filtro por Unidade Organizacional — Histórico de Numeração (Controle)
+
+- [ ] Atualizar endpoint de histórico no routers-controle.ts: aceitar parâmetro unitId opcional
+- [ ] Atualizar db-controle.ts: adicionar filtro por unitId no getNumberHistory
+- [ ] Atualizar frontend ControleHistoricoPage.tsx: select de unidade com as unidades permitidas ao usuário
+- [ ] Respeitar permissões: usuário sem permissão de admin vê apenas suas unidades vinculadas
+
+## Filtro por Unidade — Histórico de Numeração
+
+- [x] Atualizar getUsageHistory para aceitar unitId/unitIds como filtro
+- [x] Endpoint historico.list: admins vêem tudo; usuários vêem apenas suas unidades vinculadas
+- [x] Novo endpoint getMyUnits para o frontend saber quais unidades o usuário pode ver
+- [x] Frontend: select de unidade organizacional no ControleHistoricoPage
+- [x] Frontend: filtro de controle restrito à unidade selecionada
+- [x] Frontend: chips de filtros ativos com botão de remoção individual
+- [x] Frontend: mensagem de aviso quando usuário não tem unidades vinculadas
+- [x] Frontend: coluna "Unidade" adicionada na tabela do histórico
+- [x] Frontend: badges coloridos por tipo documental
