@@ -52,6 +52,12 @@ import ChatCidadao from "./pages/ChatCidadao";
 import EmailInstitucional from "./pages/EmailInstitucional";
 import CaiusAgent from "./pages/CaiusAgent";
 import CaiusConfig from "./pages/CaiusConfig";
+import ControleDashboard from "./pages/ControleDashboard";
+import ControleDocumentoPage from "./pages/ControleDocumentoPage";
+import ControleConfiguracaoPage from "./pages/ControleConfiguracaoPage";
+import ControleUnidadesPage from "./pages/ControleUnidadesPage";
+import ControleHistoricoPage from "./pages/ControleHistoricoPage";
+import ControleAuditoriaPage from "./pages/ControleAuditoriaPage";
 
 function ProtocolDetailWrapper() {
   const params = useParams<{ id: string }>();
@@ -138,6 +144,14 @@ function Router() {
       <Route path={"/caius"} component={CaiusAgent} />
       {/* cAIus — Configurações */}
       <Route path={"/caius-config"} component={CaiusConfig} />
+
+      {/* Módulo Controle de Numeração de Documentos */}
+      <Route path={"/controle"} component={ControleDashboard} />
+      <Route path={"/controle/emitir"} component={ControleDocumentoPage} />
+      <Route path={"/controle/configuracao"} component={ControleConfiguracaoPage} />
+      <Route path={"/controle/unidades"} component={ControleUnidadesPage} />
+      <Route path={"/controle/historico"} component={ControleHistoricoPage} />
+      <Route path={"/controle/auditoria"} component={ControleAuditoriaPage} />
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

@@ -1,5 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import { controleRouter } from "./routers-controle";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -620,6 +621,7 @@ export const appRouter = router({
   // ── Webchat ────────────────────────────────────────────────────────────────
   webchat: webchatRouter,
 
+  controle: controleRouter,
   voice: router({
     // Upload audio and transcribe via Whisper API
     transcribe: protectedProcedure
@@ -658,4 +660,5 @@ export const appRouter = router({
   }),
 });
 export type AppRouter = typeof appRouter;
+
 

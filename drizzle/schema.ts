@@ -2369,3 +2369,89 @@ export const userMenuPermissions = mysqlTable("userMenuPermissions", {
 }));
 export type UserMenuPermission = typeof userMenuPermissions.$inferSelect;
 export type InsertUserMenuPermission = typeof userMenuPermissions.$inferInsert;
+
+// ─── Módulo Controle de Numeração de Documentos ───────────────────────────────
+
+export const docOrganizationalUnits = mysqlTable("doc_organizational_units", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  acronym: varchar("acronym", { length: 50 }),
+  type: mysqlEnum("doc_org_unit_type", ["secretaria", "setor", "gabinete", "departamento", "coordenacao", "outro"]).notNull(),
+  parentId: int("parentId"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type DocOrganizationalUnit = typeof docOrganizationalUnits.$inferSelect;
+export type InsertDocOrganizationalUnit = typeof docOrganizationalUnits.$inferInsert;
+
+export const documentControls = mysqlTable("document_controls", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  documentType: mysqlEnum("doc_control_type", ["oficio", "memorando", "decreto", "lei", "diario_oficial", "contrato", "portaria"]).notNull(),
+  unitId: int("unitId").notNull(),
+  prefix: varchar("prefix", { length: 50 }),
+  numberFormat: mysqlEnum("doc_number_format", ["sequencial", "ano_sequencial", "sequencial_ano"]).default("sequencial").notNull(),
+  digits: int("digits").default(4).notNull(),
+  referenceYear: int("referenceYear").notNull(),
+  resetAnnually: boolean("resetAnnually").default(true).notNull(),
+  nextNumber: int("nextNumber").default(1).notNull(),
+  active: boolean("active").default(true).notNull(),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type DocumentControl = typeof documentControls.$inferSelect;
+export type InsertDocumentControl = typeof documentControls.$inferInsert;
+
+export const numberUsages = mysqlTable("number_usages", {
+  id: int("id").autoincrement().primaryKey(),
+  controlId: int("controlId").notNull(),
+  number: int("number").notNull(),
+  formattedNumber: varchar("formattedNumber", { length: 100 }).notNull(),
+  documentDescription: text("documentDescription"),
+  usedBy: int("usedBy").notNull(),
+  usedAt: timestamp("usedAt").defaultNow().notNull(),
+  year: int("year").notNull(),
+});
+export type NumberUsage = typeof numberUsages.$inferSelect;
+export type InsertNumberUsage = typeof numberUsages.$inferInsert;
+
+export const docAuditLogs = mysqlTable("doc_audit_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  controlId: int("controlId").notNull(),
+  userId: int("userId").notNull(),
+  action: mysqlEnum("doc_audit_action", ["manual_number_change", "control_created", "control_updated", "control_activated", "control_deactivated", "number_used"]).notNull(),
+  previousValue: text("previousValue"),
+  newValue: text("newValue"),
+  justification: text("justification"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type DocAuditLog = typeof docAuditLogs.$inferSelect;
+export type InsertDocAuditLog = typeof docAuditLogs.$inferInsert;
+
+export const docUserPermissions = mysqlTable("doc_user_permissions", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  canAccessOficios: boolean("canAccessOficios").default(false).notNull(),
+  canAccessMemorandos: boolean("canAccessMemorandos").default(false).notNull(),
+  canAccessDecretos: boolean("canAccessDecretos").default(false).notNull(),
+  canAccessLeis: boolean("canAccessLeis").default(false).notNull(),
+  canAccessDiarioOficial: boolean("canAccessDiarioOficial").default(false).notNull(),
+  canAccessContratos: boolean("canAccessContratos").default(false).notNull(),
+  canAccessPortarias: boolean("canAccessPortarias").default(false).notNull(),
+  grantedBy: int("grantedBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type DocUserPermission = typeof docUserPermissions.$inferSelect;
+export type InsertDocUserPermission = typeof docUserPermissions.$inferInsert;
+
+export const docUserUnits = mysqlTable("doc_user_units", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  unitId: int("unitId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type DocUserUnit = typeof docUserUnits.$inferSelect;
+export type InsertDocUserUnit = typeof docUserUnits.$inferInsert;

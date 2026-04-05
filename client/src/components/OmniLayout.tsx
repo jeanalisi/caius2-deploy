@@ -48,6 +48,9 @@ import {
   Bot,
   MailOpen,
   Settings,
+  Hash,
+  ListOrdered,
+  BookMarked,
 } from "lucide-react";
 import React, { useState, useRef, createContext, useContext, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -96,6 +99,15 @@ const channelItems = [
   { href: "/atendimento", icon: MessageSquare, label: "Webchat Cidadão" },
   { href: "/caius", icon: Sparkles, label: "cAIus — Agente de IA" },
   { href: "/caius-config", icon: Settings, label: "Configurações do cAIus" },
+];
+
+const controleItems = [
+  { href: "/controle", icon: Hash, label: "Dashboard" },
+  { href: "/controle/emitir", icon: ListOrdered, label: "Emitir Número" },
+  { href: "/controle/configuracao", icon: Settings, label: "Configuração" },
+  { href: "/controle/unidades", icon: Building2, label: "Unidades" },
+  { href: "/controle/historico", icon: BookMarked, label: "Histórico" },
+  { href: "/controle/auditoria", icon: ShieldCheck, label: "Auditoria" },
 ];
 
 const adminItems = [
@@ -509,6 +521,14 @@ export default function OmniLayout({ children, title, fullHeight }: OmniLayoutPr
               {channelItems.filter(i => canSeeItem(i.href)).length > 0 && (
                 <NavGroup label="Canais">
                   {channelItems.filter(i => canSeeItem(i.href)).map((item) => (
+                    <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
+                  ))}
+                </NavGroup>
+              )}
+
+              {controleItems.filter(i => canSeeItem(i.href)).length > 0 && (
+                <NavGroup label="Controle">
+                  {controleItems.filter(i => canSeeItem(i.href)).map((item) => (
                     <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
                   ))}
                 </NavGroup>
