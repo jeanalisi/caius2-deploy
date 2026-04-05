@@ -100,6 +100,36 @@ export async function getControlById(id: number) {
   return rows[0] ?? null;
 }
 
+export async function checkDuplicateControl({
+  documentType,
+  unitId,
+  referenceYear,
+  excludeId,
+}: {
+  documentType: string;
+  unitId: number;
+  referenceYear: number;
+  excludeId?: number;
+}): Promise<{ isDuplicate: boolean; existing?: { id: number; name: string; active: boolean } }> {
+  const db = await requireDb();
+  const { ne } = await import("drizzle-orm");
+  const conditions: any[] = [
+    eq(documentControls.documentType, documentType as any),
+    eq(documentControls.unitId, unitId),
+    eq(documentControls.referenceYear, referenceYear),
+  ];
+  if (excludeId !== undefined) {
+    conditions.push(ne(documentControls.id, excludeId));
+  }
+  const rows = await db
+    .select({ id: documentControls.id, name: documentControls.name, active: documentControls.active })
+    .from(documentControls)
+    .where(and(...conditions))
+    .limit(1);
+  if (rows.length === 0) return { isDuplicate: false };
+  return { isDuplicate: true, existing: rows[0] };
+}
+
 export async function createControl(data: {
   name: string;
   documentType: "oficio" | "memorando" | "decreto" | "lei" | "diario_oficial" | "contrato" | "portaria";

@@ -251,3 +251,10 @@
 ## Bug: Erro ao Criar Controle
 
 - [x] Investigar e corrigir erro ao criar controle no módulo Controle
+
+## Validação de Unicidade — Módulo Controle
+
+- [x] Backend: função checkDuplicateControl em db-controle.ts
+- [x] Backend: validação no endpoint configuracao.create (lançar CONFLICT se duplicado)
+- [x] Frontend: exibir mensagem de erro clara ao tentar criar controle duplicado
+- [x] Testes Vitest: validar que duplicata é rejeitada com erro adequado

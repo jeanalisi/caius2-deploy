@@ -44,7 +44,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Pencil, Power, Hash, Settings, Search } from "lucide-react";
+import { Plus, Pencil, Power, Hash, Settings, Search, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const docTypeLabels: Record<string, string> = {
   oficio: "Ofício",
@@ -92,14 +93,22 @@ export default function ControleConfiguracaoPage() {
   const { data: controls, isLoading } = trpc.controle.configuracao.list.useQuery();
   const { data: units } = trpc.controle.unidades.list.useQuery();
 
+  const [createDuplicateError, setCreateDuplicateError] = useState<string | null>(null);
   const createMutation = trpc.controle.configuracao.create.useMutation({
     onSuccess: () => {
       toast.success("Controle criado com sucesso");
       utils.controle.configuracao.list.invalidate();
       setShowCreate(false);
+      setCreateDuplicateError(null);
       createForm.reset();
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => {
+      if (e.data?.code === "CONFLICT") {
+        setCreateDuplicateError(e.message);
+      } else {
+        toast.error(e.message);
+      }
+    },
   });
 
   const updateMutation = trpc.controle.configuracao.update.useMutation({
@@ -279,9 +288,18 @@ export default function ControleConfiguracaoPage() {
             <DialogTitle>Novo Controle de Numeração</DialogTitle>
           </DialogHeader>
           <form
-            onSubmit={createForm.handleSubmit((d) => createMutation.mutate(d as any))}
+            onSubmit={createForm.handleSubmit((d) => {
+              setCreateDuplicateError(null);
+              createMutation.mutate(d as any);
+            })}
             className="space-y-4"
           >
+            {createDuplicateError && (
+              <Alert variant="destructive" className="border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400">
+                <AlertTriangle className="h-4 w-4 !text-amber-500" />
+                <AlertDescription className="text-sm">{createDuplicateError}</AlertDescription>
+              </Alert>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 space-y-1.5">
                 <Label>Nome do Controle</Label>

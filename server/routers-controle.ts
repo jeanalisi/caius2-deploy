@@ -7,6 +7,7 @@ import {
   getAllControls,
   getControlById,
   createControl,
+  checkDuplicateControl,
   updateControl,
   setControlActive,
   manualSetNextNumber,
@@ -84,6 +85,18 @@ export const controleRouter = router({
         })
       )
       .mutation(async ({ input, ctx }) => {
+        const { isDuplicate, existing } = await checkDuplicateControl({
+          documentType: input.documentType,
+          unitId: input.unitId,
+          referenceYear: input.referenceYear,
+        });
+        if (isDuplicate) {
+          const status = existing?.active ? "ativo" : "inativo";
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `Já existe um controle ${status} para este tipo documental, unidade e ano: "${existing?.name}". Desative-o antes de criar um novo ou escolha outro tipo, unidade ou ano.`,
+          });
+        }
         await createControl({ ...input, createdBy: ctx.user.id });
         return { success: true };
       }),
