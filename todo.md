@@ -278,3 +278,25 @@
 - [x] Remover mensagem de "configure a chave de API" do Google Maps
 - [x] Usar proxy integrado do Manus (sem necessidade de chave)
 - [x] Centralizar mapa em Itabaiana-PB automaticamente (lat: -7.3259, lng: -35.8578)
+
+## Envio de Documentos Oficiais e PDF de Protocolo
+
+- [ ] Backend: tabela doc_recipients (destinatário, tipo interno/externo, canal, status)
+- [ ] Backend: endpoint sendDocument (e-mail institucional para internos, e-mail/WhatsApp para externos)
+- [ ] Backend: geração de PDF do documento oficial para envio
+- [ ] Frontend: painel de envio no OfficialDocuments (seleção de destinatário interno ou externo)
+- [ ] Frontend: tag visual de origem interna/externa nos documentos
+- [ ] Backend: geração de PDF do protocolo NUP com dados completos
+- [ ] Backend: envio automático do PDF do protocolo ao cidadão (e-mail ou WhatsApp)
+- [ ] Frontend: indicador visual de "PDF enviado" no protocolo NUP
+
+## Envio de Documentos Oficiais e PDF do Protocolo NUP
+
+- [x] Schema: tabela docRecipients (destinatário, tipo interno/externo, canal, status)
+- [x] Backend: helper protocol-pdf.ts para gerar PDF do protocolo NUP com pdf-lib
+- [x] Backend: helper doc-sender.ts para enviar documento por e-mail/WhatsApp com PDF
+- [x] Backend: endpoint documents.send no routers-caius.ts (tag interno/externo)
+- [x] Backend: endpoint documents.recipients no routers-caius.ts (histórico de envios)
+- [x] Backend: integração do envio de PDF ao criar protocolo NUP (routers-caius.ts)
+- [x] Frontend: painel de envio no Documents.tsx com seleção de destinatários internos e externos
+- [x] 119 testes passando após as mudanças

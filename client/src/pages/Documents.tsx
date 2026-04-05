@@ -18,21 +18,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import {
+  Building2,
   CheckCircle2,
   ChevronRight,
+  ExternalLink,
   FileText,
   Filter,
   Loader2,
+  Mail,
+  MessageSquare,
   Paperclip,
   PenLine,
   Plus,
   Search,
+  Send,
   Shield,
   Sparkles,
   Trash2,
+  User,
+  Users,
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -57,6 +66,13 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   archived: { label: "Arquivado", color: "bg-muted text-muted-foreground border-border" },
 };
 
+const RECIPIENT_STATUS: Record<string, { label: string; color: string }> = {
+  pending: { label: "Pendente", color: "bg-yellow-500/15 text-yellow-400" },
+  sent: { label: "Enviado", color: "bg-green-500/15 text-green-400" },
+  failed: { label: "Falhou", color: "bg-red-500/15 text-red-400" },
+  skipped: { label: "Ignorado", color: "bg-muted text-muted-foreground" },
+};
+
 const MAX_FILES = 5;
 const MAX_SIZE_MB = 20;
 
@@ -66,6 +82,230 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// ─── Dialog de Envio ──────────────────────────────────────────────────────────
+function SendDocumentDialog({ document: doc, onSent }: { document: any; onSent: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [tab, setTab] = useState<"internal" | "external">("internal");
+  const [channel, setChannel] = useState<"email" | "whatsapp" | "both">("email");
+  // Interno
+  const [recipientUserId, setRecipientUserId] = useState<number | undefined>();
+  const [recipientUnitId, setRecipientUnitId] = useState<number | undefined>();
+  // Externo
+  const [extName, setExtName] = useState("");
+  const [extEmail, setExtEmail] = useState("");
+  const [extPhone, setExtPhone] = useState("");
+
+  const { data: users } = trpc.admin.listUsers.useQuery(undefined, { enabled: open });
+  const { data: units } = trpc.controle.unidades.list.useQuery(undefined, { enabled: open });
+  const { data: recipients } = trpc.caius.documents.recipients.useQuery({ documentId: doc.id }, { enabled: open });
+
+  const send = trpc.caius.documents.send.useMutation({
+    onSuccess: () => {
+      toast.success("Documento enviado com sucesso!");
+      setOpen(false);
+      setExtName(""); setExtEmail(""); setExtPhone("");
+      setRecipientUserId(undefined); setRecipientUnitId(undefined);
+      onSent();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const handleSend = () => {
+    if (tab === "internal") {
+      if (!recipientUserId && !recipientUnitId) {
+        toast.error("Selecione um usuário ou setor interno");
+        return;
+      }
+      send.mutate({
+        documentId: doc.id,
+        originType: "internal",
+        recipientUserId,
+        recipientUnitId,
+        channel,
+      });
+    } else {
+      if (!extEmail && !extPhone) {
+        toast.error("Informe e-mail ou telefone do destinatário externo");
+        return;
+      }
+      send.mutate({
+        documentId: doc.id,
+        originType: "external",
+        recipientName: extName || undefined,
+        recipientEmail: extEmail || undefined,
+        recipientPhone: extPhone || undefined,
+        channel,
+      });
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={(e) => e.stopPropagation()}>
+          <Send className="h-3 w-3" />
+          Enviar
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5 text-primary" />
+            Enviar Documento
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            <span className="font-mono text-xs bg-primary/10 text-primary border border-primary/20 rounded px-1.5 py-0.5 mr-2">
+              {doc.nup ?? doc.documentNumber ?? "—"}
+            </span>
+            {doc.title}
+          </p>
+        </DialogHeader>
+
+        <Tabs value={tab} onValueChange={(v) => setTab(v as any)} className="mt-2">
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger value="internal" className="gap-2">
+              <Users className="h-4 w-4" />
+              Interno (CAIUS)
+            </TabsTrigger>
+            <TabsTrigger value="external" className="gap-2">
+              <ExternalLink className="h-4 w-4" />
+              Externo
+            </TabsTrigger>
+          </TabsList>
+
+          {/* ── Destinatário Interno ── */}
+          <TabsContent value="internal" className="space-y-4 mt-4">
+            <div className="flex items-center gap-2 text-xs text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+              <Building2 className="h-4 w-4 flex-shrink-0" />
+              <span>O documento será enviado com a tag <strong>ORIGEM INTERNA</strong> para o destinatário selecionado.</span>
+            </div>
+            <div>
+              <Label>Usuário do CAIUS</Label>
+              <Select
+                value={recipientUserId?.toString() ?? "none"}
+                onValueChange={(v) => { setRecipientUserId(v !== "none" ? Number(v) : undefined); setRecipientUnitId(undefined); }}
+              >
+                <SelectTrigger className="mt-1">
+                  <User className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Selecionar usuário" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Nenhum —</SelectItem>
+                  {users?.map((u: any) => (
+                    <SelectItem key={u.id} value={u.id.toString()}>{u.name ?? u.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="flex-1 border-t border-border" />
+              <span>ou</span>
+              <span className="flex-1 border-t border-border" />
+            </div>
+            <div>
+              <Label>Setor / Unidade Organizacional</Label>
+              <Select
+                value={recipientUnitId?.toString() ?? "none"}
+                onValueChange={(v) => { setRecipientUnitId(v !== "none" ? Number(v) : undefined); setRecipientUserId(undefined); }}
+              >
+                <SelectTrigger className="mt-1">
+                  <Building2 className="h-3.5 w-3.5 mr-2 text-muted-foreground" />
+                  <SelectValue placeholder="Selecionar setor" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  <SelectItem value="none">— Nenhum —</SelectItem>
+                  {units?.map((u: any) => (
+                    <SelectItem key={u.id} value={u.id.toString()}>
+                      {u.code ? `[${u.code}] ` : ""}{u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </TabsContent>
+
+          {/* ── Destinatário Externo ── */}
+          <TabsContent value="external" className="space-y-4 mt-4">
+            <div className="flex items-center gap-2 text-xs text-orange-400 bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
+              <ExternalLink className="h-4 w-4 flex-shrink-0" />
+              <span>O documento será enviado com a tag <strong>ORIGEM EXTERNA</strong>. Informe e-mail e/ou WhatsApp.</span>
+            </div>
+            <div>
+              <Label>Nome do Destinatário</Label>
+              <Input value={extName} onChange={(e) => setExtName(e.target.value)} placeholder="Nome completo" className="mt-1" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />E-mail</Label>
+                <Input type="email" value={extEmail} onChange={(e) => setExtEmail(e.target.value)} placeholder="email@exemplo.com" className="mt-1" />
+              </div>
+              <div>
+                <Label className="flex items-center gap-1.5"><MessageSquare className="h-3.5 w-3.5" />WhatsApp</Label>
+                <Input value={extPhone} onChange={(e) => setExtPhone(e.target.value)} placeholder="+55 79 99999-9999" className="mt-1" />
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* ── Canal de Envio ── */}
+        <div className="mt-4">
+          <Label>Canal de Envio</Label>
+          <div className="grid grid-cols-3 gap-2 mt-2">
+            {([["email", "E-mail", Mail], ["whatsapp", "WhatsApp", MessageSquare], ["both", "Ambos", Send]] as const).map(([v, l, Icon]) => (
+              <button
+                key={v}
+                onClick={() => setChannel(v)}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 p-3 rounded-lg border text-xs font-medium transition-all",
+                  channel === v
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-muted/20 text-muted-foreground hover:border-primary/40"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {l}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Histórico de Envios ── */}
+        {recipients && recipients.length > 0 && (
+          <div className="mt-4">
+            <Label className="text-xs text-muted-foreground">Histórico de Envios</Label>
+            <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+              {recipients.map((r: any) => {
+                const st = RECIPIENT_STATUS[r.status] ?? RECIPIENT_STATUS.pending;
+                return (
+                  <div key={r.id} className="flex items-center justify-between text-xs bg-muted/30 rounded px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-bold", r.originType === "internal" ? "bg-blue-500/20 text-blue-400" : "bg-orange-500/20 text-orange-400")}>
+                        {r.originType === "internal" ? "INT" : "EXT"}
+                      </span>
+                      <span className="text-foreground">{r.recipientName ?? r.recipientEmail ?? r.recipientPhone ?? "—"}</span>
+                      <span className="text-muted-foreground">via {r.channel}</span>
+                    </div>
+                    <span className={cn("px-1.5 py-0.5 rounded text-[10px]", st.color)}>{st.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-2 pt-4 border-t border-border mt-4">
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={handleSend} disabled={send.isPending} className="gap-2">
+            {send.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            Enviar Documento
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Dialog de Criação ────────────────────────────────────────────────────────
 function CreateDocumentDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -213,7 +453,6 @@ function CreateDocumentDialog({ onCreated }: { onCreated: () => void }) {
             </div>
           </div>
 
-          {/* Rich Text Editor com botão IA */}
           <div>
             <div className="flex items-center justify-between mb-1">
               <Label>Conteúdo</Label>
@@ -242,7 +481,6 @@ function CreateDocumentDialog({ onCreated }: { onCreated: () => void }) {
             )}
           </div>
 
-          {/* File Upload */}
           <div>
             <Label>Documentos Anexos</Label>
             <div
@@ -285,7 +523,7 @@ function CreateDocumentDialog({ onCreated }: { onCreated: () => void }) {
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button
             onClick={() => create.mutate({ ...form, sectorId })}
-            disabled={!form.title || create.isPending || uploading}
+            disabled={create.isPending || uploading || !form.title}
           >
             {(create.isPending || uploading) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             {uploading ? "Enviando anexos..." : "Criar Documento"}
@@ -427,6 +665,10 @@ export default function Documents() {
                             {(document.status === "draft" || document.status === "pending_signature") && (
                               <SignDocumentButton documentId={document.id} nup={document.nup} />
                             )}
+                            <SendDocumentDialog
+                              document={document}
+                              onSent={() => utils.caius.documents.list.invalidate()}
+                            />
                             <Button
                               size="sm"
                               variant="ghost"

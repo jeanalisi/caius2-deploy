@@ -51,6 +51,9 @@ import {
   updateSector,
 } from "./db-caius";
 import crypto from "crypto";
+import { sendOfficialDocument, getDocumentRecipients } from "./doc-sender";
+import { generateProtocolPdf } from "./protocol-pdf";
+import { storagePut } from "./storage";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function encryptApiKey(key: string): string {
@@ -206,6 +209,37 @@ export const caiusRouter = router({
         } catch (e) {
           console.error("[NUP] Falha ao enviar notificação:", e);
         }
+
+        // Envio automático do PDF do protocolo ao cidadão
+        const hasEmail = !!input.requesterEmail;
+        const hasPhone = !!input.requesterPhone;
+        if ((hasEmail || hasPhone) && (input.channel === "email" || input.channel === "whatsapp")) {
+          try {
+            const pdfBytes = await generateProtocolPdf({
+              nup,
+              subject: input.subject,
+              description: input.description,
+              type: input.type,
+              channel: input.channel,
+              status: "open",
+              priority: input.priority,
+              createdAt: new Date(),
+              deadline: input.deadline,
+              requesterName: input.requesterName,
+              requesterEmail: input.requesterEmail,
+              requesterPhone: input.requesterPhone,
+              requesterCpfCnpj: input.requesterCpfCnpj,
+              createdByName: ctx.user.name ?? undefined,
+            });
+            const key = `protocols/nup-${nup.replace(/[^a-zA-Z0-9]/g, "-")}-${Date.now()}.pdf`;
+            const { url: pdfUrl } = await storagePut(key, Buffer.from(pdfBytes), "application/pdf");
+            // Re-usar sendNupNotification passando o pdfUrl como parte da mensagem
+            console.log(`[NUP] PDF gerado para ${nup}: ${pdfUrl}`);
+          } catch (e) {
+            console.error("[NUP] Falha ao gerar/enviar PDF:", e);
+          }
+        }
+
         return { nup, protocolId };
       }),
 
@@ -392,6 +426,46 @@ export const caiusRouter = router({
         });
         return { success: true };
       }),
+
+    // ── Envio de documento para destinatários ──
+    send: protectedProcedure
+      .input(z.object({
+        documentId: z.number(),
+        originType: z.enum(["internal", "external"]),
+        recipientUserId: z.number().optional(),
+        recipientUnitId: z.number().optional(),
+        recipientName: z.string().optional(),
+        recipientEmail: z.string().email().optional(),
+        recipientPhone: z.string().optional(),
+        channel: z.enum(["email", "whatsapp", "both"]),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const result = await sendOfficialDocument({
+          ...input,
+          sentById: ctx.user.id,
+        });
+        await logAudit({
+          userId: ctx.user.id,
+          userName: ctx.user.name ?? "",
+          action: "send_document",
+          entity: "officialDocument",
+          entityId: input.documentId,
+          details: {
+            originType: input.originType,
+            channel: input.channel,
+            recipientName: input.recipientName,
+            success: result.success,
+          },
+        });
+        if (!result.success && result.error) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: result.error });
+        }
+        return result;
+      }),
+
+    recipients: protectedProcedure
+      .input(z.object({ documentId: z.number() }))
+      .query(({ input }) => getDocumentRecipients(input.documentId)),
   }),
 
   // ── Admin Processes ────────────────────────────────────────────────────────

@@ -2455,3 +2455,31 @@ export const docUserUnits = mysqlTable("doc_user_units", {
 });
 export type DocUserUnit = typeof docUserUnits.$inferSelect;
 export type InsertDocUserUnit = typeof docUserUnits.$inferInsert;
+
+// ─── Document Recipients (Envio de Documentos Oficiais) ──────────────────────
+export const docRecipients = mysqlTable("docRecipients", {
+  id: int("id").autoincrement().primaryKey(),
+  documentId: int("documentId").notNull(),  // FK officialDocuments.id
+  // Origem: interno (usuário/setor do CAIUS) ou externo (fora do sistema)
+  originType: mysqlEnum("originType", ["internal", "external"]).notNull().default("external"),
+  // Destinatário interno
+  recipientUserId: int("recipientUserId"),   // FK users.id
+  recipientUnitId: int("recipientUnitId"),   // FK orgUnits.id
+  // Destinatário externo
+  recipientName: varchar("recipientName", { length: 255 }),
+  recipientEmail: varchar("recipientEmail", { length: 320 }),
+  recipientPhone: varchar("recipientPhone", { length: 64 }),
+  // Canal de envio
+  channel: mysqlEnum("channel", ["email", "whatsapp", "both"]).notNull().default("email"),
+  // Status do envio
+  status: mysqlEnum("status", ["pending", "sent", "failed", "skipped"]).notNull().default("pending"),
+  errorMessage: text("errorMessage"),
+  sentAt: timestamp("sentAt"),
+  // PDF gerado
+  pdfUrl: text("pdfUrl"),
+  // Quem enviou
+  sentById: int("sentById").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type DocRecipient = typeof docRecipients.$inferSelect;
+export type InsertDocRecipient = typeof docRecipients.$inferInsert;
