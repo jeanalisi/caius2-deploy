@@ -140,9 +140,11 @@ export async function createControl(data: {
   referenceYear: number;
   resetAnnually: boolean;
   createdBy: number;
+  nextNumber?: number;
 }) {
   const db = await requireDb();
-  const result = await db.insert(documentControls).values({ ...data, nextNumber: 1, active: true });
+  const { nextNumber, ...rest } = data;
+  const result = await db.insert(documentControls).values({ ...rest, nextNumber: nextNumber ?? 1, active: true });
   return result;
 }
 

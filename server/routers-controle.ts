@@ -82,6 +82,7 @@ export const controleRouter = router({
           digits: z.number().min(1).max(10),
           referenceYear: z.number().min(2000).max(2100),
           resetAnnually: z.boolean(),
+          nextNumber: z.number().min(1).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {

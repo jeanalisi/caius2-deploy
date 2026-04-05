@@ -258,3 +258,9 @@
 - [x] Backend: validação no endpoint configuracao.create (lançar CONFLICT se duplicado)
 - [x] Frontend: exibir mensagem de erro clara ao tentar criar controle duplicado
 - [x] Testes Vitest: validar que duplicata é rejeitada com erro adequado
+
+## Número Inicial ao Criar Controle
+
+- [x] Backend: aceitar nextNumber opcional no createControl (padrão = 1)
+- [x] Frontend: campo "Número Inicial" no formulário de criação com dica de continuidade
+- [x] Testes Vitest: validar que nextNumber é persistido corretamente

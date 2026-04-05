@@ -72,6 +72,7 @@ const controlSchema = z.object({
   digits: z.coerce.number().min(1).max(10),
   referenceYear: z.coerce.number().min(2000).max(2100),
   resetAnnually: z.boolean(),
+  nextNumber: z.coerce.number().min(1).optional(),
 });
 type ControlForm = z.infer<typeof controlSchema>;
 
@@ -361,6 +362,18 @@ export default function ControleConfiguracaoPage() {
               <div className="space-y-1.5">
                 <Label>Ano de Referência</Label>
                 <Input {...createForm.register("referenceYear")} type="number" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label>Número Inicial <span className="text-muted-foreground text-xs font-normal">(opcional — padrão: 1)</span></Label>
+                <Input
+                  {...createForm.register("nextNumber")}
+                  type="number"
+                  min={1}
+                  placeholder="Ex: 48 (para dar continuidade a uma sequência existente)"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Defina o número a partir do qual esta sequência deve começar. Útil para migrar controles já existentes.
+                </p>
               </div>
               <div className="flex items-center gap-2 pt-4">
                 <Switch
