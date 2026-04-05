@@ -7,6 +7,7 @@ import OmniLayout from "@/components/OmniLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -281,41 +282,43 @@ export default function GeoMonitor() {
         </DialogContent>
       </Dialog>
 
-      {/* Point Detail Dialog */}
-      <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-blue-600" />{selected?.name}
-            </DialogTitle>
-          </DialogHeader>
+      {/* Point Detail Sheet */}
+      <Sheet open={!!selected} onOpenChange={() => setSelected(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto p-0">
           {selected && (
-            <div className="space-y-4 py-2">
-              {selected.description && <p className="text-sm text-gray-600">{selected.description}</p>}
-              <div className="grid grid-cols-2 gap-3">
-                {selected.address && (
-                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 col-span-2">
-                    <p className="text-xs text-gray-500 mb-1">Endereço</p>
-                    <p className="text-sm font-medium text-gray-900">{selected.address}</p>
+            <>
+              <SheetHeader className="px-6 py-4 border-b border-border/60 bg-card/60 sticky top-0 z-10">
+                <SheetTitle className="flex items-center gap-2 text-base">
+                  <MapPin className="w-5 h-5 text-primary" />{selected.name}
+                </SheetTitle>
+              </SheetHeader>
+              <div className="p-6 space-y-4">
+                {selected.description && <p className="text-sm text-muted-foreground">{selected.description}</p>}
+                <div className="grid grid-cols-2 gap-3">
+                  {selected.address && (
+                    <div className="p-3 bg-muted/30 rounded-lg border border-border col-span-2">
+                      <p className="text-xs text-muted-foreground mb-1">Endereço</p>
+                      <p className="text-sm font-medium text-foreground">{selected.address}</p>
+                    </div>
+                  )}
+                  {selected.latitude && (
+                    <div className="p-3 bg-muted/30 rounded-lg border border-border">
+                      <p className="text-xs text-muted-foreground mb-1">Coordenadas</p>
+                      <p className="text-xs font-mono text-foreground">{Number(selected.latitude).toFixed(6)}, {Number(selected.longitude).toFixed(6)}</p>
+                    </div>
+                  )}
+                  <div className="p-3 bg-muted/30 rounded-lg border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Status</p>
+                    <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", (STATUS_CONFIG[selected.status] ?? STATUS_CONFIG.open).color)}>
+                      {(STATUS_CONFIG[selected.status] ?? STATUS_CONFIG.open).label}
+                    </span>
                   </div>
-                )}
-                {selected.latitude && (
-                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-1">Coordenadas</p>
-                    <p className="text-xs font-mono text-gray-900">{Number(selected.latitude).toFixed(6)}, {Number(selected.longitude).toFixed(6)}</p>
-                  </div>
-                )}
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Status</p>
-                  <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", (STATUS_CONFIG[selected.status] ?? STATUS_CONFIG.open).color)}>
-                    {(STATUS_CONFIG[selected.status] ?? STATUS_CONFIG.open).label}
-                  </span>
                 </div>
               </div>
-            </div>
+            </>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </OmniLayout>
   );
 }

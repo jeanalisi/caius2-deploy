@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -336,53 +337,55 @@ export default function WorkflowDesigner() {
         </DialogContent>
       </Dialog>
 
-      {/* View Dialog */}
-      <Dialog open={!!showView} onOpenChange={() => setShowView(null)}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <GitBranch className="w-5 h-5 text-blue-600" />
-              {showView?.name}
-            </DialogTitle>
-          </DialogHeader>
+      {/* View Sheet */}
+      <Sheet open={!!showView} onOpenChange={() => setShowView(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto p-0">
           {showView && (
-            <div className="space-y-4 py-2">
-              {showView.description && <p className="text-sm text-gray-600">{showView.description}</p>}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Status</p>
-                  <p className="text-sm font-semibold text-gray-900">{STATUS_CONFIG[showView.status]?.label ?? showView.status}</p>
+            <>
+              <SheetHeader className="px-6 py-4 border-b border-border/60 bg-card/60 sticky top-0 z-10">
+                <SheetTitle className="flex items-center gap-2 text-base">
+                  <GitBranch className="w-5 h-5 text-primary" />
+                  {showView.name}
+                </SheetTitle>
+              </SheetHeader>
+              <div className="p-6 space-y-4">
+                {showView.description && <p className="text-sm text-muted-foreground">{showView.description}</p>}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-muted/30 rounded-lg border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Status</p>
+                    <p className="text-sm font-semibold text-foreground">{STATUS_CONFIG[showView.status]?.label ?? showView.status}</p>
+                  </div>
+                  <div className="p-3 bg-muted/30 rounded-lg border border-border">
+                    <p className="text-xs text-muted-foreground mb-1">Gatilho</p>
+                    <p className="text-sm font-semibold text-foreground">{showView.triggerType ?? "Manual"}</p>
+                  </div>
                 </div>
-                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-xs text-gray-500 mb-1">Gatilho</p>
-                  <p className="text-sm font-semibold text-gray-900">{showView.triggerType ?? "Manual"}</p>
+                <div>
+                  <p className="text-sm font-medium text-foreground mb-3">Etapas ({((showView.definition?.steps as any[]) ?? []).length})</p>
+                  <div className="space-y-2">
+                    {((showView.definition?.steps as any[]) ?? []).map((step: any, i: number) => {
+                      const st = STEP_TYPES.find(t => t.value === step.type);
+                      const StIcon = st?.icon ?? Square;
+                      return (
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 border border-border">
+                          <span className="text-xs text-muted-foreground w-5 text-center">{i + 1}</span>
+                          <div className={cn("w-7 h-7 rounded-lg border flex items-center justify-center shrink-0", st?.color ?? "bg-muted text-muted-foreground border-border")}>
+                            <StIcon className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{step.name}</p>
+                            <p className="text-xs text-muted-foreground">{st?.label}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-3">Etapas ({((showView.definition?.steps as any[]) ?? []).length})</p>
-                <div className="space-y-2">
-                  {((showView.definition?.steps as any[]) ?? []).map((step: any, i: number) => {
-                    const st = STEP_TYPES.find(t => t.value === step.type);
-                    const StIcon = st?.icon ?? Square;
-                    return (
-                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
-                        <span className="text-xs text-gray-400 w-5 text-center">{i + 1}</span>
-                        <div className={cn("w-7 h-7 rounded-lg border flex items-center justify-center shrink-0", st?.color ?? "bg-gray-100 text-gray-600 border-gray-300")}>
-                          <StIcon className="w-3.5 h-3.5" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{step.name}</p>
-                          <p className="text-xs text-gray-400">{st?.label}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+            </>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </OmniLayout>
   );
 }

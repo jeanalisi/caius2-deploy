@@ -40,6 +40,7 @@ import {
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useRef, useState } from "react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -567,35 +568,37 @@ export default function AdminProcesses() {
         onClose={() => setDeadlineProcess(null)}
       />
     )}
-    {viewProcess && (
-      <Dialog open onOpenChange={(open) => !open && setViewProcess(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Scale className="h-5 w-5 text-primary" />
-              {viewProcess.title}
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground font-mono">{viewProcess.nup}</p>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            {viewProcess.description && (
-              <div className="rounded-lg bg-muted/30 border border-border p-3">
-                <p className="text-xs text-muted-foreground mb-1">Descrição</p>
-                <div
-                  className="text-sm text-foreground prose prose-sm prose-invert max-w-none"
-                  dangerouslySetInnerHTML={{ __html: viewProcess.description }}
-                />
-              </div>
-            )}
-            <WorkflowPanel
-              entityType="process"
-              entityId={viewProcess.id}
-              nup={viewProcess.nup ?? undefined}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    )}
+    <Sheet open={!!viewProcess} onOpenChange={(open) => !open && setViewProcess(null)}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
+        {viewProcess && (
+          <>
+            <SheetHeader className="px-6 py-4 border-b border-border/60 bg-card/60 sticky top-0 z-10">
+              <SheetTitle className="flex items-center gap-2 text-base">
+                <Scale className="h-5 w-5 text-primary" />
+                {viewProcess.title}
+              </SheetTitle>
+              <p className="text-xs text-muted-foreground font-mono">{viewProcess.nup}</p>
+            </SheetHeader>
+            <div className="p-6 space-y-4">
+              {viewProcess.description && (
+                <div className="rounded-lg bg-muted/30 border border-border p-3">
+                  <p className="text-xs text-muted-foreground mb-1">Descrição</p>
+                  <div
+                    className="text-sm text-foreground prose prose-sm prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: viewProcess.description }}
+                  />
+                </div>
+              )}
+              <WorkflowPanel
+                entityType="process"
+                entityId={viewProcess.id}
+                nup={viewProcess.nup ?? undefined}
+              />
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
     </>
   );
 }

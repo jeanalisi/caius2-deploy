@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -292,49 +293,53 @@ export default function Templates() {
           </div>
         )}
 
-        {/* Preview Dialog */}
-        <Dialog open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                {previewTemplate?.name}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Tipo:</span>
-                <span className="text-xs font-medium">{DOC_TYPE_LABELS[previewTemplate?.type] ?? previewTemplate?.type}</span>
-              </div>
-              {previewTemplate?.variables?.length > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1.5">Variáveis:</p>
-                  <div className="flex flex-wrap gap-1">
-                    {previewTemplate.variables.map((v: string) => (
-                      <span key={v} className="text-xs font-mono bg-primary/10 text-primary border border-primary/20 rounded px-2 py-0.5">{v}</span>
-                    ))}
+        {/* Preview Sheet */}
+        <Sheet open={!!previewTemplate} onOpenChange={() => setPreviewTemplate(null)}>
+          <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
+            {previewTemplate && (
+              <>
+                <SheetHeader className="px-6 py-4 border-b border-border/60 bg-card/60 sticky top-0 z-10">
+                  <SheetTitle className="flex items-center gap-2 text-base">
+                    <FileText className="h-5 w-5 text-primary" />
+                    {previewTemplate.name}
+                  </SheetTitle>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-muted-foreground">Tipo:</span>
+                    <span className="text-xs font-medium text-foreground">{DOC_TYPE_LABELS[previewTemplate.type] ?? previewTemplate.type}</span>
+                  </div>
+                </SheetHeader>
+                <div className="p-6 space-y-4">
+                  {previewTemplate.variables?.length > 0 && (
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1.5">Variáveis:</p>
+                      <div className="flex flex-wrap gap-1">
+                        {previewTemplate.variables.map((v: string) => (
+                          <span key={v} className="text-xs font-mono bg-primary/10 text-primary border border-primary/20 rounded px-2 py-0.5">{v}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <div className="rounded-lg border border-border bg-muted/20 p-4">
+                    <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">{previewTemplate.content}</pre>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={() => {
+                        navigator.clipboard.writeText(previewTemplate.content ?? "");
+                        toast.success("Conteúdo copiado para a área de transferência");
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copiar Conteúdo
+                    </Button>
                   </div>
                 </div>
-              )}
-              <div className="rounded-lg border border-border bg-muted/20 p-4">
-                <pre className="text-sm text-foreground whitespace-pre-wrap font-mono">{previewTemplate?.content}</pre>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => {
-                    navigator.clipboard.writeText(previewTemplate?.content ?? "");
-                    toast.success("Conteúdo copiado para a área de transferência");
-                  }}
-                >
-                  <Copy className="h-4 w-4" />
-                  Copiar Conteúdo
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+              </>
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </OmniLayout>
   );

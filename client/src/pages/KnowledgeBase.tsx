@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -250,38 +251,40 @@ export default function KnowledgeBase() {
         </DialogContent>
       </Dialog>
 
-      {/* View Dialog */}
-      <Dialog open={!!viewing} onOpenChange={() => setViewing(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600" />
-              {viewing?.title}
-            </DialogTitle>
-          </DialogHeader>
+      {/* View Sheet */}
+      <Sheet open={!!viewing} onOpenChange={() => setViewing(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
           {viewing && (
-            <div className="space-y-4 py-2">
-              <div className="flex flex-wrap gap-2">
-                {viewing.category && <Badge variant="outline" className="text-xs">{viewing.category}</Badge>}
-                {(viewing.tags as string[] ?? []).map((t: string) => (
-                  <Badge key={t} variant="outline" className="text-xs gap-1"><Tag className="w-2.5 h-2.5" />{t}</Badge>
-                ))}
-              </div>
-              {viewing.summary && <p className="text-sm text-gray-500 italic">{viewing.summary}</p>}
-              <div className="prose prose-sm max-w-none">
-                <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed">{viewing.content}</pre>
-              </div>
-              <div className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-100">
-                <span>Criado em {new Date(viewing.createdAt).toLocaleDateString("pt-BR")}</span>
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{viewing.viewCount ?? 0} visualizações</span>
-                  <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{viewing.helpfulCount ?? 0} útil</span>
+            <>
+              <SheetHeader className="px-6 py-4 border-b border-border/60 bg-card/60 sticky top-0 z-10">
+                <SheetTitle className="flex items-center gap-2 text-base">
+                  <FileText className="w-5 h-5 text-primary" />
+                  {viewing.title}
+                </SheetTitle>
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {viewing.category && <Badge variant="outline" className="text-xs">{viewing.category}</Badge>}
+                  {(viewing.tags as string[] ?? []).map((t: string) => (
+                    <Badge key={t} variant="outline" className="text-xs gap-1"><Tag className="w-2.5 h-2.5" />{t}</Badge>
+                  ))}
+                </div>
+              </SheetHeader>
+              <div className="p-6 space-y-4">
+                {viewing.summary && <p className="text-sm text-muted-foreground italic">{viewing.summary}</p>}
+                <div className="rounded-lg border border-border bg-muted/20 p-4">
+                  <pre className="whitespace-pre-wrap text-sm text-foreground font-sans leading-relaxed">{viewing.content}</pre>
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground pt-3 border-t border-border/60">
+                  <span>Criado em {new Date(viewing.createdAt).toLocaleDateString("pt-BR")}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="flex items-center gap-1"><Eye className="w-3 h-3" />{viewing.viewCount ?? 0} visualizações</span>
+                    <span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" />{viewing.helpfulCount ?? 0} útil</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </OmniLayout>
   );
 }

@@ -66,7 +66,7 @@ function addToMessageStore(id: string | null | undefined, content: WAMessageCont
  * Extrai o conteúdo textual de uma mensagem WhatsApp.
  * Suporta texto simples, texto estendido, legendas de mídia e reações.
  */
-function extractMessageContent(msg: any): { text: string; type: string } {
+function extractMessageContent(msg: any): { text: string; type: "text" | "image" | "audio" | "video" | "document" | "sticker" | "location" | "template" } {
   const m = msg.message;
   if (!m) return { text: "[mensagem vazia]", type: "text" };
 
@@ -77,9 +77,9 @@ function extractMessageContent(msg: any): { text: string; type: string } {
   if (m.audioMessage) return { text: "[áudio]", type: "audio" };
   if (m.documentMessage) return { text: m.documentMessage.fileName || "[documento]", type: "document" };
   if (m.stickerMessage) return { text: "[figurinha]", type: "sticker" };
-  if (m.reactionMessage) return { text: `[reação: ${m.reactionMessage.text}]`, type: "reaction" };
+  if (m.reactionMessage) return { text: `[reação: ${m.reactionMessage.text}]`, type: "text" };
   if (m.locationMessage) return { text: "[localização]", type: "location" };
-  if (m.contactMessage) return { text: `[contato: ${m.contactMessage.displayName}]`, type: "contact" };
+  if (m.contactMessage) return { text: `[contato: ${m.contactMessage.displayName}]`, type: "text" };
   if (m.buttonsResponseMessage) return { text: m.buttonsResponseMessage.selectedDisplayText || "[resposta de botão]", type: "text" };
   if (m.listResponseMessage) return { text: m.listResponseMessage.title || "[resposta de lista]", type: "text" };
 
@@ -360,7 +360,7 @@ export async function connectWhatsApp(accountId: number) {
             conversationId: convId,
             externalId: msg.key.id ?? undefined,
             direction: "inbound",
-            type: msgType,
+            type: msgType as "text" | "image" | "audio" | "video" | "document" | "sticker" | "location" | "template",
             content,
             senderName,
             sentAt,
