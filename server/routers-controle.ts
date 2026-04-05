@@ -4,8 +4,6 @@ import { router, protectedProcedure, adminProcedure } from "./_core/trpc";
 import {
   getAllUnits,
   getUnitById,
-  createUnit,
-  updateUnit,
   getAllControls,
   getControlById,
   createControl,
@@ -45,7 +43,8 @@ const permMap: Record<string, DocPermKey> = {
 };
 
 export const controleRouter = router({
-  // ─── Unidades Organizacionais ───────────────────────────────────────────────
+  // ─── Unidades Organizacionais (integrado com /org-structure) ───────────────
+  // As unidades são gerenciadas em /org-structure e reutilizadas aqui.
   unidades: router({
     list: protectedProcedure.query(async () => {
       return getAllUnits();
@@ -56,35 +55,6 @@ export const controleRouter = router({
         const unit = await getUnitById(input.id);
         if (!unit) throw new TRPCError({ code: "NOT_FOUND" });
         return unit;
-      }),
-    create: adminProcedure
-      .input(
-        z.object({
-          name: z.string().min(2),
-          acronym: z.string().optional(),
-          type: z.enum(["secretaria", "setor", "gabinete", "departamento", "coordenacao", "outro"]),
-          parentId: z.number().optional(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        await createUnit(input);
-        return { success: true };
-      }),
-    update: adminProcedure
-      .input(
-        z.object({
-          id: z.number(),
-          name: z.string().min(2).optional(),
-          acronym: z.string().optional(),
-          type: z.enum(["secretaria", "setor", "gabinete", "departamento", "coordenacao", "outro"]).optional(),
-          parentId: z.number().optional(),
-          active: z.boolean().optional(),
-        })
-      )
-      .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        await updateUnit(id, data);
-        return { success: true };
       }),
   }),
 
@@ -240,6 +210,20 @@ export const controleRouter = router({
     listAll: adminProcedure.query(async () => {
       return getAllDocUserPermissions();
     }),
+    getByUserId: adminProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        const perms = await getDocUserPermissions(input.userId);
+        return {
+          canAccessOficios: perms?.canAccessOficios ?? false,
+          canAccessMemorandos: perms?.canAccessMemorandos ?? false,
+          canAccessDecretos: perms?.canAccessDecretos ?? false,
+          canAccessLeis: perms?.canAccessLeis ?? false,
+          canAccessDiarioOficial: perms?.canAccessDiarioOficial ?? false,
+          canAccessContratos: perms?.canAccessContratos ?? false,
+          canAccessPortarias: perms?.canAccessPortarias ?? false,
+        };
+      }),
     getMyPermissions: protectedProcedure.query(async ({ ctx }) => {
       if (ctx.user.role === "admin") {
         return {

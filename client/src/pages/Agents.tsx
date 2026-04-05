@@ -19,6 +19,7 @@ import {
   Activity, MailOpen, Bot, Sparkles, Workflow, Wifi, Building2, BarChart3,
   ShieldCheck, Tag, Settings2, FormInput, Paperclip, Monitor, HelpCircle,
   GitBranch, Briefcase, Upload, Shield as ShieldIcon, Settings,
+  Hash, ListOrdered, BookMarked,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
@@ -101,6 +102,17 @@ const MENU_GROUPS = [
       { key: "/org-structure", label: "Estrutura Organizacional", icon: GitBranch },
       { key: "/positions", label: "Cargos e Funções", icon: Briefcase },
       { key: "/org-invites", label: "Convites e Lotações", icon: Mail },
+    ],
+  },
+  {
+    group: "Controle",
+    items: [
+      { key: "/controle", label: "Dashboard Controle", icon: Hash },
+      { key: "/controle/emitir", label: "Emitir Número", icon: ListOrdered },
+      { key: "/controle/configuracao", label: "Configuração de Controles", icon: Settings },
+      { key: "/controle/unidades", label: "Unidades (Controle)", icon: Building2 },
+      { key: "/controle/historico", label: "Histórico de Numeração", icon: BookMarked },
+      { key: "/controle/auditoria", label: "Auditoria de Controle", icon: ShieldCheck },
     ],
   },
 ];
@@ -467,8 +479,211 @@ function MenuPermissionsPanel({
     </div>
   );
 }
+// ─── Painel de Permissões do Módulo Controle ─────────────────────────────────────────────────────────────
+const DOC_TYPES = [
+  { key: "canAccessOficios", label: "Ofícios" },
+  { key: "canAccessMemorandos", label: "Memorandos" },
+  { key: "canAccessDecretos", label: "Decretos" },
+  { key: "canAccessLeis", label: "Leis" },
+  { key: "canAccessDiarioOficial", label: "Diário Oficial" },
+  { key: "canAccessContratos", label: "Contratos" },
+  { key: "canAccessPortarias", label: "Portarias" },
+] as const;
 
-// ─── Página Principal ─────────────────────────────────────────────────────────
+function ControlePermissionsPanel({
+  user,
+  onClose,
+}: {
+  user: any;
+  onClose: () => void;
+}) {
+  const utils = trpc.useUtils();
+  const isAdmin = user?.role === "admin";
+
+  const { data: perms, isLoading: permsLoading } = trpc.controle.permissoes.getByUserId.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user && !isAdmin }
+  );
+  const { data: userUnits, isLoading: unitsLoading } = trpc.controle.permissoes.getUserUnits.useQuery(
+    { userId: user?.id ?? 0 },
+    { enabled: !!user }
+  );
+  const { data: allUnits } = trpc.controle.unidades.list.useQuery();
+
+  const upsertPerms = trpc.controle.permissoes.upsert.useMutation({
+    onSuccess: () => {
+      utils.controle.permissoes.getByUserId.invalidate({ userId: user?.id });
+      toast.success("Permissões de tipo documental salvas!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const setUnits = trpc.controle.permissoes.setUserUnits.useMutation({
+    onSuccess: () => {
+      utils.controle.permissoes.getUserUnits.invalidate({ userId: user?.id });
+      toast.success("Unidades vinculadas salvas!");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
+  const currentPerms = perms ?? {
+    canAccessOficios: false,
+    canAccessMemorandos: false,
+    canAccessDecretos: false,
+    canAccessLeis: false,
+    canAccessDiarioOficial: false,
+    canAccessContratos: false,
+    canAccessPortarias: false,
+  };
+
+  const handleDocTypeToggle = (key: string, value: boolean) => {
+    if (isAdmin) return;
+    upsertPerms.mutate({ userId: user.id, ...currentPerms, [key]: value });
+  };
+
+  const handleEnableAll = () => {
+    if (isAdmin) return;
+    upsertPerms.mutate({
+      userId: user.id,
+      canAccessOficios: true,
+      canAccessMemorandos: true,
+      canAccessDecretos: true,
+      canAccessLeis: true,
+      canAccessDiarioOficial: true,
+      canAccessContratos: true,
+      canAccessPortarias: true,
+    });
+  };
+
+  const handleDisableAll = () => {
+    if (isAdmin) return;
+    upsertPerms.mutate({
+      userId: user.id,
+      canAccessOficios: false,
+      canAccessMemorandos: false,
+      canAccessDecretos: false,
+      canAccessLeis: false,
+      canAccessDiarioOficial: false,
+      canAccessContratos: false,
+      canAccessPortarias: false,
+    });
+  };
+
+  const currentUnitIds = new Set((userUnits ?? []).map((u: any) => u.unitId));
+
+  const handleUnitToggle = (unitId: number, checked: boolean) => {
+    const newIds = checked
+      ? [...currentUnitIds, unitId]
+      : [...currentUnitIds].filter(id => id !== unitId);
+    setUnits.mutate({ userId: user.id, unitIds: newIds });
+  };
+
+  return (
+    <div className="col-span-12 border-t border-border/60 bg-muted/20 animate-in slide-in-from-top-2 duration-200">
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border/40 bg-card/60">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 border border-orange-500/20">
+            <Hash className="h-4 w-4 text-orange-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">Permissões do Módulo Controle</p>
+            <p className="text-xs text-muted-foreground">{user?.name ?? user?.email ?? "Usuário"}</p>
+          </div>
+        </div>
+        <Button variant="ghost" size="sm" onClick={onClose} className="h-7 gap-1.5 text-xs">
+          Fechar painel
+        </Button>
+      </div>
+
+      {isAdmin && (
+        <div className="mx-6 mt-4 rounded-lg bg-primary/10 border border-primary/20 px-4 py-3 text-sm text-primary font-medium">
+          Administradores têm acesso irrestrito a todos os tipos documentais e unidades.
+        </div>
+      )}
+
+      <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Tipos Documentais */}
+        <Card className="border-border/60 bg-card">
+          <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
+              Tipos Documentais
+            </CardTitle>
+            {!isAdmin && (
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={handleEnableAll} disabled={upsertPerms.isPending}>Todos</Button>
+                <Button variant="ghost" size="sm" className="h-6 text-[10px] px-2" onClick={handleDisableAll} disabled={upsertPerms.isPending}>Nenhum</Button>
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className="px-4 pb-3 pt-0 space-y-1">
+            {permsLoading ? (
+              <div className="flex items-center justify-center py-4"><Loader2 className="h-4 w-4 animate-spin" /></div>
+            ) : (
+              DOC_TYPES.map(({ key, label }) => {
+                const enabled = isAdmin ? true : (currentPerms as any)[key];
+                return (
+                  <div key={key} className={cn(
+                    "flex items-center justify-between rounded-md px-2.5 py-1.5 transition-colors",
+                    enabled ? "bg-muted/30" : "bg-muted/10 opacity-50"
+                  )}>
+                    <span className="text-xs">{label}</span>
+                    <Switch
+                      checked={enabled}
+                      disabled={isAdmin || upsertPerms.isPending}
+                      onCheckedChange={(v) => handleDocTypeToggle(key, v)}
+                      className="scale-90 shrink-0"
+                    />
+                  </div>
+                );
+              })
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Unidades Organizacionais */}
+        <Card className="border-border/60 bg-card">
+          <CardHeader className="py-3 px-4 flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-xs font-semibold text-foreground/70 uppercase tracking-wider">
+              Unidades Vinculadas
+            </CardTitle>
+            <span className="text-[10px] text-muted-foreground">{currentUnitIds.size} selecionadas</span>
+          </CardHeader>
+          <CardContent className="px-4 pb-3 pt-0">
+            {unitsLoading ? (
+              <div className="flex items-center justify-center py-4"><Loader2 className="h-4 w-4 animate-spin" /></div>
+            ) : (
+              <ScrollArea className="h-48">
+                <div className="space-y-1 pr-2">
+                  {(allUnits ?? []).map((u: any) => (
+                    <div key={u.id} className={cn(
+                      "flex items-center justify-between rounded-md px-2.5 py-1.5 transition-colors",
+                      currentUnitIds.has(u.id) ? "bg-muted/30" : "bg-muted/10 opacity-50"
+                    )}>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {u.acronym && (
+                          <span className="font-mono text-[10px] bg-muted px-1 rounded shrink-0">{u.acronym}</span>
+                        )}
+                        <span className="text-xs truncate">{u.name}</span>
+                      </div>
+                      <Switch
+                        checked={isAdmin || currentUnitIds.has(u.id)}
+                        disabled={isAdmin || setUnits.isPending}
+                        onCheckedChange={(v) => handleUnitToggle(u.id, v)}
+                        className="scale-90 shrink-0"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ─── Página Principal ─────────────────────────────────────────────────────────────
 export default function Agents() {
   const utils = trpc.useUtils();
   const [search, setSearch] = useState("");
@@ -478,6 +693,7 @@ export default function Agents() {
   const [copied, setCopied] = useState(false);
   const [permUser, setPermUser] = useState<any>(null);
   const [orgUser, setOrgUser] = useState<any>(null);
+  const [controlePermUser, setControlePermUser] = useState<any>(null);
 
   const { data: users, isLoading } = trpc.users.list.useQuery();
   const { data: orgUnits = [] } = trpc.orgUnits.list.useQuery({});
@@ -587,6 +803,7 @@ export default function Agents() {
                   <div className="col-span-2">Último acesso</div>
                   <div className="col-span-1">Org</div>
                   <div className="col-span-1">Menu</div>
+                  <div className="col-span-1">Ctrl</div>
                 </div>
                 {filteredUsers.map((user) => (
                   <div key={user.id}>
@@ -665,9 +882,20 @@ export default function Agents() {
                           size="icon"
                           className="h-7 w-7"
                           title="Gerenciar permissões de menu"
-                          onClick={() => { setPermUser(permUser?.id === user.id ? null : user); setOrgUser(null); }}
+                          onClick={() => { setPermUser(permUser?.id === user.id ? null : user); setOrgUser(null); setControlePermUser(null); }}
                         >
                           <Settings className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <div className="col-span-1">
+                        <Button
+                          variant={controlePermUser?.id === user.id ? "default" : "ghost"}
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Permissões do módulo Controle"
+                          onClick={() => { setControlePermUser(controlePermUser?.id === user.id ? null : user); setPermUser(null); setOrgUser(null); }}
+                        >
+                          <Hash className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
@@ -677,6 +905,13 @@ export default function Agents() {
                       <MenuPermissionsPanel
                         user={user}
                         onClose={() => setPermUser(null)}
+                      />
+                    )}
+                    {/* Painel inline de permissões do Controle */}
+                    {controlePermUser?.id === user.id && (
+                      <ControlePermissionsPanel
+                        user={user}
+                        onClose={() => setControlePermUser(null)}
                       />
                     )}
                     {/* Painel inline de vinculação org — abre abaixo da linha */}

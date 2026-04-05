@@ -1,96 +1,112 @@
-import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Plus, Pencil, Building2 } from "lucide-react";
+import { Building2, ExternalLink, Info } from "lucide-react";
+import { useLocation } from "wouter";
 
-const unitTypeLabels: Record<string, string> = {
-  secretaria: "Secretaria",
-  setor: "Setor",
+const ORG_TYPE_LABELS: Record<string, string> = {
+  prefeitura: "Prefeitura",
   gabinete: "Gabinete",
+  procuradoria: "Procuradoria",
+  controladoria: "Controladoria",
+  secretaria: "Secretaria",
+  superintendencia: "Superintendência",
+  secretaria_executiva: "Secretaria Executiva",
+  diretoria: "Diretoria",
   departamento: "Departamento",
   coordenacao: "Coordenação",
-  outro: "Outro",
+  gerencia: "Gerência",
+  supervisao: "Supervisão",
+  secao: "Seção",
+  setor: "Setor",
+  nucleo: "Núcleo",
+  assessoria: "Assessoria",
+  unidade: "Unidade",
+  junta: "Junta",
+  tesouraria: "Tesouraria",
+  ouvidoria: "Ouvidoria",
 };
 
-const schema = z.object({
-  name: z.string().min(2, "Nome obrigatório"),
-  acronym: z.string().optional(),
-  type: z.enum(["secretaria", "setor", "gabinete", "departamento", "coordenacao", "outro"]),
-  parentId: z.coerce.number().optional(),
-});
-type FormData = z.infer<typeof schema>;
+const LEVEL_COLORS: Record<number, string> = {
+  1: "bg-blue-500/15 text-blue-400 border-blue-500/20",
+  2: "bg-purple-500/15 text-purple-400 border-purple-500/20",
+  3: "bg-green-500/15 text-green-400 border-green-500/20",
+  4: "bg-orange-500/15 text-orange-400 border-orange-500/20",
+};
 
 export default function ControleUnidadesPage() {
-  const utils = trpc.useUtils();
-  const [showCreate, setShowCreate] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-
+  const [, navigate] = useLocation();
   const { data: units, isLoading } = trpc.controle.unidades.list.useQuery();
-
-  const createMutation = trpc.controle.unidades.create.useMutation({
-    onSuccess: () => {
-      toast.success("Unidade criada");
-      utils.controle.unidades.list.invalidate();
-      setShowCreate(false);
-      form.reset();
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const updateMutation = trpc.controle.unidades.update.useMutation({
-    onSuccess: () => {
-      toast.success("Unidade atualizada");
-      utils.controle.unidades.list.invalidate();
-      setEditingId(null);
-    },
-    onError: (e) => toast.error(e.message),
-  });
-
-  const form = useForm<FormData>({ resolver: zodResolver(schema) as any, defaultValues: { type: "setor" } });
-  const editForm = useForm<Partial<FormData>>({ resolver: zodResolver(schema.partial()) as any });
-
-  const editingUnit = units?.find((u) => u.id === editingId);
 
   return (
     <div className="p-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Unidades Organizacionais</h1>
-          <p className="text-sm text-muted-foreground mt-1">Gerencie as unidades vinculadas aos controles de numeração</p>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Building2 className="h-6 w-6 text-primary" />
+            Unidades Organizacionais
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Unidades disponíveis para vincular aos controles de numeração de documentos.
+          </p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Unidade
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={() => navigate("/org-structure")}
+        >
+          <ExternalLink className="h-4 w-4" />
+          Gerenciar Estrutura Org.
         </Button>
       </div>
 
-      <Card className="border border-border shadow-sm">
+      {/* Info banner */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="flex items-start gap-3 py-4">
+          <Info className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <p className="font-medium text-foreground">Integração com Estrutura Organizacional</p>
+            <p className="text-muted-foreground mt-0.5">
+              As unidades exibidas aqui são as mesmas cadastradas em{" "}
+              <button
+                className="text-primary underline underline-offset-2 hover:text-primary/80"
+                onClick={() => navigate("/org-structure")}
+              >
+                Estrutura Organizacional
+              </button>
+              . Para adicionar, editar ou desativar unidades, acesse a página de Estrutura Organizacional.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+            {isLoading ? "Carregando..." : `${units?.length ?? 0} unidades ativas`}
+          </CardTitle>
+        </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-4 space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12" />)}
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-10 w-full" />
+              ))}
             </div>
-          ) : !units || units.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground text-sm">
-              Nenhuma unidade cadastrada
+          ) : !units?.length ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-3">
+              <Building2 className="h-10 w-10 opacity-30" />
+              <p className="text-sm">Nenhuma unidade encontrada.</p>
+              <Button variant="outline" size="sm" onClick={() => navigate("/org-structure")}>
+                Cadastrar na Estrutura Org.
+              </Button>
             </div>
           ) : (
             <Table>
@@ -99,143 +115,47 @@ export default function ControleUnidadesPage() {
                   <TableHead>Nome</TableHead>
                   <TableHead>Sigla</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead>Unidade Pai</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead>Nível</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {units.map((u) => {
-                  const parent = units.find((p) => p.id === u.parentId);
-                  return (
-                    <TableRow key={u.id}>
-                      <TableCell className="font-medium flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-muted-foreground" />
-                        {u.name}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{u.acronym ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">{unitTypeLabels[u.type] ?? u.type}</Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{parent?.name ?? "—"}</TableCell>
-                      <TableCell>
-                        <Badge variant={u.active ? "default" : "secondary"} className="text-xs">
-                          {u.active ? "Ativa" : "Inativa"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingId(u.id);
-                            editForm.reset({
-                              name: u.name,
-                              acronym: u.acronym ?? "",
-                              type: u.type as FormData["type"],
-                              parentId: u.parentId ?? undefined,
-                            });
-                          }}
-                        >
-                          <Pencil className="w-3.5 h-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {units.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">
+                      {u.level && u.level > 1 && (
+                        <span className="text-muted-foreground mr-1">
+                          {"  ".repeat((u.level ?? 1) - 1)}└
+                        </span>
+                      )}
+                      {u.name}
+                    </TableCell>
+                    <TableCell>
+                      {u.acronym ? (
+                        <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{u.acronym}</span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs text-muted-foreground capitalize">
+                        {ORG_TYPE_LABELS[u.type ?? ""] ?? u.type}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${LEVEL_COLORS[u.level ?? 1] ?? "bg-muted text-muted-foreground"}`}
+                      >
+                        Nível {u.level ?? 1}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
-
-      {/* Create */}
-      <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Nova Unidade Organizacional</DialogTitle></DialogHeader>
-          <form onSubmit={form.handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Nome</Label>
-              <Input {...form.register("name")} placeholder="Ex: Secretaria Municipal de Finanças" />
-              {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Sigla (opcional)</Label>
-                <Input {...form.register("acronym")} placeholder="Ex: SEMFIN" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Tipo</Label>
-                <Select defaultValue="setor" onValueChange={(v) => form.setValue("type", v as FormData["type"])}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(unitTypeLabels).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Unidade Pai (opcional)</Label>
-              <Select onValueChange={(v) => form.setValue("parentId", v ? Number(v) : undefined)}>
-                <SelectTrigger><SelectValue placeholder="Nenhuma (raiz)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Nenhuma (raiz)</SelectItem>
-                  {(units ?? []).map((u) => (
-                    <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
-              <Button type="submit" disabled={createMutation.isPending}>
-                {createMutation.isPending ? "Criando..." : "Criar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit */}
-      <Dialog open={!!editingId} onOpenChange={() => setEditingId(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Editar — {editingUnit?.name}</DialogTitle></DialogHeader>
-          <form onSubmit={editForm.handleSubmit((d) => updateMutation.mutate({ id: editingId!, ...d }))} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Nome</Label>
-              <Input {...editForm.register("name")} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Sigla</Label>
-                <Input {...editForm.register("acronym")} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Tipo</Label>
-                <Select
-                  defaultValue={editingUnit?.type}
-                  onValueChange={(v) => editForm.setValue("type", v as FormData["type"])}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(unitTypeLabels).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingId(null)}>Cancelar</Button>
-              <Button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

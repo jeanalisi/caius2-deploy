@@ -1,7 +1,7 @@
 import { eq, desc, sql, and } from "drizzle-orm";
 import { requireDb } from "./db";
 import {
-  docOrganizationalUnits,
+  orgUnits,
   documentControls,
   numberUsages,
   docAuditLogs,
@@ -10,39 +10,41 @@ import {
   users,
 } from "../drizzle/schema";
 
-// ─── Unidades Organizacionais ─────────────────────────────────────────────────
+// ─── Unidades Organizacionais (usa orgUnits — mesma base do /org-structure) ───
 
 export async function getAllUnits() {
   const db = await requireDb();
-  return db.select().from(docOrganizationalUnits).orderBy(docOrganizationalUnits.name);
+  return db
+    .select({
+      id: orgUnits.id,
+      name: orgUnits.name,
+      acronym: orgUnits.acronym,
+      type: orgUnits.type,
+      level: orgUnits.level,
+      parentId: orgUnits.parentId,
+      isActive: orgUnits.isActive,
+    })
+    .from(orgUnits)
+    .where(eq(orgUnits.isActive, true))
+    .orderBy(orgUnits.level, orgUnits.name);
 }
 
 export async function getUnitById(id: number) {
   const db = await requireDb();
-  const rows = await db.select().from(docOrganizationalUnits).where(eq(docOrganizationalUnits.id, id)).limit(1);
+  const rows = await db
+    .select({
+      id: orgUnits.id,
+      name: orgUnits.name,
+      acronym: orgUnits.acronym,
+      type: orgUnits.type,
+      level: orgUnits.level,
+      parentId: orgUnits.parentId,
+      isActive: orgUnits.isActive,
+    })
+    .from(orgUnits)
+    .where(eq(orgUnits.id, id))
+    .limit(1);
   return rows[0] ?? null;
-}
-
-export async function createUnit(data: {
-  name: string;
-  acronym?: string;
-  type: "secretaria" | "setor" | "gabinete" | "departamento" | "coordenacao" | "outro";
-  parentId?: number;
-}) {
-  const db = await requireDb();
-  const result = await db.insert(docOrganizationalUnits).values(data);
-  return result;
-}
-
-export async function updateUnit(id: number, data: Partial<{
-  name: string;
-  acronym: string;
-  type: "secretaria" | "setor" | "gabinete" | "departamento" | "coordenacao" | "outro";
-  parentId: number;
-  active: boolean;
-}>) {
-  const db = await requireDb();
-  await db.update(docOrganizationalUnits).set(data).where(eq(docOrganizationalUnits.id, id));
 }
 
 // ─── Controles de Numeração ───────────────────────────────────────────────────
@@ -74,8 +76,8 @@ export async function getAllControls() {
       name: documentControls.name,
       documentType: documentControls.documentType,
       unitId: documentControls.unitId,
-      unitName: docOrganizationalUnits.name,
-      unitAcronym: docOrganizationalUnits.acronym,
+      unitName: orgUnits.name,
+      unitAcronym: orgUnits.acronym,
       prefix: documentControls.prefix,
       numberFormat: documentControls.numberFormat,
       digits: documentControls.digits,
@@ -88,7 +90,7 @@ export async function getAllControls() {
       updatedAt: documentControls.updatedAt,
     })
     .from(documentControls)
-    .leftJoin(docOrganizationalUnits, eq(documentControls.unitId, docOrganizationalUnits.id))
+    .leftJoin(orgUnits, eq(documentControls.unitId, orgUnits.id))
     .orderBy(desc(documentControls.createdAt));
 }
 
@@ -179,7 +181,7 @@ export async function reserveAndUseNumber(
 
 export async function getUsageHistory(controlId?: number, limit = 100) {
   const db = await requireDb();
-  const query = db
+  const base = db
     .select({
       id: numberUsages.id,
       controlId: numberUsages.controlId,
@@ -222,7 +224,7 @@ export async function getUsageHistory(controlId?: number, limit = 100) {
       .limit(limit);
   }
 
-  return query;
+  return base;
 }
 
 // ─── Auditoria ────────────────────────────────────────────────────────────────
@@ -369,21 +371,22 @@ export async function getDocDashboardStats() {
   };
 }
 
-// ─── Vínculo Usuário-Unidades ─────────────────────────────────────────────────
+// ─── Vínculo Usuário-Unidades (usa orgUnits) ──────────────────────────────────
 
 export async function getDocUserUnits(userId: number) {
   const db = await requireDb();
   return db
     .select({
-      id: docOrganizationalUnits.id,
-      name: docOrganizationalUnits.name,
-      acronym: docOrganizationalUnits.acronym,
-      type: docOrganizationalUnits.type,
+      id: orgUnits.id,
+      name: orgUnits.name,
+      acronym: orgUnits.acronym,
+      type: orgUnits.type,
+      level: orgUnits.level,
     })
     .from(docUserUnits)
-    .innerJoin(docOrganizationalUnits, eq(docUserUnits.unitId, docOrganizationalUnits.id))
+    .innerJoin(orgUnits, eq(docUserUnits.unitId, orgUnits.id))
     .where(eq(docUserUnits.userId, userId))
-    .orderBy(docOrganizationalUnits.name);
+    .orderBy(orgUnits.name);
 }
 
 export async function setDocUserUnits(userId: number, unitIds: number[]) {

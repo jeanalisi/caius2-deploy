@@ -198,3 +198,33 @@
 - [x] Corrigir erros TypeScript: ctx.ip→ctx.req.ip, emailjs-imap-client→imap, apply→applyAction, content cast String(), entityId.protocolId
 - [x] Zero erros TypeScript (tsc --noEmit --skipLibCheck)
 - [x] 109/109 testes passando
+
+## WhatsApp Avançado & Bot Inteligente
+
+- [ ] Iniciar conversa WhatsApp pelo atendente (outbound) com seleção de conta e número do destinatário
+- [ ] Criar protocolo NUP a partir de conversa WhatsApp existente (botão na tela de Conversas)
+- [ ] Rotas personalizáveis no chatbot (fluxo de nós configurável via UI — editor visual)
+- [ ] Captura de localização no bot para serviços como troca de lâmpadas, buracos, etc.
+- [ ] Integração do bot com cAIus para respostas automáticas inteligentes
+- [ ] Sugestões de resposta ao atendente baseadas no contexto da conversa (cAIus)
+- [ ] Correção gramatical automática das mensagens do atendente antes do envio
+- [ ] Suporte a múltiplos números WhatsApp centralizados no mesmo bot e mesmas regras
+- [ ] Botão de voltar à página inicial (Home) em todas as páginas do sistema
+
+## Módulo Controle — Integração Org-Structure & Permissões Granulares
+
+- [x] Integrar unidades organizacionais do módulo Controle com orgUnits (mesma base do /org-structure)
+- [x] Atualizar db-controle.ts: getAllUnits e getUnitById agora usam orgUnits (143 unidades reais da Prefeitura)
+- [x] Remover createUnit/updateUnit do db-controle.ts (gerenciadas pelo módulo /org-structure)
+- [x] Atualizar routers-controle.ts: sub-router de unidades usa orgUnits; adicionar endpoint getByUserId nas permissões
+- [x] Reconfigurar granulação de acesso: adicionar grupo "Controle" no MENU_GROUPS do Agents.tsx
+- [x] Criar componente ControlePermissionsPanel: painel inline com permissões por tipo documental e por unidade organizacional
+- [x] Adicionar botão de permissões do Controle (ícone Hash) na tabela de usuários do Agents.tsx
+- [x] Criar ControleUnidadesPage.tsx integrada com orgUnits (leitura direta da estrutura organizacional)
+
+## Relatório Consolidado no Protocolo NUP
+
+- [x] Aprimorar getProtocolById no db-caius.ts: incluir creator, contact, conversation e conversationMessages
+- [x] Importar contacts, conversations e messages no db-caius.ts
+- [x] Criar componente CitizenReportPanel no ProtocolDetail.tsx: relatório consolidado com dados do cidadão, conversa vinculada, localização e histórico de mensagens
+- [x] Inserir CitizenReportPanel no ProtocolDetail antes do grid principal

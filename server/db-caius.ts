@@ -27,6 +27,9 @@ import {
   sectors,
   tramitations,
   users,
+  contacts,
+  conversations,
+  messages,
 } from "../drizzle/schema";
 
 // ─── NUP Generation ───────────────────────────────────────────────────────────
@@ -169,7 +172,38 @@ export async function getProtocolById(id: number) {
     .leftJoin(users, eq(protocols.responsibleUserId, users.id))
     .where(eq(protocols.id, id))
     .limit(1);
-  return r[0] ?? null;
+  if (!r[0]) return null;
+  const row = r[0];
+  // Buscar creator separadamente
+  let creator = null;
+  if (row.protocol.createdById) {
+    const creatorRows = await db.select().from(users).where(eq(users.id, row.protocol.createdById)).limit(1);
+    creator = creatorRows[0] ?? null;
+  }
+  // Buscar contact (cidadão vinculado)
+  let contact = null;
+  if (row.protocol.contactId) {
+    const contactRows = await db.select().from(contacts).where(eq(contacts.id, row.protocol.contactId)).limit(1);
+    contact = contactRows[0] ?? null;
+  }
+  // Buscar conversa vinculada
+  let conversation = null;
+  if (row.protocol.conversationId) {
+    const convRows = await db.select().from(conversations).where(eq(conversations.id, row.protocol.conversationId)).limit(1);
+    conversation = convRows[0] ?? null;
+  }
+  // Buscar mensagens da conversa (até 50 mais recentes)
+  let conversationMessages: any[] = [];
+  if (row.protocol.conversationId) {
+    const msgs = await db
+      .select()
+      .from(messages)
+      .where(eq(messages.conversationId, row.protocol.conversationId))
+      .orderBy(desc(messages.createdAt))
+      .limit(50);
+    conversationMessages = msgs.reverse();
+  }
+  return { ...row, creator, contact, conversation, conversationMessages };
 }
 
 export async function createProtocol(data: Omit<InsertProtocol, "nup">) {

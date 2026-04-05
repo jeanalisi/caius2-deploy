@@ -32,15 +32,23 @@ import {
   FileText,
   Loader2,
   Lock,
+  MapPin,
   MessageSquare,
   Paperclip,
+  Phone,
   Send,
   Sparkles,
   Trash2,
   Upload,
   User,
   X,
+  ChevronDown,
+  ChevronUp,
+  Mail,
+  Hash,
+  Bot,
 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -484,6 +492,220 @@ function TramitationItem({ t }: { t: any }) {
   );
 }
 
+// ─── CitizenReportPanel ─────────────────────────────────────────────────────
+function CitizenReportPanel({ data }: { data: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const { protocol, contact, conversation, conversationMessages } = data;
+
+  const CHANNEL_LABELS: Record<string, string> = {
+    whatsapp: "WhatsApp",
+    instagram: "Instagram",
+    email: "E-mail",
+    web: "Web",
+    phone: "Telefone",
+    in_person: "Presencial",
+  };
+
+  const TYPE_LABELS: Record<string, string> = {
+    request: "Solicitação",
+    complaint: "Reclamação",
+    information: "Informação",
+    suggestion: "Sugestão",
+    praise: "Elogio",
+    ombudsman: "Ouvidoria",
+    esic: "e-SIC",
+    administrative: "Administrativo",
+  };
+
+  const PRIORITY_LABELS: Record<string, { label: string; color: string }> = {
+    low: { label: "Baixa", color: "text-slate-400" },
+    normal: { label: "Normal", color: "text-blue-400" },
+    high: { label: "Alta", color: "text-orange-400" },
+    urgent: { label: "Urgente", color: "text-red-400" },
+  };
+
+  // Consolidar dados do cidadão
+  const citizenName = contact?.name || protocol.requesterName || "Não identificado";
+  const citizenPhone = contact?.phone || protocol.requesterPhone;
+  const citizenEmail = contact?.email || protocol.requesterEmail;
+  const citizenCpf = contact?.cpfCnpj || protocol.requesterCpfCnpj;
+  const hasCitizenData = citizenName !== "Não identificado" || citizenPhone || citizenEmail || citizenCpf;
+
+  const priority = PRIORITY_LABELS[protocol.priority] ?? PRIORITY_LABELS.normal;
+
+  return (
+    <Card className="bg-card border-border col-span-2">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Relatório Consolidado do Cidadão
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 gap-1.5 text-xs"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {expanded ? "Recolher" : "Expandir"}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4 pt-0">
+        {/* Resumo sempre visível */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="rounded-lg bg-muted/30 border border-border/40 p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Tipo</p>
+            <p className="text-sm font-semibold text-foreground">{TYPE_LABELS[protocol.type] ?? protocol.type}</p>
+          </div>
+          <div className="rounded-lg bg-muted/30 border border-border/40 p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Canal</p>
+            <p className="text-sm font-semibold text-foreground">{CHANNEL_LABELS[protocol.channel] ?? protocol.channel}</p>
+          </div>
+          <div className="rounded-lg bg-muted/30 border border-border/40 p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prioridade</p>
+            <p className={cn("text-sm font-semibold", priority.color)}>{priority.label}</p>
+          </div>
+          <div className="rounded-lg bg-muted/30 border border-border/40 p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Abertura</p>
+            <p className="text-sm font-semibold text-foreground">{new Date(protocol.createdAt).toLocaleDateString("pt-BR")}</p>
+          </div>
+        </div>
+
+        {/* Dados do cidadão */}
+        {hasCitizenData && (
+          <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 border border-primary/20">
+                <User className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">{citizenName}</p>
+              {contact && (
+                <span className="text-[10px] bg-primary/10 text-primary border border-primary/20 rounded px-1.5 py-0.5">Contato cadastrado</span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+              {citizenPhone && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Phone className="h-3 w-3 shrink-0" />
+                  <span>{citizenPhone}</span>
+                </div>
+              )}
+              {citizenEmail && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Mail className="h-3 w-3 shrink-0" />
+                  <span>{citizenEmail}</span>
+                </div>
+              )}
+              {citizenCpf && (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Hash className="h-3 w-3 shrink-0" />
+                  <span className="font-mono">{citizenCpf}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Conversa vinculada — expandível */}
+        {expanded && conversation && (
+          <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-semibold text-foreground">Conversa Vinculada</p>
+              <span className="text-[10px] text-muted-foreground font-mono">{conversation.externalId ?? `#${conversation.id}`}</span>
+            </div>
+            {conversationMessages?.length > 0 ? (
+              <ScrollArea className="h-64">
+                <div className="space-y-2 pr-2">
+                  {conversationMessages.map((msg: any) => (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        "rounded-lg px-3 py-2 text-xs max-w-[85%]",
+                        msg.direction === "inbound"
+                          ? "bg-muted/40 text-foreground mr-auto"
+                          : "bg-primary/10 text-primary ml-auto"
+                      )}
+                    >
+                      {msg.type === "location" ? (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3 w-3 shrink-0" />
+                          <span className="text-muted-foreground">
+                            {msg.metadata?.latitude && msg.metadata?.longitude
+                              ? `Localização: ${Number(msg.metadata.latitude).toFixed(6)}, ${Number(msg.metadata.longitude).toFixed(6)}`
+                              : "Localização compartilhada"}
+                          </span>
+                        </div>
+                      ) : msg.type === "image" ? (
+                        <div className="flex items-center gap-1.5">
+                          <Paperclip className="h-3 w-3 shrink-0" />
+                          <span className="text-muted-foreground">Imagem enviada</span>
+                        </div>
+                      ) : msg.type === "audio" ? (
+                        <div className="flex items-center gap-1.5">
+                          <Phone className="h-3 w-3 shrink-0" />
+                          <span className="text-muted-foreground">Áudio enviado</span>
+                        </div>
+                      ) : (
+                        <p className="whitespace-pre-wrap">{msg.content ?? "(sem conteúdo)"}</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground mt-1 text-right">
+                        {new Date(msg.createdAt).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <p className="text-xs text-muted-foreground">Nenhuma mensagem registrada nesta conversa.</p>
+            )}
+          </div>
+        )}
+
+        {/* Descrição do protocolo */}
+        {expanded && protocol.description && (
+          <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Descrição Completa</p>
+            <div
+              className="text-sm text-foreground prose prose-sm dark:prose-invert max-w-none"
+              dangerouslySetInnerHTML={{ __html: protocol.description }}
+            />
+          </div>
+        )}
+
+        {/* Localização (se houver nas mensagens) */}
+        {expanded && (() => {
+          const locationMsg = conversationMessages?.find((m: any) => m.type === "location" && m.metadata?.latitude);
+          if (!locationMsg) return null;
+          const lat = locationMsg.metadata.latitude;
+          const lng = locationMsg.metadata.longitude;
+          const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+          return (
+            <div className="rounded-lg border border-border/60 bg-muted/10 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin className="h-4 w-4 text-orange-400" />
+                <p className="text-sm font-semibold text-foreground">Localização Informada</p>
+              </div>
+              <p className="text-xs text-muted-foreground font-mono mb-2">{lat}, {lng}</p>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+              >
+                <MapPin className="h-3 w-3" />
+                Abrir no Google Maps
+              </a>
+            </div>
+          );
+        })()}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ─── ProtocolDetail ────────────────────────────────────────────────────────────
 export default function ProtocolDetail({ id, onBack }: Props) {
   const utils = trpc.useUtils();
@@ -509,7 +731,7 @@ export default function ProtocolDetail({ id, onBack }: Props) {
     );
   }
 
-  const { protocol, sector, responsible, creator } = data as any;
+  const { protocol, sector, responsible, creator, contact, conversation, conversationMessages } = data as any;
   const status = STATUS_CONFIG[protocol.status] ?? STATUS_CONFIG.open;
 
   return (
@@ -559,6 +781,11 @@ export default function ProtocolDetail({ id, onBack }: Props) {
             }}
           />
         </div>
+      </div>
+
+      {/* Relatório Consolidado do Cidadão */}
+      <div className="grid grid-cols-2 gap-6">
+        <CitizenReportPanel data={data} />
       </div>
 
       <div className="grid grid-cols-3 gap-6">
