@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 // Coordenadas de Itabaiana-PB
-const ITABAIANA_CENTER = { lat: -7.3259, lng: -35.8578 };
+const ITABAIANA_CENTER = { lat: -7.3297, lng: -35.3330 };
 const ITABAIANA_ZOOM = 13;
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; dot: string; pinColor: string }> = {

@@ -300,3 +300,7 @@
 - [x] Backend: integração do envio de PDF ao criar protocolo NUP (routers-caius.ts)
 - [x] Frontend: painel de envio no Documents.tsx com seleção de destinatários internos e externos
 - [x] 119 testes passando após as mudanças
+
+## Correção Coordenadas GeoMonitor
+
+- [x] Corrigir coordenadas de Itabaiana-PB no GeoMonitor (lat: -7.3297, lng: -35.3330)
