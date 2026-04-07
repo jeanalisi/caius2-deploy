@@ -337,3 +337,8 @@
 ## Widget: Grade de Blocos com Paginação
 - [x] Converter widget /widget/servicos de lista para grade de blocos
 - [x] 16 serviços por página com paginação abaixo
+
+## Widget de Consulta de NUP (iframe)
+- [x] Criar página pública /widget/consulta embeddável via iframe
+- [x] Busca por NUP e por CPF/CNPJ com linha do tempo de tramitações
+- [x] Registrar rota em App.tsx e configurar headers para embedding externo
