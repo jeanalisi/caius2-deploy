@@ -372,3 +372,9 @@
 - [x] Painel expandido no card com explicação de como funciona o nó
 - [x] Dialog de criação com painel destacado (3 blocos: como funciona, fluxo após seleção, pré-requisito)
 - [x] Item no Select de tipo de nó com ícone Sparkles e badge "Novo" para fácil identificação
+
+## Fluxo Automatizado service_list: interno vs externo
+- [x] Serviço externo: exibir instruções + link e encerrar automaticamente (sem precisar de "Próximo Nó")
+- [x] Serviço interno: após confirmação, coletar nome/CPF/assunto automaticamente e abrir protocolo NUP sem nós adicionais
+- [x] Exibir detalhes completos do serviço (descrição, purpose, whoCanRequest, cost, formOfService, importantNotes) antes de confirmar
+- [x] Atualizar painel informativo no ChatbotAdmin para refletir o novo comportamento autônomo

@@ -37,10 +37,24 @@ export interface BotCollectedData {
   requesterEmail?: string;
   subject?: string;
   description?: string;
-  _serviceListCache?: Array<{ id: number; name: string; category?: string | null; slaResponseHours?: number | null; serviceMode?: string | null; externalUrl?: string | null; description?: string | null }>;
-  _serviceListState?: string;
+  _serviceListCache?: Array<{
+    id: number;
+    name: string;
+    category?: string | null;
+    slaResponseHours?: number | null;
+    serviceMode?: string | null;
+    externalUrl?: string | null;
+    description?: string | null;
+    purpose?: string | null;
+    whoCanRequest?: string | null;
+    cost?: string | null;
+    formOfService?: string | null;
+    importantNotes?: string | null;
+  }>;
+  _serviceListState?: string; // 'listing' | 'detail' | 'awaiting_name' | 'awaiting_cpf' | 'awaiting_subject' | 'awaiting_description' | 'awaiting_confirm'
   _selectedServiceId?: string;
   _selectedServiceName?: string;
+  _selectedServiceMode?: string; // 'form' | 'external'
   [key: string]: unknown;
 }
 
@@ -53,7 +67,7 @@ export type SendMessageFn = (jid: string, text: string) => Promise<void>;
  * Substitui variáveis como {{requesterName}} pelos dados coletados.
  */
 function interpolate(template: string, data: BotCollectedData): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => data[key] ?? "");
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => String(data[key] ?? ""));
 }
 
 /**
@@ -354,71 +368,191 @@ export async function processBotMessage(
     }
     nextNodeId = currentNode.nextNodeId ?? null;
   } else if (currentNode.nodeType === "service_list") {
-    // Processar seleção de serviço
-    const serviceListCache = updatedData._serviceListCache as Array<{ id: number; name: string; category?: string | null; slaResponseHours?: number | null; serviceMode?: string | null; externalUrl?: string | null; description?: string | null }> | undefined;
-    const serviceListState = updatedData._serviceListState as string | undefined;
+    // ─── Fluxo totalmente automatizado do catálogo de serviços ───────────────
+    const serviceListCache = updatedData._serviceListCache;
+    const serviceListState = updatedData._serviceListState ?? "listing";
 
-    if (serviceListState === "awaiting_confirm") {
-      // Cidadão está confirmando se quer abrir protocolo
+    const saveAndReturn = async () => {
+      await db.update(botSessions).set({
+        collectedData: updatedData as any,
+        lastInteractionAt: new Date(),
+        updatedAt: new Date(),
+      }).where(eq(botSessions.id, session.id));
+      return true;
+    };
+
+    // ── Estado: coletando nome ──────────────────────────────────────────────
+    if (serviceListState === "awaiting_name") {
+      updatedData.requesterName = trimmedInput;
+      updatedData._serviceListState = "awaiting_cpf";
+      await sendFn(jid, `Obrigado, *${trimmedInput}*! 😊\n\nAgora informe seu *CPF* (apenas números):`);
+      return await saveAndReturn();
+    }
+
+    // ── Estado: coletando CPF ───────────────────────────────────────────────
+    if (serviceListState === "awaiting_cpf") {
+      updatedData.requesterCpf = trimmedInput;
+      updatedData._serviceListState = "awaiting_subject";
+      await sendFn(jid, `Descreva brevemente o *assunto* da sua solicitação relacionada ao serviço *${updatedData._selectedServiceName}*:`);
+      return await saveAndReturn();
+    }
+
+    // ── Estado: coletando assunto ───────────────────────────────────────────
+    if (serviceListState === "awaiting_subject") {
+      updatedData.subject = trimmedInput;
+      updatedData._serviceListState = "awaiting_confirm_protocol";
+      const serviceName = updatedData._selectedServiceName ?? "serviço selecionado";
+      const confirmMsg =
+        `📋 *Confirme os dados para abertura do protocolo:*\n\n` +
+        `👤 *Nome:* ${updatedData.requesterName}\n` +
+        `🪪 *CPF:* ${updatedData.requesterCpf}\n` +
+        `📌 *Serviço:* ${serviceName}\n` +
+        `📝 *Assunto:* ${trimmedInput}\n\n` +
+        `*1.* ✅ Confirmar e abrir protocolo\n` +
+        `*0.* ❌ Cancelar e voltar à lista`;
+      await sendFn(jid, confirmMsg);
+      return await saveAndReturn();
+    }
+
+    // ── Estado: confirmação final antes de abrir protocolo ─────────────────
+    if (serviceListState === "awaiting_confirm_protocol") {
       if (trimmedInput === "1") {
-        // Avançar para próximo nó (normalmente collect ou protocol)
-        nextNodeId = currentNode.nextNodeId ?? null;
-        updatedData._serviceListState = "confirmed";
+        // Abrir protocolo automaticamente
+        const nup = await generateNup();
+        const subject = updatedData.subject
+          ? `${updatedData._selectedServiceName} — ${updatedData.subject}`
+          : `Solicitação via WhatsApp — ${updatedData._selectedServiceName}`;
+        await db.insert(protocols).values({
+          nup,
+          conversationId: session.conversationId ?? undefined,
+          requesterName: updatedData.requesterName ?? session.jid.split("@")[0],
+          requesterPhone: session.jid.split("@")[0],
+          requesterEmail: updatedData.requesterEmail ?? undefined,
+          requesterCpfCnpj: updatedData.requesterCpf ?? undefined,
+          subject,
+          description: updatedData.description ?? undefined,
+          type: "request",
+          channel: "whatsapp",
+          status: "open",
+          priority: "normal",
+          isConfidential: false,
+          responsibleSectorId: undefined,
+        });
+        await db.update(botSessions).set({
+          generatedNup: nup,
+          status: "completed",
+          collectedData: updatedData as any,
+          updatedAt: new Date(),
+        }).where(eq(botSessions.id, session.id));
+        const successMsg =
+          `✅ *Protocolo aberto com sucesso!*\n\n` +
+          `📋 *Número do Protocolo (NUP):* ${nup}\n\n` +
+          `Sua solicitação foi registrada e em breve um atendente irá analisá-la.\n` +
+          `Guarde este número para acompanhar o andamento.`;
+        await sendFn(jid, successMsg);
+        await logInteraction(session.id, currentNode.id, successMsg, null);
+        // Avançar para próximo nó (encerramento), se configurado
+        if (currentNode.nextNodeId) {
+          const [endNode] = await db.select().from(botNodes).where(eq(botNodes.id, currentNode.nextNodeId)).limit(1);
+          if (endNode) await sendNodeMessage(session, endNode, sendFn);
+        }
+        return true;
       } else {
-        // Voltar à lista de serviços
+        // Cancelar — voltar à lista
+        const services = serviceListCache ?? await getCidadaoServices();
+        updatedData._serviceListCache = services;
+        updatedData._serviceListState = "listing";
+        updatedData._selectedServiceId = undefined;
+        updatedData._selectedServiceName = undefined;
+        updatedData._selectedServiceMode = undefined;
+        updatedData.requesterName = undefined;
+        updatedData.requesterCpf = undefined;
+        updatedData.subject = undefined;
+        const listText = formatServiceListMessage(currentNode.message, services);
+        await sendFn(jid, listText);
+        return await saveAndReturn();
+      }
+    }
+
+    // ── Estado: aguardando confirmação de solicitar serviço interno ──────────
+    if (serviceListState === "awaiting_service_confirm") {
+      if (trimmedInput === "1") {
+        updatedData._serviceListState = "awaiting_name";
+        const askName = updatedData.requesterName
+          ? `Seu nome já está registrado como *${updatedData.requesterName}*. Confirme ou informe um novo nome:`
+          : `Para abrir o protocolo, preciso de algumas informações.\n\nInforme seu *nome completo*:`;
+        await sendFn(jid, askName);
+        return await saveAndReturn();
+      } else {
         const services = serviceListCache ?? await getCidadaoServices();
         updatedData._serviceListCache = services;
         updatedData._serviceListState = "listing";
         const listText = formatServiceListMessage(currentNode.message, services);
         await sendFn(jid, listText);
-        await logInteraction(session.id, currentNode.id, listText, null);
-        await db.update(botSessions).set({ collectedData: updatedData as any, lastInteractionAt: new Date(), updatedAt: new Date() }).where(eq(botSessions.id, session.id));
-        return true;
-      }
-    } else {
-      // Estado normal: cidadão está selecionando da lista
-      if (trimmedInput === "0") {
-        // Voltar ao nó anterior
-        nextNodeId = currentNode.nextNodeId ?? null;
-      } else {
-        const services = serviceListCache ?? await getCidadaoServices();
-        updatedData._serviceListCache = services;
-        const selectedIndex = parseInt(trimmedInput, 10) - 1;
-        if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= services.length) {
-          // Opção inválida — reenviar lista
-          const listText = formatServiceListMessage(currentNode.message, services);
-          await sendFn(jid, listText);
-          await sendFn(jid, `⚠️ Opção inválida. Digite o número do serviço desejado (1 a ${services.length}) ou *0* para voltar.`);
-          await logInteraction(session.id, currentNode.id, listText, null);
-          await db.update(botSessions).set({ collectedData: updatedData as any, lastInteractionAt: new Date(), updatedAt: new Date() }).where(eq(botSessions.id, session.id));
-          return true;
-        }
-        const chosen = services[selectedIndex]!;
-        updatedData._selectedServiceId = String(chosen.id);
-        updatedData._selectedServiceName = chosen.name;
-
-        // Montar mensagem de detalhe
-        let detail = `📋 *${chosen.name}*`;
-        if (chosen.description) detail += `\n\n${chosen.description}`;
-        if (chosen.slaResponseHours) detail += `\n\n⏱ Prazo de resposta: ${chosen.slaResponseHours}h`;
-
-        if (chosen.serviceMode === "external" && chosen.externalUrl) {
-          detail += `\n\n🔗 Este serviço é realizado pelo portal externo:\n${chosen.externalUrl}\n\nDigite *0* para voltar à lista.`;
-          await sendFn(jid, detail);
-          await logInteraction(session.id, currentNode.id, detail, null);
-          updatedData._serviceListState = "listing";
-          await db.update(botSessions).set({ collectedData: updatedData as any, lastInteractionAt: new Date(), updatedAt: new Date() }).where(eq(botSessions.id, session.id));
-          return true;
-        }
-
-        detail += `\n\nDeseja solicitar este serviço?\n*1.* Sim, abrir protocolo\n*0.* Voltar à lista`;
-        await sendFn(jid, detail);
-        await logInteraction(session.id, currentNode.id, detail, null);
-        updatedData._serviceListState = "awaiting_confirm";
-        await db.update(botSessions).set({ collectedData: updatedData as any, lastInteractionAt: new Date(), updatedAt: new Date() }).where(eq(botSessions.id, session.id));
-        return true;
+        return await saveAndReturn();
       }
     }
+
+    // ── Estado padrão: exibindo lista ───────────────────────────────────────
+    if (trimmedInput === "0") {
+      // 0 = voltar ao menu anterior (nextNodeId do nó service_list)
+      nextNodeId = currentNode.nextNodeId ?? null;
+    } else {
+      const services = serviceListCache ?? await getCidadaoServices();
+      updatedData._serviceListCache = services;
+      const selectedIndex = parseInt(trimmedInput, 10) - 1;
+
+      if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= services.length) {
+        const listText = formatServiceListMessage(currentNode.message, services);
+        await sendFn(jid, listText);
+        await sendFn(jid, `⚠️ Opção inválida. Digite o número do serviço (1 a ${services.length}) ou *0* para voltar.`);
+        return await saveAndReturn();
+      }
+
+      const chosen = services[selectedIndex]!;
+      updatedData._selectedServiceId = String(chosen.id);
+      updatedData._selectedServiceName = chosen.name;
+      updatedData._selectedServiceMode = chosen.serviceMode ?? "form";
+
+      // ── Montar mensagem de detalhe do serviço ─────────────────────────────
+      let detail = `📋 *${chosen.name}*`;
+      if (chosen.category) detail += `\n🏷 _${chosen.category}_`;
+      if (chosen.description) detail += `\n\n${chosen.description}`;
+      if (chosen.purpose) detail += `\n\n📌 *Para que serve:* ${chosen.purpose}`;
+      if (chosen.whoCanRequest) detail += `\n👥 *Quem pode solicitar:* ${chosen.whoCanRequest}`;
+      if (chosen.cost) detail += `\n💰 *Custo:* ${chosen.cost}`;
+      if (chosen.formOfService) detail += `\n🏢 *Forma de atendimento:* ${chosen.formOfService}`;
+      if (chosen.slaResponseHours) detail += `\n⏱ *Prazo de resposta:* ${chosen.slaResponseHours}h`;
+      if (chosen.importantNotes) detail += `\n\n⚠️ *Informações importantes:*\n${chosen.importantNotes}`;
+
+      // ── Serviço EXTERNO: enviar link e encerrar ───────────────────────────
+      if (chosen.serviceMode === "external" && chosen.externalUrl) {
+        detail +=
+          `\n\n🔗 *Este serviço é realizado pelo portal externo:*\n${chosen.externalUrl}` +
+          `\n\nAcesse o link acima para realizar sua solicitação.` +
+          `\n\nDigite *0* para voltar à lista de serviços.`;
+        await sendFn(jid, detail);
+        await logInteraction(session.id, currentNode.id, detail, null);
+        updatedData._serviceListState = "listing";
+        return await saveAndReturn();
+      }
+
+      // ── Serviço INTERNO: exibir detalhes e pedir confirmação ────────────────
+      detail += `\n\n*1.* ✅ Solicitar este serviço\n*0.* ↩ Voltar à lista`;
+      await sendFn(jid, detail);
+      await logInteraction(session.id, currentNode.id, detail, null);
+      updatedData._serviceListState = "awaiting_service_confirm";
+      return await saveAndReturn();
+    }
+
+    // Nenhum estado reconhecido — reexibir lista
+    const fallbackServices = serviceListCache ?? await getCidadaoServices();
+    updatedData._serviceListCache = fallbackServices;
+    updatedData._serviceListState = "listing";
+    const fallbackText = formatServiceListMessage(currentNode.message, fallbackServices);
+    await sendFn(jid, fallbackText);
+    return await saveAndReturn();
+
   } else if (
     currentNode.nodeType === "message" ||
     currentNode.nodeType === "transfer" ||

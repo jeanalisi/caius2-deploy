@@ -179,14 +179,14 @@ function NodeCard({
           )}
 
           {node.nodeType === "service_list" && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 space-y-1">
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 space-y-2">
               <p className="text-xs font-semibold text-indigo-700 flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Como funciona
+                <Sparkles className="w-3 h-3" /> Fluxo totalmente automático
               </p>
-              <p className="text-xs text-indigo-600">
-                O bot busca automaticamente os serviços publicados no catálogo e os exibe numerados.
-                O cidadão digita o número para ver detalhes e confirmar a solicitação.
-              </p>
+              <div className="text-xs text-indigo-600 space-y-1">
+                <p>🔗 <strong>Externo:</strong> exibe instruções + link e retorna à lista.</p>
+                <p>🏢 <strong>Interno:</strong> coleta nome, CPF e assunto — abre protocolo NUP automaticamente.</p>
+              </div>
             </div>
           )}
 
@@ -461,24 +461,32 @@ function NodeDialog({
                   <Sparkles className="w-4 h-4 text-indigo-600" />
                 </div>
                 <div>
-                  <p className="font-bold text-indigo-800 text-sm">Catálogo Dinâmico de Serviços</p>
-                  <p className="text-xs text-indigo-500">Nó especial — integração automática com o banco de serviços</p>
+                  <p className="font-bold text-indigo-800 text-sm">Catálogo Dinâmico de Serviços — Fluxo Automático</p>
+                  <p className="text-xs text-indigo-500">Nó especial — sem necessidade de configurar nós adicionais</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-2 text-xs">
                 <div className="bg-white/70 rounded-lg p-2.5 border border-indigo-100">
-                  <p className="font-semibold text-indigo-700 mb-0.5">📊 Como funciona</p>
+                  <p className="font-semibold text-indigo-700 mb-1">📊 Como funciona</p>
                   <p className="text-indigo-600">
                     O bot busca automaticamente todos os serviços <strong>publicados</strong> no catálogo
-                    e os exibe numerados na conversa. O cidadão digita o número para ver detalhes.
+                    e os exibe numerados. O cidadão digita o número para ver os detalhes completos
+                    (descrição, prazo, informações importantes, etc.).
                   </p>
                 </div>
-                <div className="bg-white/70 rounded-lg p-2.5 border border-indigo-100">
-                  <p className="font-semibold text-indigo-700 mb-0.5">✅ Fluxo após seleção</p>
-                  <p className="text-indigo-600">
-                    Quando o cidadão <strong>confirmar</strong> que deseja solicitar o serviço,
-                    o bot avança para o <strong>"Próximo Nó"</strong> configurado abaixo
-                    (normalmente coleta de dados para abertura de protocolo).
+                <div className="bg-emerald-50 rounded-lg p-2.5 border border-emerald-200">
+                  <p className="font-semibold text-emerald-700 mb-1">🔄 Fluxo totalmente automático</p>
+                  <div className="text-emerald-700 space-y-1">
+                    <p><strong>🔗 Serviço externo:</strong> o bot exibe as instruções e o link do portal externo e retorna à lista. Nenhum nó adicional necessário.</p>
+                    <p><strong>🏢 Serviço interno:</strong> após confirmar, o bot coleta <em>nome</em>, <em>CPF</em> e <em>assunto</em> automaticamente, exibe um resumo para confirmação e abre o protocolo NUP. Nenhum nó adicional necessário.</p>
+                  </div>
+                </div>
+                <div className="bg-sky-50 rounded-lg p-2.5 border border-sky-200">
+                  <p className="font-semibold text-sky-700 mb-1">🔗 Próximo Nó (opcional)</p>
+                  <p className="text-sky-600">
+                    Configure o <strong>"Próximo Nó"</strong> abaixo apenas se quiser exibir uma mensagem de
+                    encerramento personalizada <em>após</em> o protocolo ser aberto. Se deixar vazio, o bot encerra
+                    automaticamente após enviar o NUP ao cidadão.
                   </p>
                 </div>
                 <div className="bg-amber-50 rounded-lg p-2.5 border border-amber-200">
