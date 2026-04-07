@@ -13,6 +13,7 @@ import {
   deleteFormField,
   deleteFormTemplate,
   deleteServiceType,
+  duplicateServiceType,
   getActiveSessions,
   getAttachmentConfigs,
   getAttachments,
@@ -127,6 +128,16 @@ export const serviceTypesRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(({ input }) => deleteServiceType(input.id)),
+
+  duplicate: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().min(2),
+      code: z.string().optional().nullable(),
+    }))
+    .mutation(({ input, ctx }) =>
+      duplicateServiceType(input.id, { name: input.name, code: input.code }, ctx.user.id)
+    ),
 });
 
 // ─── Form Templates Router ─────────────────────────────────────────────────────

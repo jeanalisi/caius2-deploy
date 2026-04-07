@@ -62,6 +62,37 @@ export async function deleteServiceType(id: number) {
   await db.update(serviceTypes).set({ isActive: false }).where(eq(serviceTypes.id, id));
 }
 
+export async function duplicateServiceType(
+  id: number,
+  overrides: { name: string; code?: string | null },
+  createdById: number,
+) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+
+  // 1. Buscar o tipo original
+  const original = await getServiceTypeById(id);
+  if (!original) throw new Error("Tipo de atendimento não encontrado.");
+
+  // 2. Criar o novo tipo copiando todos os campos, exceto id/timestamps/code
+  const { id: _id, createdAt: _ca, updatedAt: _ua, code: _code, ...rest } = original;
+  const newTypeData: InsertServiceType = {
+    ...rest,
+    name: overrides.name,
+    code: overrides.code ?? undefined,
+    isActive: true,
+    isPublic: false,
+    publicationStatus: "draft" as const,
+    createdById,
+  };
+  await db.insert(serviceTypes).values(newTypeData);
+  const newRows = await db.select().from(serviceTypes).orderBy(desc(serviceTypes.createdAt)).limit(1);
+  const newType = newRows[0];
+  if (!newType) throw new Error("Falha ao criar cópia.");
+
+  return newType;
+}
+
 // ─── Form Templates ────────────────────────────────────────────────────────────
 export async function createFormTemplate(data: InsertFormTemplate) {
   const db = await getDb();

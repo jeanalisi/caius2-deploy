@@ -19,7 +19,7 @@ import {
   Plus, Pencil, Trash2, Settings2, Clock, Shield, Camera, MapPin,
   CheckCircle2, XCircle, FileText, FormInput, FileCheck, ChevronRight,
   GripVertical, X, CircleDot, Circle, ArrowLeft, Globe, EyeOff, Tag,
-  Info, Users, DollarSign, Building2, MessageSquare,
+  Info, Users, DollarSign, Building2, MessageSquare, Copy,
 } from "lucide-react";
 
 const secrecyLabels: Record<string, { label: string; color: string }> = {
@@ -119,6 +119,12 @@ export default function ServiceTypes() {
   const [editingSubject, setEditingSubject] = useState<any>(null);
   const [subjectForm, setSubjectForm] = useState<SubjectForm>(defaultSubjectForm);
 
+  // Duplicate
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+  const [duplicatingType, setDuplicatingType] = useState<any>(null);
+  const [duplicateName, setDuplicateName] = useState("");
+  const [duplicateCode, setDuplicateCode] = useState("");
+
   // Publication
   const [pubForm, setPubForm] = useState<PublicationForm>(defaultPubForm);
   const [savingPub, setSavingPub] = useState(false);
@@ -150,6 +156,18 @@ export default function ServiceTypes() {
     onSuccess: () => { toast.success("Tipo removido."); refetch(); setSelectedId(null); },
     onError: (e) => toast.error(e.message),
   });
+  const duplicateMutation = trpc.serviceTypes.duplicate.useMutation({
+    onSuccess: (newType) => {
+      toast.success(`Tipo "${newType.name}" criado com sucesso!`);
+      refetch();
+      setDuplicateDialogOpen(false);
+      setDuplicatingType(null);
+      setDuplicateName("");
+      setDuplicateCode("");
+    },
+    onError: (e) => toast.error(e.message),
+  });
+
   const publishMutation = trpc.cidadao.publish.useMutation({
     onSuccess: (_, vars) => {
       toast.success(vars.isPublic ? "Serviço publicado na Central do Cidadão!" : "Serviço despublicado.");
@@ -201,6 +219,20 @@ export default function ServiceTypes() {
   });
 
   function openCreate() { setEditId(null); setForm(defaultForm); setOpen(true); }
+  function openDuplicate(st: any) {
+    setDuplicatingType(st);
+    setDuplicateName(`${st.name} (Cópia)`);
+    setDuplicateCode(st.code ? `${st.code}-COPIA` : "");
+    setDuplicateDialogOpen(true);
+  }
+  function handleDuplicate() {
+    if (!duplicatingType || !duplicateName.trim()) return;
+    duplicateMutation.mutate({
+      id: duplicatingType.id,
+      name: duplicateName.trim(),
+      code: duplicateCode.trim() || null,
+    });
+  }
   function openEdit(st: any) {
     setEditId(st.id);
     setForm({
@@ -631,6 +663,7 @@ export default function ServiceTypes() {
                         <Globe className="w-3.5 h-3.5" />
                       </Button>
                     )}
+                    <Button size="sm" variant="outline" onClick={() => openDuplicate(st)} title="Duplicar tipo de atendimento"><Copy className="w-3.5 h-3.5" /></Button>
                     <Button size="sm" variant="outline" onClick={() => openEdit(st)}><Pencil className="w-3.5 h-3.5" /></Button>
                     <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate({ id: st.id })}><Trash2 className="w-3.5 h-3.5" /></Button>
                   </div>
@@ -861,6 +894,71 @@ export default function ServiceTypes() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowSubjectForm(false)}>Cancelar</Button>
             <Button onClick={handleSaveSubject} disabled={!subjectForm.name}>{editingSubject ? "Salvar" : "Adicionar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Duplicate Service Type Dialog */}
+      <Dialog open={duplicateDialogOpen} onOpenChange={(v) => { setDuplicateDialogOpen(v); if (!v) setDuplicatingType(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="h-5 w-5 text-primary" />
+              Duplicar Tipo de Atendimento
+            </DialogTitle>
+          </DialogHeader>
+
+          {duplicatingType && (
+            <div className="space-y-4 py-2">
+              {/* Origem */}
+              <div className="rounded-lg bg-muted/30 border border-border p-3">
+                <p className="text-xs text-muted-foreground mb-1">Copiando de</p>
+                <p className="font-semibold text-sm">{duplicatingType.name}</p>
+                {duplicatingType.code && (
+                  <p className="font-mono text-xs text-muted-foreground mt-0.5">{duplicatingType.code}</p>
+                )}
+                <p className="text-xs text-muted-foreground mt-2">
+                  Todas as configurações serão copiadas. A cópia será criada como <strong>Rascunho</strong> e não publicada.
+                </p>
+              </div>
+
+              {/* Novo nome */}
+              <div className="space-y-1.5">
+                <Label>Nome da Cópia *</Label>
+                <Input
+                  value={duplicateName}
+                  onChange={(e) => setDuplicateName(e.target.value)}
+                  placeholder="Ex: Alvará de Funcionamento (Cópia)"
+                  autoFocus
+                />
+              </div>
+
+              {/* Novo código */}
+              <div className="space-y-1.5">
+                <Label>Código <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+                <Input
+                  value={duplicateCode}
+                  onChange={(e) => setDuplicateCode(e.target.value)}
+                  placeholder="Ex: ALV-002"
+                />
+                <p className="text-xs text-muted-foreground">Deixe em branco para criar sem código. O código deve ser único.</p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicateDialogOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleDuplicate}
+              disabled={!duplicateName.trim() || duplicateMutation.isPending}
+              className="gap-1.5"
+            >
+              {duplicateMutation.isPending ? (
+                <><span className="animate-spin">⏳</span> Duplicando...</>
+              ) : (
+                <><Copy className="h-4 w-4" /> Duplicar</>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

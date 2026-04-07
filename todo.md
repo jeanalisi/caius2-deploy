@@ -390,3 +390,9 @@
 - [x] ProtocolPrintView: incluir dados do contato vinculado (nome, CPF, e-mail, telefone) no PDF
 - [x] ProtocolPrintView: incluir histórico de tramitações completo no PDF
 - [x] OuvidoriaAdmin: criar exportação PDF com histórico de status, respostas e dados completos
+
+## Funcionalidade: Duplicar Tipos de Atendimento
+- [x] Backend: procedure `duplicate` no router de tipos de atendimento (copia todas as configurações)
+- [x] Frontend: botão "Duplicar" (cópia) na lista/card de cada tipo de atendimento
+- [x] Frontend: dialog com card de origem, campo de novo nome e código opcional
+- [x] Feedback visual: toast de sucesso e atualização da lista após duplicação
