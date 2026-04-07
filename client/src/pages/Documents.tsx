@@ -95,7 +95,7 @@ function SendDocumentDialog({ document: doc, onSent }: { document: any; onSent: 
   const [extEmail, setExtEmail] = useState("");
   const [extPhone, setExtPhone] = useState("");
 
-  const { data: users } = trpc.admin.listUsers.useQuery(undefined, { enabled: open });
+  const { data: users } = trpc.caius.users.list.useQuery(undefined, { enabled: open });
   const { data: units } = trpc.controle.unidades.list.useQuery(undefined, { enabled: open });
   const { data: recipients } = trpc.caius.documents.recipients.useQuery({ documentId: doc.id }, { enabled: open });
 

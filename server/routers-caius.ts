@@ -52,6 +52,7 @@ import {
 } from "./db-caius";
 import crypto from "crypto";
 import { sendOfficialDocument, getDocumentRecipients } from "./doc-sender";
+import { getAllUsers } from "./db";
 import { generateProtocolPdf } from "./protocol-pdf";
 import { storagePut } from "./storage";
 
@@ -91,6 +92,11 @@ async function logAudit(opts: {
 
 // ─── CAIUS Router ─────────────────────────────────────────────────────────────
 export const caiusRouter = router({
+
+  // ── Users (lista para envio interno de documentos) ────────────────────────
+  users: router({
+    list: protectedProcedure.query(() => getAllUsers()),
+  }),
 
   // ── Sectors ───────────────────────────────────────────────────────────────
   sectors: router({

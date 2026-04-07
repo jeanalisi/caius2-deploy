@@ -54,6 +54,7 @@ vi.mock("./db", () => ({
   createNupNotification: vi.fn().mockResolvedValue(1),
   updateNupNotificationStatus: vi.fn().mockResolvedValue(undefined),
   getAllAccounts: vi.fn().mockResolvedValue([]),
+  getAllUsers: vi.fn().mockResolvedValue([{ id: 1, name: "Test User", email: "test@example.com", role: "admin", isAgent: true }]),
 }));
 
 vi.mock("./_core/llm", () => ({
@@ -86,6 +87,15 @@ function makeCtx(role: "admin" | "user" = "admin"): TrpcContext {
     res: { clearCookie: vi.fn() } as any,
   };
 }
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+describe("caius.users", () => {
+  it("list returns users array", async () => {
+    const caller = appRouter.createCaller(makeCtx());
+    const result = await caller.caius.users.list();
+    expect(Array.isArray(result)).toBe(true);
+  });
+});
 
 // ─── Sectors ──────────────────────────────────────────────────────────────────
 describe("caius.sectors", () => {

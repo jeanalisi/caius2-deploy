@@ -304,3 +304,7 @@
 ## Correção Coordenadas GeoMonitor
 
 - [x] Corrigir coordenadas de Itabaiana-PB no GeoMonitor (lat: -7.3297, lng: -35.3330)
+
+## Bug: Painel de Envio de Documentos Não Visível
+
+- [ ] Diagnosticar e corrigir visibilidade do painel de envio no Documents.tsx
