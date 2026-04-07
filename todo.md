@@ -347,3 +347,10 @@
 - [x] Corrigir links do WidgetServicos (Solicitar serviço, Acessar Central do Cidadão)
 - [x] Corrigir links do WidgetConsulta (Acessar Central do Cidadão)
 - [x] Garantir que todos os links abram em nova aba (target="_blank") quando em iframe
+
+## Widget de Criação de Protocolo (iframe)
+- [x] Criar página pública /widget/protocolo embeddável via iframe
+- [x] Formulário multi-etapas: dados pessoais → tipo de serviço → confirmação
+- [x] Usar endpoint cidadao.submitRequest existente
+- [x] Exibir NUP gerado na tela de sucesso com link para /widget/consulta
+- [x] Registrar rota em App.tsx e configurar headers para embedding externo
