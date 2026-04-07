@@ -308,3 +308,11 @@
 ## Bug: Painel de Envio de Documentos Não Visível
 
 - [ ] Diagnosticar e corrigir visibilidade do painel de envio no Documents.tsx
+
+## Melhorias de UX: Inline Panels e Notificações (Sessão Atual)
+- [x] Central do Cidadão: converter Dialog de detalhe do serviço para painel inline (sem popup)
+- [x] Documents.tsx: converter Dialog "Criar Documento" para painel inline
+- [x] Documents.tsx: converter Dialog "Enviar Documento" para painel inline com histórico de envios lateral
+- [x] Backend: notificação interna ao enviar documento para destinatário interno (caius.documents.send)
+- [x] ServicoDetalhe.tsx: corrigir validação do formulário (assunto usa nome do serviço como fallback, valida campos dinâmicos obrigatórios)
+- [x] Testes: mock de createNotification adicionado, 120 testes passando

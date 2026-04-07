@@ -231,13 +231,21 @@ export default function ServicoDetalhe() {
 
   function handleSubmit() {
     if (!requesterName.trim()) { toast.error("Informe seu nome completo"); return; }
-    if (!subject.trim()) { toast.error("Informe o assunto"); return; }
     if (!description.trim() || description.length < 10) { toast.error("Descreva sua solicitação com pelo menos 10 caracteres"); return; }
+    // Valida campos obrigatórios dos campos dinâmicos
+    const requiredFields = ((service as any)?.fields ?? []).filter((f: any) => f.requirement === "required");
+    for (const f of requiredFields) {
+      const val = formData[f.name];
+      if (val === undefined || val === null || val === "") {
+        toast.error(`O campo "${f.label}" é obrigatório`);
+        return;
+      }
+    }
 
     submitMutation.mutate({
       serviceTypeId: serviceId ?? undefined,
       subjectId: selectedSubjectId ?? undefined,
-      subject: subject || service?.name || "Solicitação",
+      subject: subject.trim() || service?.name || "Solicitação",
       description,
       type: selectedType as any,
       requesterName,

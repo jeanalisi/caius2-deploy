@@ -55,6 +55,7 @@ vi.mock("./db", () => ({
   updateNupNotificationStatus: vi.fn().mockResolvedValue(undefined),
   getAllAccounts: vi.fn().mockResolvedValue([]),
   getAllUsers: vi.fn().mockResolvedValue([{ id: 1, name: "Test User", email: "test@example.com", role: "admin", isAgent: true }]),
+  createNotification: vi.fn().mockResolvedValue({ id: 1 }),
 }));
 
 vi.mock("./_core/llm", () => ({

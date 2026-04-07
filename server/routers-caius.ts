@@ -52,7 +52,7 @@ import {
 } from "./db-caius";
 import crypto from "crypto";
 import { sendOfficialDocument, getDocumentRecipients } from "./doc-sender";
-import { getAllUsers } from "./db";
+import { getAllUsers, createNotification } from "./db";
 import { generateProtocolPdf } from "./protocol-pdf";
 import { storagePut } from "./storage";
 
@@ -450,6 +450,19 @@ export const caiusRouter = router({
           ...input,
           sentById: ctx.user.id,
         });
+        // Notificar destinatário interno no sistema
+        if (input.originType === "internal" && result.success && input.recipientUserId) {
+          try {
+            const doc = await getOfficialDocumentById(input.documentId);
+            await createNotification({
+              userId: input.recipientUserId,
+              type: "tramitation",
+              title: "Documento recebido",
+              body: `Você recebeu o documento "${doc?.title ?? "—"}" (${doc?.nup ?? doc?.documentNumber ?? "—"}) de ${ctx.user.name ?? ctx.user.email}.`,
+              relatedProtocolId: null,
+            });
+          } catch (_) { /* notificação não crítica */ }
+        }
         await logAudit({
           userId: ctx.user.id,
           userName: ctx.user.name ?? "",

@@ -9,7 +9,7 @@ import { useOrgConfig } from "@/hooks/useOrgConfig";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 import { cn } from "@/lib/utils";
 import {
   Search, Clock, Shield, Camera, MapPin, CheckCircle2, FileText,
@@ -267,8 +267,151 @@ export default function CentralCidadao() {
       ═══════════════════════════════════════════════════════════════════════ */}
       <main className="flex-1">
 
-        {/* ── ABA: SERVIÇOS ── */}
-        {activeTab === "services" && (
+        {/* ── ABA: SERVIÇOS — DETALHE INLINE ── */}
+        {activeTab === "services" && selectedService && (
+          <section className="max-w-3xl mx-auto px-4 py-8">
+            {/* Breadcrumb / voltar */}
+            <button
+              onClick={() => setSelectedService(null)}
+              className="flex items-center gap-2 text-sm text-blue-700 hover:text-blue-900 font-medium mb-6 group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+              Voltar ao catálogo de serviços
+            </button>
+
+            {/* Cabeçalho do serviço */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-5">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
+                  <FileText className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-2xl font-bold text-gray-900 leading-tight">{selectedService.name}</h2>
+                  {selectedService.category && (
+                    <span className="inline-block text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5 mt-1">
+                      {selectedService.category}
+                    </span>
+                  )}
+                  {selectedService.description && (
+                    <p className="text-gray-600 text-sm leading-relaxed mt-3">{selectedService.description}</p>
+                  )}
+                </div>
+              </div>
+              {/* Info cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
+                {selectedService.slaResponseHours && (
+                  <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1"><Clock className="w-3.5 h-3.5" />Prazo de Resposta</div>
+                    <p className="font-semibold text-gray-900">{selectedService.slaResponseHours}h</p>
+                  </div>
+                )}
+                {selectedService.slaConclusionHours && (
+                  <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1"><Clock className="w-3.5 h-3.5" />Prazo de Conclusão</div>
+                    <p className="font-semibold text-gray-900">{selectedService.slaConclusionHours}h</p>
+                  </div>
+                )}
+                <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1"><Shield className="w-3.5 h-3.5" />Nível de Acesso</div>
+                  <p className="font-semibold text-gray-900">{secrecyLabels[selectedService.secrecyLevel]?.label ?? "Público"}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1"><CheckCircle2 className="w-3.5 h-3.5" />Aprovação</div>
+                  <p className="font-semibold text-gray-900">{selectedService.requiresApproval ? "Necessária" : "Automática"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Requisitos especiais */}
+            {(selectedService.requiresSelfie || selectedService.requiresGeolocation) && (
+              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 mb-5">
+                <h4 className="font-semibold text-amber-700 text-sm mb-2 flex items-center gap-1.5"><Info className="w-4 h-4" />Requisitos Especiais</h4>
+                <div className="flex flex-col gap-1.5">
+                  {selectedService.requiresSelfie && (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-amber-700"><Camera className="w-4 h-4" />Este serviço requer captura de selfie para identificação</span>
+                  )}
+                  {selectedService.requiresGeolocation && (
+                    <span className="inline-flex items-center gap-1.5 text-sm text-amber-700"><MapPin className="w-4 h-4" />Este serviço requer confirmação de localização</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Campos necessários */}
+            {detail?.fields && (detail.fields as any[]).length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-5">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <FormInput className="w-4 h-4 text-blue-600" />
+                  Informações Necessárias
+                  <span className="text-xs font-normal text-gray-500">({(detail.fields as any[]).length} campo{(detail.fields as any[]).length !== 1 ? "s" : ""})</span>
+                </h4>
+                <div className="space-y-2">
+                  {(detail.fields as any[]).map((f: any) => (
+                    <div key={f.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
+                      <div>
+                        <span className="text-sm font-medium text-gray-900">{f.label}</span>
+                        {f.helpText && <p className="text-xs text-gray-500 mt-0.5">{f.helpText}</p>}
+                      </div>
+                      <ReqBadge r={f.requirement} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Documentos necessários */}
+            {detail?.documents && (detail.documents as any[]).length > 0 && (
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-5">
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-blue-600" />
+                  Documentos Necessários
+                  <span className="text-xs font-normal text-gray-500">({(detail.documents as any[]).length} doc{(detail.documents as any[]).length !== 1 ? "s" : ""})</span>
+                </h4>
+                <div className="space-y-2">
+                  {(detail.documents as any[]).map((d: any) => (
+                    <div key={d.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
+                      <div className="flex items-start gap-2">
+                        <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">{d.name}</span>
+                          {d.description && <p className="text-xs text-gray-500 mt-0.5">{d.description}</p>}
+                          <p className="text-xs text-gray-400 mt-0.5">Formatos: {d.acceptedFormats} · Máx: {d.maxSizeMb}MB</p>
+                        </div>
+                      </div>
+                      <ReqBadge r={d.requirement} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CTA */}
+            {selectedService.serviceMode === "external" && selectedService.externalUrl ? (
+              <div className="p-5 rounded-2xl bg-emerald-700 text-white">
+                <h4 className="font-semibold mb-1">Serviço Externo</h4>
+                <p className="text-sm text-emerald-100 mb-3">Este serviço é prestado em um portal externo. Você será redirecionado ao clicar no botão abaixo.</p>
+                <a href={selectedService.externalUrl} target="_blank" rel="noopener noreferrer">
+                  <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-emerald-700 text-sm font-semibold hover:bg-emerald-50 transition-colors">
+                    Acessar Serviço Externo <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </a>
+              </div>
+            ) : (
+              <div className="p-5 rounded-2xl bg-blue-700 text-white">
+                <h4 className="font-semibold mb-1">Pronto para solicitar?</h4>
+                <p className="text-sm text-blue-100 mb-3">Preencha o formulário online e receba o número de protocolo (NUP) imediatamente.</p>
+                <a href={`/servico/${selectedService.id}`}>
+                  <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-blue-700 text-sm font-semibold hover:bg-blue-50 transition-colors">
+                    Iniciar Solicitação <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                </a>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* ── ABA: SERVIÇOS — LISTA ── */}
+        {activeTab === "services" && !selectedService && (
           <>
             {/* Hero */}
             <section className="bg-gradient-to-br from-blue-800 via-blue-700 to-indigo-700 text-white py-14 px-4">
@@ -870,175 +1013,7 @@ export default function CentralCidadao() {
         </div>
       </footer>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          MODAL DE DETALHE DO SERVIÇO
-      ═══════════════════════════════════════════════════════════════════════ */}
-      <Dialog open={!!selectedService} onOpenChange={() => setSelectedService(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto bg-white border-gray-200">
-          <DialogHeader>
-            <div className="flex items-start gap-3">
-              <button
-                onClick={() => setSelectedService(null)}
-                className="mt-1 p-1 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4 text-gray-500" />
-              </button>
-              <div className="flex-1">
-                <DialogTitle className="text-xl text-gray-900">{selectedService?.name}</DialogTitle>
-                {selectedService?.category && (
-                  <span className="inline-block text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5 mt-1">
-                    {selectedService.category}
-                  </span>
-                )}
-              </div>
-            </div>
-          </DialogHeader>
 
-          <div className="space-y-6 py-2">
-            {selectedService?.description && (
-              <p className="text-gray-600 text-sm leading-relaxed">{selectedService.description}</p>
-            )}
-
-            {/* Info cards */}
-            <div className="grid grid-cols-2 gap-3">
-              {selectedService?.slaResponseHours && (
-                <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
-                    <Clock className="w-3.5 h-3.5" />Prazo de Resposta
-                  </div>
-                  <p className="font-semibold text-gray-900">{selectedService.slaResponseHours} horas</p>
-                </div>
-              )}
-              {selectedService?.slaConclusionHours && (
-                <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
-                    <Clock className="w-3.5 h-3.5" />Prazo de Conclusão
-                  </div>
-                  <p className="font-semibold text-gray-900">{selectedService.slaConclusionHours} horas</p>
-                </div>
-              )}
-              <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
-                  <Shield className="w-3.5 h-3.5" />Nível de Acesso
-                </div>
-                <p className="font-semibold text-gray-900">
-                  {secrecyLabels[selectedService?.secrecyLevel]?.label ?? "Público"}
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" />Aprovação
-                </div>
-                <p className="font-semibold text-gray-900">
-                  {selectedService?.requiresApproval ? "Necessária" : "Automática"}
-                </p>
-              </div>
-            </div>
-
-            {/* Special requirements */}
-            {(selectedService?.requiresSelfie || selectedService?.requiresGeolocation) && (
-              <div className="p-4 rounded-lg bg-amber-50 border border-amber-200">
-                <h4 className="font-semibold text-amber-700 text-sm mb-2 flex items-center gap-1.5">
-                  <Info className="w-4 h-4" />Requisitos Especiais
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedService.requiresSelfie && (
-                    <span className="inline-flex items-center gap-1.5 text-sm text-amber-700">
-                      <Camera className="w-4 h-4" />Este serviço requer captura de selfie para identificação
-                    </span>
-                  )}
-                  {selectedService.requiresGeolocation && (
-                    <span className="inline-flex items-center gap-1.5 text-sm text-amber-700">
-                      <MapPin className="w-4 h-4" />Este serviço requer confirmação de localização
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Fields */}
-            {detail?.fields && (detail.fields as any[]).length > 0 && (
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <FormInput className="w-4 h-4 text-blue-600" />
-                  Informações Necessárias
-                  <span className="text-xs font-normal text-gray-500">
-                    ({(detail.fields as any[]).length} campo{(detail.fields as any[]).length !== 1 ? "s" : ""})
-                  </span>
-                </h4>
-                <div className="space-y-2">
-                  {(detail.fields as any[]).map((f: any) => (
-                    <div key={f.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-200">
-                      <div>
-                        <span className="text-sm font-medium text-gray-900">{f.label}</span>
-                        {f.helpText && <p className="text-xs text-gray-500 mt-0.5">{f.helpText}</p>}
-                      </div>
-                      <ReqBadge r={f.requirement} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Documents */}
-            {detail?.documents && (detail.documents as any[]).length > 0 && (
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <FileCheck className="w-4 h-4 text-blue-600" />
-                  Documentos Necessários
-                  <span className="text-xs font-normal text-gray-500">
-                    ({(detail.documents as any[]).length} documento{(detail.documents as any[]).length !== 1 ? "s" : ""})
-                  </span>
-                </h4>
-                <div className="space-y-2">
-                  {(detail.documents as any[]).map((d: any) => (
-                    <div key={d.id} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-gray-50 border border-gray-200">
-                      <div className="flex items-start gap-2">
-                        <FileText className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-                        <div>
-                          <span className="text-sm font-medium text-gray-900">{d.name}</span>
-                          {d.description && <p className="text-xs text-gray-500 mt-0.5">{d.description}</p>}
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            Formatos: {d.acceptedFormats} · Máx: {d.maxSizeMb}MB
-                          </p>
-                        </div>
-                      </div>
-                      <ReqBadge r={d.requirement} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* CTA */}
-            {selectedService?.serviceMode === "external" && selectedService?.externalUrl ? (
-              <div className="p-4 rounded-xl bg-emerald-700 text-white">
-                <h4 className="font-semibold mb-1">Serviço Externo</h4>
-                <p className="text-sm text-emerald-100 mb-3">
-                  Este serviço é prestado em um portal externo. Você será redirecionado ao clicar no botão abaixo.
-                </p>
-                <a href={selectedService.externalUrl} target="_blank" rel="noopener noreferrer">
-                  <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-emerald-700 text-sm font-semibold hover:bg-emerald-50 transition-colors">
-                    Acessar Serviço Externo <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
-                </a>
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-blue-700 text-white">
-                <h4 className="font-semibold mb-1">Pronto para solicitar?</h4>
-                <p className="text-sm text-blue-100 mb-3">
-                  Preencha o formulário online e receba o número de protocolo (NUP) imediatamente.
-                </p>
-                <a href={`/servico/${selectedService?.id}`}>
-                  <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-blue-700 text-sm font-semibold hover:bg-blue-50 transition-colors">
-                    Iniciar Solicitação <ExternalLink className="w-3.5 h-3.5" />
-                  </button>
-                </a>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
       {/* Widget de Webchat flutuante */}
       <WebchatWidget />
     </div>
