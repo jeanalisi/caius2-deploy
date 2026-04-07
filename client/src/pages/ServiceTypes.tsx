@@ -175,8 +175,14 @@ export default function ServiceTypes() {
   }, [nextCodeQuery.data?.code]);
 
   const duplicateMutation = trpc.serviceTypes.duplicate.useMutation({
-    onSuccess: (newType) => {
-      toast.success(`Tipo "${newType.name}" criado com sucesso!`);
+    onSuccess: (newType: any) => {
+      const copied = newType._copied;
+      const parts: string[] = [];
+      if (copied?.fields > 0) parts.push(`${copied.fields} campo${copied.fields > 1 ? "s" : ""}`);
+      if (copied?.documents > 0) parts.push(`${copied.documents} documento${copied.documents > 1 ? "s" : ""}`);
+      if (copied?.subjects > 0) parts.push(`${copied.subjects} assunto${copied.subjects > 1 ? "s" : ""}`);
+      const detail = parts.length > 0 ? ` (copiados: ${parts.join(", ")})` : "";
+      toast.success(`"${newType.name}" criado com sucesso!${detail}`);
       refetch();
       setDuplicateDialogOpen(false);
       setDuplicatingType(null);
@@ -931,14 +937,31 @@ export default function ServiceTypes() {
           {duplicatingType && (
             <div className="space-y-4 py-2">
               {/* Origem */}
-              <div className="rounded-lg bg-muted/30 border border-border p-3">
-                <p className="text-xs text-muted-foreground mb-1">Copiando de</p>
+              <div className="rounded-lg bg-muted/30 border border-border p-3 space-y-2">
+                <p className="text-xs text-muted-foreground">Copiando de</p>
                 <p className="font-semibold text-sm">{duplicatingType.name}</p>
                 {duplicatingType.code && (
-                  <p className="font-mono text-xs text-muted-foreground mt-0.5">{duplicatingType.code}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{duplicatingType.code}</p>
                 )}
-                <p className="text-xs text-muted-foreground mt-2">
-                  Todas as configurações serão copiadas. A cópia será criada como <strong>Rascunho</strong> e não publicada.
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                    ✓ Configurações gerais
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                    ✓ Informações de publicação
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                    ✓ Campos do formulário
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                    ✓ Documentos exigidos
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                    ✓ Assuntos vinculados
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  A cópia será criada como <strong>Rascunho</strong> e não publicada.
                 </p>
               </div>
 

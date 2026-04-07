@@ -9,6 +9,9 @@ import {
   institutionalConfig,
   onlineSessions,
   searchIndex,
+  serviceTypeDocuments,
+  serviceTypeFields,
+  serviceSubjects,
   serviceTypes,
   userRegistrations,
   type InsertAttachment,
@@ -19,6 +22,9 @@ import {
   type InsertInstitutionalConfig,
   type InsertOnlineSession,
   type InsertServiceType,
+  type InsertServiceTypeDocument,
+  type InsertServiceTypeField,
+  type InsertServiceSubject,
   type InsertUserRegistration,
 } from "../drizzle/schema";
 
@@ -109,7 +115,7 @@ export async function duplicateServiceType(
   const original = await getServiceTypeById(id);
   if (!original) throw new Error("Tipo de atendimento não encontrado.");
 
-  // 2. Criar o novo tipo copiando todos os campos, exceto id/timestamps/code
+  // 2. Criar o novo tipo copiando todos os campos (incl. informações de publicação), exceto id/timestamps/code
   const { id: _id, createdAt: _ca, updatedAt: _ua, code: _code, ...rest } = original;
   const newTypeData: InsertServiceType = {
     ...rest,
@@ -125,7 +131,56 @@ export async function duplicateServiceType(
   const newType = newRows[0];
   if (!newType) throw new Error("Falha ao criar cópia.");
 
-  return newType;
+  // 3. Copiar campos do formulário (serviceTypeFields)
+  const originalFields = await db
+    .select()
+    .from(serviceTypeFields)
+    .where(and(eq(serviceTypeFields.serviceTypeId, id), eq(serviceTypeFields.isActive, true)))
+    .orderBy(serviceTypeFields.sortOrder);
+  if (originalFields.length > 0) {
+    const fieldsCopy: InsertServiceTypeField[] = originalFields.map(({ id: _fid, createdAt: _fca, updatedAt: _fua, ...f }) => ({
+      ...f,
+      serviceTypeId: newType.id,
+    }));
+    await db.insert(serviceTypeFields).values(fieldsCopy);
+  }
+
+  // 4. Copiar documentos exigidos (serviceTypeDocuments)
+  const originalDocs = await db
+    .select()
+    .from(serviceTypeDocuments)
+    .where(and(eq(serviceTypeDocuments.serviceTypeId, id), eq(serviceTypeDocuments.isActive, true)))
+    .orderBy(serviceTypeDocuments.sortOrder);
+  if (originalDocs.length > 0) {
+    const docsCopy: InsertServiceTypeDocument[] = originalDocs.map(({ id: _did, createdAt: _dca, updatedAt: _dua, ...d }) => ({
+      ...d,
+      serviceTypeId: newType.id,
+    }));
+    await db.insert(serviceTypeDocuments).values(docsCopy);
+  }
+
+  // 5. Copiar assuntos vinculados (serviceSubjects)
+  const originalSubjects = await db
+    .select()
+    .from(serviceSubjects)
+    .where(and(eq(serviceSubjects.serviceTypeId, id), eq(serviceSubjects.isActive, true)))
+    .orderBy(serviceSubjects.sortOrder, serviceSubjects.name);
+  if (originalSubjects.length > 0) {
+    const subjectsCopy: InsertServiceSubject[] = originalSubjects.map(({ id: _sid, createdAt: _sca, updatedAt: _sua, ...s }) => ({
+      ...s,
+      serviceTypeId: newType.id,
+    }));
+    await db.insert(serviceSubjects).values(subjectsCopy);
+  }
+
+  return {
+    ...newType,
+    _copied: {
+      fields: originalFields.length,
+      documents: originalDocs.length,
+      subjects: originalSubjects.length,
+    },
+  };
 }
 
 // ─── Form Templates ────────────────────────────────────────────────────────────

@@ -401,3 +401,11 @@
 - [x] Backend: procedure `nextCode` que recebe um código base e retorna o próximo código disponível na sequência
 - [x] Frontend: ao abrir o dialog de duplicar, chamar nextCode automaticamente e preencher o campo de código
 - [x] Frontend: exibir indicador de carregamento enquanto busca o próximo código disponível
+
+## Melhoria: Cópia completa ao duplicar tipo de atendimento
+- [x] Backend: copiar campos do formulário (serviceTypeFields) para o novo tipo
+- [x] Backend: copiar documentos exigidos (serviceTypeDocuments) para o novo tipo
+- [x] Backend: copiar assuntos vinculados (serviceSubjects) para o novo tipo
+- [x] Backend: copiar informações de publicação (purpose, whoCanRequest, cost, formOfService, responseChannel, importantNotes, faq)
+- [x] Frontend: exibir resumo do que será copiado no dialog com badges (configurações gerais, publicação, campos, documentos, assuntos)
+- [x] Frontend: toast de sucesso exibe quantos campos, documentos e assuntos foram copiados
