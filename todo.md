@@ -415,3 +415,17 @@
 - [x] Backend: copiar formFields de cada formTemplate copiado
 - [x] Frontend: adicionar badge "✓ Modelos de formulário" no dialog de duplicar
 - [x] Frontend: toast de sucesso exibe quantos modelos foram copiados
+
+## URGENTE: Coleta dinâmica de campos/documentos dos tipos de atendimento nos bots
+- [ ] bot-engine.ts (WhatsApp): substituir coleta estática (nome/CPF/assunto) por coleta dinâmica dos serviceTypeFields obrigatórios
+- [ ] bot-engine.ts (WhatsApp): após coleta de campos, exibir lista de documentos exigidos (serviceTypeDocuments) e solicitar confirmação
+- [ ] webchat-bot.ts: idem — coleta dinâmica de campos e documentos conforme tipo de atendimento
+- [ ] Salvar respostas coletadas nos campos corretos do protocolo (collectedData mapeado para campos do tipo)
+- [ ] Validação básica por tipo de campo (CPF, e-mail, número, data) durante a coleta
+
+## URGENTE: Coleta dinâmica de campos e documentos nos bots (WhatsApp e Webchat)
+- [x] bot-engine.ts (WhatsApp): substituir coleta estática (nome/CPF/assunto) por campos dinâmicos do tipo de atendimento
+- [x] bot-engine.ts (WhatsApp): exibir documentos exigidos antes da confirmação
+- [x] webchat-bot.ts: implementar o mesmo fluxo dinâmico do WhatsApp (service_list com campos, documentos e confirmação)
+- [x] Fallback: se tipo não tiver campos cadastrados, usar campos padrão (nome, CPF, assunto)
+- [x] Serviço externo: exibir detalhes e link externo, sem coleta de dados

@@ -12,7 +12,7 @@
 
 import { getDb } from "./db";
 import { generateNup } from "./db-caius";
-import { getCidadaoServices } from "./db-service-config";
+import { getCidadaoServices, getCidadaoServiceDetail } from "./db-service-config";
 import {
   botFlows,
   botNodes,
@@ -29,6 +29,27 @@ export interface BotNodeOption {
   nextNodeId: number;
 }
 
+// Tipo para um campo dinâmico do tipo de atendimento
+export interface ServiceFieldDef {
+  id: number;
+  name: string;
+  label: string;
+  fieldType: string;
+  requirement: string;
+  placeholder?: string | null;
+  helpText?: string | null;
+  options?: string | null;
+}
+
+// Tipo para um documento exigido do tipo de atendimento
+export interface ServiceDocDef {
+  id: number;
+  name: string;
+  description?: string | null;
+  requirement: string;
+  acceptedFormats?: string | null;
+}
+
 // Tipo para dados coletados durante o fluxo
 export interface BotCollectedData {
   requesterName?: string;
@@ -37,6 +58,14 @@ export interface BotCollectedData {
   requesterEmail?: string;
   subject?: string;
   description?: string;
+  // Campos dinâmicos coletados: chave = field.name, valor = resposta
+  _dynamicFields?: Record<string, string>;
+  // Lista de campos a coletar (campos required/complementary do tipo de atendimento)
+  _fieldsToCollect?: ServiceFieldDef[];
+  // Índice do campo sendo coletado no momento
+  _currentFieldIndex?: number;
+  // Lista de documentos exigidos (para exibir antes de confirmar)
+  _docsRequired?: ServiceDocDef[];
   _serviceListCache?: Array<{
     id: number;
     name: string;
@@ -51,10 +80,10 @@ export interface BotCollectedData {
     formOfService?: string | null;
     importantNotes?: string | null;
   }>;
-  _serviceListState?: string; // 'listing' | 'detail' | 'awaiting_name' | 'awaiting_cpf' | 'awaiting_subject' | 'awaiting_description' | 'awaiting_confirm'
+  _serviceListState?: string;
   _selectedServiceId?: string;
   _selectedServiceName?: string;
-  _selectedServiceMode?: string; // 'form' | 'external'
+  _selectedServiceMode?: string;
   [key: string]: unknown;
 }
 
@@ -381,107 +410,188 @@ export async function processBotMessage(
       return true;
     };
 
-    // ── Estado: coletando nome ──────────────────────────────────────────────
-    if (serviceListState === "awaiting_name") {
-      updatedData.requesterName = trimmedInput;
-      updatedData._serviceListState = "awaiting_cpf";
-      await sendFn(jid, `Obrigado, *${trimmedInput}*! 😊\n\nAgora informe seu *CPF* (apenas números):`);
-      return await saveAndReturn();
+    // ── Helpers de validação de campo ──────────────────────────────────────
+    const validateFieldInput = (fieldType: string, value: string): string | null => {
+      if (fieldType === "cpf") {
+        const digits = value.replace(/\D/g, "");
+        if (digits.length !== 11) return "CPF inválido. Informe 11 dígitos numéricos.";
+      } else if (fieldType === "email") {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return "E-mail inválido. Informe um e-mail válido.";
+      } else if (fieldType === "phone") {
+        const digits = value.replace(/\D/g, "");
+        if (digits.length < 10 || digits.length > 11) return "Telefone inválido. Informe DDD + número.";
+      } else if (fieldType === "number") {
+        if (isNaN(Number(value))) return "Valor inválido. Informe apenas números.";
+      } else if (fieldType === "date") {
+        if (!/^\d{2}\/\d{2}\/\d{4}$/.test(value) && !/^\d{4}-\d{2}-\d{2}$/.test(value))
+          return "Data inválida. Use o formato DD/MM/AAAA.";
+      }
+      return null;
+    };
+
+    const buildFieldPrompt = (field: { label: string; fieldType: string; helpText?: string | null; placeholder?: string | null; options?: string | null; requirement: string }): string => {
+      let prompt = `📝 *${field.label}*`;
+      if (field.requirement === "complementary") prompt += " _(opcional \u2014 responda ou envie '-' para pular)_";
+      if (field.helpText) prompt += `\n_${field.helpText}_`;
+      if (field.placeholder) prompt += `\nEx: _${field.placeholder}_`;
+      if (field.options) {
+        try {
+          const opts: string[] = JSON.parse(field.options);
+          if (opts.length > 0) {
+            prompt += "\n\nOpções:\n" + opts.map((o, i) => `*${i + 1}.* ${o}`).join("\n");
+          }
+        } catch { /* ignore */ }
+      }
+      if (field.fieldType === "cpf") prompt += "\n_(apenas números)_";
+      if (field.fieldType === "phone") prompt += "\n_(com DDD)_";
+      return prompt;
+    };
+
+    // ── Estado: coletando campo dinâmico ────────────────────────────────────
+    if (serviceListState === "collecting_field") {
+      const fields = (updatedData._fieldsToCollect ?? []) as Array<{ id: number; name: string; label: string; fieldType: string; requirement: string; placeholder?: string | null; helpText?: string | null; options?: string | null }>;
+      const idx = (updatedData._currentFieldIndex as number) ?? 0;
+      const currentField = fields[idx];
+
+      if (currentField) {
+        const isOptional = currentField.requirement === "complementary";
+        const skipped = isOptional && (trimmedInput === "-" || trimmedInput === "");
+
+        if (!skipped) {
+          // Validar opção de select se houver
+          if (currentField.options) {
+            try {
+              const opts: string[] = JSON.parse(currentField.options);
+              const numInput = parseInt(trimmedInput, 10);
+              if (opts.length > 0 && !isNaN(numInput) && numInput >= 1 && numInput <= opts.length) {
+                // Usuário digitou número da opção
+                const selectedOpt = opts[numInput - 1]!;
+                const dynFields = (updatedData._dynamicFields as Record<string, string>) ?? {};
+                dynFields[currentField.name] = selectedOpt;
+                updatedData._dynamicFields = dynFields;
+                // Mapear campos especiais
+                if (currentField.fieldType === "cpf") updatedData.requesterCpf = selectedOpt;
+                if (currentField.fieldType === "email") updatedData.requesterEmail = selectedOpt;
+                if (currentField.name === "requesterName" || currentField.label.toLowerCase().includes("nome")) updatedData.requesterName = selectedOpt;
+              } else if (opts.length > 0) {
+                await sendFn(jid, `⚠️ Opção inválida. Digite o número de 1 a ${opts.length}.`);
+                return await saveAndReturn();
+              } else {
+                const dynFields = (updatedData._dynamicFields as Record<string, string>) ?? {};
+                dynFields[currentField.name] = trimmedInput;
+                updatedData._dynamicFields = dynFields;
+                if (currentField.fieldType === "cpf") updatedData.requesterCpf = trimmedInput;
+                if (currentField.fieldType === "email") updatedData.requesterEmail = trimmedInput;
+                if (currentField.name === "requesterName" || currentField.label.toLowerCase().includes("nome")) updatedData.requesterName = trimmedInput;
+              }
+            } catch {
+              const dynFields = (updatedData._dynamicFields as Record<string, string>) ?? {};
+              dynFields[currentField.name] = trimmedInput;
+              updatedData._dynamicFields = dynFields;
+            }
+          } else {
+            // Validar tipo
+            const validationError = validateFieldInput(currentField.fieldType, trimmedInput);
+            if (validationError) {
+              await sendFn(jid, `⚠️ ${validationError}`);
+              return await saveAndReturn();
+            }
+            const dynFields = (updatedData._dynamicFields as Record<string, string>) ?? {};
+            dynFields[currentField.name] = trimmedInput;
+            updatedData._dynamicFields = dynFields;
+            // Mapear campos especiais para campos conhecidos do protocolo
+            if (currentField.fieldType === "cpf") updatedData.requesterCpf = trimmedInput;
+            if (currentField.fieldType === "email") updatedData.requesterEmail = trimmedInput;
+            if (currentField.name === "requesterName" || currentField.label.toLowerCase().includes("nome completo") || currentField.label.toLowerCase() === "nome") updatedData.requesterName = trimmedInput;
+          }
+        }
+
+        const nextIdx = idx + 1;
+        if (nextIdx < fields.length) {
+          // Perguntar próximo campo
+          updatedData._currentFieldIndex = nextIdx;
+          const nextField = fields[nextIdx]!;
+          await sendFn(jid, buildFieldPrompt(nextField));
+          return await saveAndReturn();
+        } else {
+          // Todos os campos coletados — verificar documentos
+          const docs = (updatedData._docsRequired ?? []) as Array<{ name: string; description?: string | null; requirement: string; acceptedFormats?: string | null }>;
+          const requiredDocs = docs.filter(d => d.requirement === "required");
+          if (requiredDocs.length > 0) {
+            updatedData._serviceListState = "awaiting_docs_confirm";
+            let docsMsg = `📎 *Documentos necessários para este serviço:*\n\n`;
+            docs.forEach((doc, i) => {
+              const req = doc.requirement === "required" ? "_(obrigatório)_" : "_(opcional)_";
+              docsMsg += `*${i + 1}.* ${doc.name} ${req}`;
+              if (doc.description) docsMsg += `\n   _${doc.description}_`;
+              if (doc.acceptedFormats) docsMsg += `\n   Formatos: ${doc.acceptedFormats}`;
+              docsMsg += "\n";
+            });
+            docsMsg += `\n⚠️ Tenha esses documentos em mãos ao comparecer ao atendimento.\n\n`;
+            docsMsg += buildConfirmMessage(updatedData, fields);
+            await sendFn(jid, docsMsg);
+          } else {
+            updatedData._serviceListState = "awaiting_confirm_protocol";
+            const confirmMsg = buildConfirmMessage(updatedData, fields);
+            await sendFn(jid, confirmMsg);
+          }
+          return await saveAndReturn();
+        }
+      }
     }
 
-    // ── Estado: coletando CPF ───────────────────────────────────────────────
-    if (serviceListState === "awaiting_cpf") {
-      updatedData.requesterCpf = trimmedInput;
-      updatedData._serviceListState = "awaiting_subject";
-      await sendFn(jid, `Descreva brevemente o *assunto* da sua solicitação relacionada ao serviço *${updatedData._selectedServiceName}*:`);
-      return await saveAndReturn();
-    }
-
-    // ── Estado: coletando assunto ───────────────────────────────────────────
-    if (serviceListState === "awaiting_subject") {
-      updatedData.subject = trimmedInput;
-      updatedData._serviceListState = "awaiting_confirm_protocol";
-      const serviceName = updatedData._selectedServiceName ?? "serviço selecionado";
-      const confirmMsg =
-        `📋 *Confirme os dados para abertura do protocolo:*\n\n` +
-        `👤 *Nome:* ${updatedData.requesterName}\n` +
-        `🪪 *CPF:* ${updatedData.requesterCpf}\n` +
-        `📌 *Serviço:* ${serviceName}\n` +
-        `📝 *Assunto:* ${trimmedInput}\n\n` +
-        `*1.* ✅ Confirmar e abrir protocolo\n` +
-        `*0.* ❌ Cancelar e voltar à lista`;
-      await sendFn(jid, confirmMsg);
-      return await saveAndReturn();
+    // ── Estado: confirmação após exibir documentos ──────────────────────────
+    if (serviceListState === "awaiting_docs_confirm") {
+      if (trimmedInput === "1") {
+        return await openServiceProtocol(updatedData, session, currentNode, sendFn, jid, db);
+      } else {
+        return await cancelToServiceList(updatedData, serviceListCache, currentNode, sendFn, jid, saveAndReturn);
+      }
     }
 
     // ── Estado: confirmação final antes de abrir protocolo ─────────────────
     if (serviceListState === "awaiting_confirm_protocol") {
       if (trimmedInput === "1") {
-        // Abrir protocolo automaticamente
-        const nup = await generateNup();
-        const subject = updatedData.subject
-          ? `${updatedData._selectedServiceName} — ${updatedData.subject}`
-          : `Solicitação via WhatsApp — ${updatedData._selectedServiceName}`;
-        await db.insert(protocols).values({
-          nup,
-          conversationId: session.conversationId ?? undefined,
-          requesterName: updatedData.requesterName ?? session.jid.split("@")[0],
-          requesterPhone: session.jid.split("@")[0],
-          requesterEmail: updatedData.requesterEmail ?? undefined,
-          requesterCpfCnpj: updatedData.requesterCpf ?? undefined,
-          subject,
-          description: updatedData.description ?? undefined,
-          type: "request",
-          channel: "whatsapp",
-          status: "open",
-          priority: "normal",
-          isConfidential: false,
-          responsibleSectorId: undefined,
-        });
-        await db.update(botSessions).set({
-          generatedNup: nup,
-          status: "completed",
-          collectedData: updatedData as any,
-          updatedAt: new Date(),
-        }).where(eq(botSessions.id, session.id));
-        const successMsg =
-          `✅ *Protocolo aberto com sucesso!*\n\n` +
-          `📋 *Número do Protocolo (NUP):* ${nup}\n\n` +
-          `Sua solicitação foi registrada e em breve um atendente irá analisá-la.\n` +
-          `Guarde este número para acompanhar o andamento.`;
-        await sendFn(jid, successMsg);
-        await logInteraction(session.id, currentNode.id, successMsg, null);
-        // Avançar para próximo nó (encerramento), se configurado
-        if (currentNode.nextNodeId) {
-          const [endNode] = await db.select().from(botNodes).where(eq(botNodes.id, currentNode.nextNodeId)).limit(1);
-          if (endNode) await sendNodeMessage(session, endNode, sendFn);
-        }
-        return true;
+        return await openServiceProtocol(updatedData, session, currentNode, sendFn, jid, db);
       } else {
-        // Cancelar — voltar à lista
-        const services = serviceListCache ?? await getCidadaoServices();
-        updatedData._serviceListCache = services;
-        updatedData._serviceListState = "listing";
-        updatedData._selectedServiceId = undefined;
-        updatedData._selectedServiceName = undefined;
-        updatedData._selectedServiceMode = undefined;
-        updatedData.requesterName = undefined;
-        updatedData.requesterCpf = undefined;
-        updatedData.subject = undefined;
-        const listText = formatServiceListMessage(currentNode.message, services);
-        await sendFn(jid, listText);
-        return await saveAndReturn();
+        return await cancelToServiceList(updatedData, serviceListCache, currentNode, sendFn, jid, saveAndReturn);
       }
     }
 
     // ── Estado: aguardando confirmação de solicitar serviço interno ──────────
     if (serviceListState === "awaiting_service_confirm") {
       if (trimmedInput === "1") {
-        updatedData._serviceListState = "awaiting_name";
-        const askName = updatedData.requesterName
-          ? `Seu nome já está registrado como *${updatedData.requesterName}*. Confirme ou informe um novo nome:`
-          : `Para abrir o protocolo, preciso de algumas informações.\n\nInforme seu *nome completo*:`;
-        await sendFn(jid, askName);
+        // Buscar campos e documentos do tipo de atendimento
+        const serviceId = updatedData._selectedServiceId ? parseInt(updatedData._selectedServiceId as string, 10) : null;
+        let fieldsToCollect: Array<{ id: number; name: string; label: string; fieldType: string; requirement: string; placeholder?: string | null; helpText?: string | null; options?: string | null }> = [];
+        let docsRequired: Array<{ id: number; name: string; description?: string | null; requirement: string; acceptedFormats?: string | null }> = [];
+
+        if (serviceId) {
+          const detail = await getCidadaoServiceDetail(serviceId);
+          if (detail) {
+            fieldsToCollect = (detail.fields ?? []).filter(f => f.requirement === "required" || f.requirement === "complementary");
+            docsRequired = detail.documents ?? [];
+          }
+        }
+
+        // Se não há campos configurados, usar coleta padrão (nome + CPF + assunto)
+        if (fieldsToCollect.length === 0) {
+          fieldsToCollect = [
+            { id: -1, name: "requesterName", label: "Nome completo", fieldType: "text", requirement: "required", placeholder: "Ex: João da Silva" },
+            { id: -2, name: "requesterCpf", label: "CPF", fieldType: "cpf", requirement: "required", placeholder: "Ex: 12345678901" },
+            { id: -3, name: "subject", label: "Assunto da solicitação", fieldType: "textarea", requirement: "required", placeholder: `Descreva sua solicitação sobre ${updatedData._selectedServiceName}` },
+          ];
+        }
+
+        updatedData._fieldsToCollect = fieldsToCollect as any;
+        updatedData._docsRequired = docsRequired as any;
+        updatedData._currentFieldIndex = 0;
+        updatedData._dynamicFields = {};
+        updatedData._serviceListState = "collecting_field";
+
+        const firstField = fieldsToCollect[0]!;
+        const intro = `Para abrir o protocolo de *${updatedData._selectedServiceName}*, preciso de algumas informações.\n\n` + buildFieldPrompt(firstField);
+        await sendFn(jid, intro);
         return await saveAndReturn();
       } else {
         const services = serviceListCache ?? await getCidadaoServices();
@@ -666,6 +776,107 @@ export async function processBotMessage(
   }
 
   return true;
+}
+
+/**
+ * Monta a mensagem de confirmação com todos os campos coletados dinamicamente.
+ */
+function buildConfirmMessage(
+  data: BotCollectedData,
+  fields: Array<{ name: string; label: string; fieldType: string }>
+): string {
+  let msg = `📋 *Confirme os dados para abertura do protocolo:*\n\n`;
+  msg += `📌 *Serviço:* ${data._selectedServiceName ?? "—"}\n`;
+  const dynFields = (data._dynamicFields as Record<string, string>) ?? {};
+  fields.forEach(f => {
+    const val = dynFields[f.name] ?? "—";
+    msg += `📝 *${f.label}:* ${val}\n`;
+  });
+  msg += `\n*1.* ✅ Confirmar e abrir protocolo\n*0.* ❌ Cancelar e voltar à lista`;
+  return msg;
+}
+
+/**
+ * Abre protocolo a partir do fluxo service_list (coleta dinâmica).
+ */
+async function openServiceProtocol(
+  updatedData: BotCollectedData,
+  session: typeof botSessions.$inferSelect,
+  currentNode: typeof botNodes.$inferSelect,
+  sendFn: SendMessageFn,
+  jid: string,
+  db: Awaited<ReturnType<typeof import("./db").getDb>>
+): Promise<boolean> {
+  if (!db) return false;
+  const nup = await generateNup();
+  const dynFields = (updatedData._dynamicFields as Record<string, string>) ?? {};
+  const fields = (updatedData._fieldsToCollect as Array<{ name: string; label: string }>) ?? [];
+  // Montar descrição com todos os campos coletados
+  const fieldLines = fields
+    .map(f => `${f.label}: ${dynFields[f.name] ?? "—"}`)
+    .join("\n");
+  const subject = `${updatedData._selectedServiceName ?? "Solicitação"} — ${updatedData.subject ?? dynFields["subject"] ?? "via WhatsApp"}`;
+  const description = fieldLines || updatedData.description;
+  await db.insert(protocols).values({
+    nup,
+    conversationId: session.conversationId ?? undefined,
+    requesterName: updatedData.requesterName ?? dynFields["requesterName"] ?? session.jid.split("@")[0],
+    requesterPhone: session.jid.split("@")[0],
+    requesterEmail: updatedData.requesterEmail ?? dynFields["requesterEmail"] ?? undefined,
+    requesterCpfCnpj: updatedData.requesterCpf ?? dynFields["requesterCpf"] ?? undefined,
+    subject,
+    description: description ?? undefined,
+    type: "request",
+    channel: "whatsapp",
+    status: "open",
+    priority: "normal",
+    isConfidential: false,
+    responsibleSectorId: undefined,
+  });
+  await db.update(botSessions).set({
+    generatedNup: nup,
+    status: "completed",
+    collectedData: updatedData as any,
+    updatedAt: new Date(),
+  }).where(eq(botSessions.id, session.id));
+  const successMsg =
+    `✅ *Protocolo aberto com sucesso!*\n\n` +
+    `📋 *Número do Protocolo (NUP):* ${nup}\n\n` +
+    `Sua solicitação foi registrada e em breve um atendente irá analisá-la.\n` +
+    `Guarde este número para acompanhar o andamento.`;
+  await sendFn(jid, successMsg);
+  // Avançar para próximo nó (encerramento), se configurado
+  if (currentNode.nextNodeId) {
+    const [endNode] = await db.select().from(botNodes).where(eq(botNodes.id, currentNode.nextNodeId)).limit(1);
+    if (endNode) await sendNodeMessage(session, endNode, sendFn);
+  }
+  return true;
+}
+
+/**
+ * Cancela coleta e volta à lista de serviços.
+ */
+async function cancelToServiceList(
+  updatedData: BotCollectedData,
+  serviceListCache: BotCollectedData["_serviceListCache"],
+  currentNode: typeof botNodes.$inferSelect,
+  sendFn: SendMessageFn,
+  jid: string,
+  saveAndReturn: () => Promise<boolean>
+): Promise<boolean> {
+  const services = serviceListCache ?? await getCidadaoServices();
+  updatedData._serviceListCache = services;
+  updatedData._serviceListState = "listing";
+  updatedData._selectedServiceId = undefined;
+  updatedData._selectedServiceName = undefined;
+  updatedData._selectedServiceMode = undefined;
+  updatedData._fieldsToCollect = undefined;
+  updatedData._docsRequired = undefined;
+  updatedData._currentFieldIndex = undefined;
+  updatedData._dynamicFields = undefined;
+  const listText = formatServiceListMessage(currentNode.message, services);
+  await sendFn(jid, listText);
+  return await saveAndReturn();
 }
 
 /**

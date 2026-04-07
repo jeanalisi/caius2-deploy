@@ -19,6 +19,7 @@
 
 import { getDb } from "./db";
 import { generateNup, createProtocolWithNup, getProtocolByNup } from "./db-caius";
+import { getCidadaoServices, getCidadaoServiceDetail } from "./db-service-config";
 import {
   botFlows,
   botNodes,
@@ -37,6 +38,25 @@ export interface BotNodeOption {
   nextNodeId: number;
 }
 
+// Tipos para coleta dinâmica de campos
+export interface WebchatServiceFieldDef {
+  id: number;
+  name: string;
+  label: string;
+  fieldType: string;
+  requirement: string;
+  placeholder?: string | null;
+  helpText?: string | null;
+  options?: string | null;
+}
+export interface WebchatServiceDocDef {
+  id: number;
+  name: string;
+  description?: string | null;
+  requirement: string;
+  acceptedFormats?: string | null;
+}
+
 export interface WebchatBotCollectedData {
   requesterName?: string;
   requesterPhone?: string;
@@ -45,7 +65,23 @@ export interface WebchatBotCollectedData {
   subject?: string;
   description?: string;
   consultNup?: string;
-  [key: string]: string | undefined;
+  // Campos dinâmicos do service_list
+  _serviceListState?: string;
+  _serviceListCache?: Array<{
+    id: number; name: string; category?: string | null;
+    slaResponseHours?: number | null; serviceMode?: string | null;
+    externalUrl?: string | null; description?: string | null;
+    purpose?: string | null; whoCanRequest?: string | null;
+    cost?: string | null; formOfService?: string | null; importantNotes?: string | null;
+  }>;
+  _selectedServiceId?: string;
+  _selectedServiceName?: string;
+  _selectedServiceMode?: string;
+  _fieldsToCollect?: WebchatServiceFieldDef[];
+  _docsRequired?: WebchatServiceDocDef[];
+  _currentFieldIndex?: number;
+  _dynamicFields?: Record<string, string>;
+  [key: string]: unknown;
 }
 
 export interface WebchatBotResult {
@@ -62,7 +98,7 @@ export interface WebchatBotResult {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function interpolate(template: string, data: WebchatBotCollectedData): string {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => data[key] ?? "");
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => (data[key] as string | undefined) ?? "");
 }
 
 function formatMenuMessage(message: string, options: BotNodeOption[]): string {
@@ -431,6 +467,257 @@ export async function processWebchatBotMessage(
         updatedData[currentNode.collectField] = trimmed;
       }
       nextNodeId = currentNode.nextNodeId ?? null;
+    }
+
+  } else if (currentNode.nodeType === "service_list") {
+    // ─── Fluxo dinâmico do catálogo de serviços ───────────────────────────────
+    const slState = updatedData._serviceListState ?? "listing";
+    const slCache = updatedData._serviceListCache;
+
+    const saveData = async () => {
+      await db.update(botSessions).set({
+        collectedData: updatedData as any,
+        lastInteractionAt: new Date(),
+        updatedAt: new Date(),
+      }).where(eq(botSessions.id, session.id));
+    };
+
+    const buildFieldPromptWC = (field: WebchatServiceFieldDef): string => {
+      let prompt = `📝 *${field.label}*`;
+      if (field.requirement === "complementary") prompt += " _(opcional \u2014 envie '-' para pular)_";
+      if (field.helpText) prompt += `\n_${field.helpText}_`;
+      if (field.placeholder) prompt += `\nEx: _${field.placeholder}_`;
+      if (field.options) {
+        try {
+          const opts: string[] = JSON.parse(field.options);
+          if (opts.length > 0) prompt += "\n\nOpções:\n" + opts.map((o, i) => `*${i + 1}.* ${o}`).join("\n");
+        } catch { /* ignore */ }
+      }
+      if (field.fieldType === "cpf") prompt += "\n_(apenas números)_";
+      if (field.fieldType === "phone") prompt += "\n_(com DDD)_";
+      return prompt;
+    };
+
+    const buildConfirmWC = (data: WebchatBotCollectedData, fields: WebchatServiceFieldDef[]): string => {
+      const dynFields = (data._dynamicFields as Record<string, string>) ?? {};
+      let msg = `📋 *Confirme os dados para abertura do protocolo:*\n\n`;
+      msg += `📌 *Serviço:* ${data._selectedServiceName ?? "—"}\n`;
+      fields.forEach(f => { msg += `📝 *${f.label}:* ${dynFields[f.name] ?? "—"}\n`; });
+      msg += `\n*1.* ✅ Confirmar e abrir protocolo\n*0.* ❌ Cancelar e voltar à lista`;
+      return msg;
+    };
+
+    const formatListWC = (header: string, services: typeof slCache): string => {
+      if (!services || services.length === 0) return `${header}\n\n⚠️ Nenhum serviço disponível.\n\n*0.* Voltar`;
+      const lines = services.map((s, i) => {
+        const sla = s.slaResponseHours ? ` (${s.slaResponseHours}h)` : "";
+        return `*${i + 1}.* ${s.name}${sla}`;
+      }).join("\n");
+      return `${header}\n\n${lines}\n\n*0.* Voltar`;
+    };
+
+    const cancelWC = async () => {
+      const services = slCache ?? await getCidadaoServices();
+      updatedData._serviceListCache = services;
+      updatedData._serviceListState = "listing";
+      updatedData._selectedServiceId = undefined;
+      updatedData._selectedServiceName = undefined;
+      updatedData._selectedServiceMode = undefined;
+      updatedData._fieldsToCollect = undefined;
+      updatedData._docsRequired = undefined;
+      updatedData._currentFieldIndex = undefined;
+      updatedData._dynamicFields = undefined;
+      replies.push(formatListWC(currentNode.message, services));
+      await saveData();
+    };
+
+    const openProtocolWC = async () => {
+      const nup = await generateNup();
+      const dynFields = (updatedData._dynamicFields as Record<string, string>) ?? {};
+      const fields = (updatedData._fieldsToCollect as WebchatServiceFieldDef[]) ?? [];
+      const fieldLines = fields.map(f => `${f.label}: ${dynFields[f.name] ?? "—"}`).join("\n");
+      const subject = `${updatedData._selectedServiceName ?? "Solicitação"} — ${dynFields["subject"] ?? updatedData.subject ?? "via Webchat"}`;
+      await db.insert(protocols).values({
+        nup,
+        conversationId,
+        requesterName: updatedData.requesterName ?? dynFields["requesterName"] ?? "Cidadão",
+        requesterPhone: updatedData.requesterPhone ?? undefined,
+        requesterEmail: updatedData.requesterEmail ?? dynFields["requesterEmail"] ?? undefined,
+        requesterCpfCnpj: updatedData.requesterCpf ?? dynFields["requesterCpf"] ?? undefined,
+        subject,
+        description: (fieldLines || updatedData.description) ?? undefined,
+        type: "request",
+        channel: "web",
+        status: "open",
+        priority: "normal",
+        isConfidential: false,
+      });
+      await db.update(botSessions).set({
+        generatedNup: nup,
+        status: "completed",
+        collectedData: updatedData as any,
+        updatedAt: new Date(),
+      }).where(eq(botSessions.id, session.id));
+      generatedNup = nup;
+      replies.push(`✅ *Protocolo aberto com sucesso!*\n\n📋 *NUP:* ${nup}\n\nSua solicitação foi registrada. Guarde este número para acompanhar o andamento.`);
+      if (currentNode.nextNodeId) {
+        const [endNode] = await db.select().from(botNodes).where(eq(botNodes.id, currentNode.nextNodeId)).limit(1);
+        if (endNode) replies.push(buildNodeMessage(endNode, updatedData));
+      }
+      sessionStatus = "waiting";
+    };
+
+    // ── Estado: coletando campo dinâmico ────────────────────────────────────
+    if (slState === "collecting_field") {
+      const fields = (updatedData._fieldsToCollect as WebchatServiceFieldDef[]) ?? [];
+      const idx = (updatedData._currentFieldIndex as number) ?? 0;
+      const currentField = fields[idx];
+      if (currentField) {
+        const isOptional = currentField.requirement === "complementary";
+        const skipped = isOptional && (trimmed === "-" || trimmed === "");
+        if (!skipped) {
+          const dynFields = (updatedData._dynamicFields as Record<string, string>) ?? {};
+          // Resolver opção numerada de select
+          if (currentField.options) {
+            try {
+              const opts: string[] = JSON.parse(currentField.options);
+              const numInput = parseInt(trimmed, 10);
+              if (opts.length > 0 && !isNaN(numInput) && numInput >= 1 && numInput <= opts.length) {
+                dynFields[currentField.name] = opts[numInput - 1]!;
+              } else if (opts.length > 0) {
+                replies.push(`⚠️ Opção inválida. Digite o número de 1 a ${opts.length}.`);
+                await saveData();
+                return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+              } else {
+                dynFields[currentField.name] = trimmed;
+              }
+            } catch { dynFields[currentField.name] = trimmed; }
+          } else {
+            dynFields[currentField.name] = trimmed;
+          }
+          updatedData._dynamicFields = dynFields;
+          if (currentField.fieldType === "cpf") updatedData.requesterCpf = trimmed;
+          if (currentField.fieldType === "email") updatedData.requesterEmail = trimmed;
+          if (currentField.name === "requesterName" || currentField.label.toLowerCase() === "nome" || currentField.label.toLowerCase().includes("nome completo")) updatedData.requesterName = trimmed;
+        }
+        const nextIdx = idx + 1;
+        if (nextIdx < fields.length) {
+          updatedData._currentFieldIndex = nextIdx;
+          replies.push(buildFieldPromptWC(fields[nextIdx]!));
+          await saveData();
+          return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+        } else {
+          // Todos os campos coletados
+          const docs = (updatedData._docsRequired as WebchatServiceDocDef[]) ?? [];
+          const requiredDocs = docs.filter(d => d.requirement === "required");
+          if (requiredDocs.length > 0) {
+            updatedData._serviceListState = "awaiting_docs_confirm";
+            let docsMsg = `📎 *Documentos necessários para este serviço:*\n\n`;
+            docs.forEach((doc, i) => {
+              const req = doc.requirement === "required" ? "_(obrigatório)_" : "_(opcional)_";
+              docsMsg += `*${i + 1}.* ${doc.name} ${req}`;
+              if (doc.description) docsMsg += `\n   _${doc.description}_`;
+              if (doc.acceptedFormats) docsMsg += `\n   Formatos: ${doc.acceptedFormats}`;
+              docsMsg += "\n";
+            });
+            docsMsg += `\n⚠️ Tenha esses documentos em mãos.\n\n` + buildConfirmWC(updatedData, fields);
+            replies.push(docsMsg);
+          } else {
+            updatedData._serviceListState = "awaiting_confirm_protocol";
+            replies.push(buildConfirmWC(updatedData, fields));
+          }
+          await saveData();
+          return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+        }
+      }
+    }
+
+    // ── Estado: confirmação após documentos ──────────────────────────────────
+    if (slState === "awaiting_docs_confirm" || slState === "awaiting_confirm_protocol") {
+      if (trimmed === "1") {
+        await openProtocolWC();
+      } else {
+        await cancelWC();
+      }
+      return { replies, sessionStatus, nup: generatedNup ?? existingNup ?? undefined, ended: sessionStatus !== "bot" };
+    }
+
+    // ── Estado: aguardando confirmação de solicitar serviço interno ──────────
+    if (slState === "awaiting_service_confirm") {
+      if (trimmed === "1") {
+        const serviceId = updatedData._selectedServiceId ? parseInt(updatedData._selectedServiceId as string, 10) : null;
+        let fieldsToCollect: WebchatServiceFieldDef[] = [];
+        let docsRequired: WebchatServiceDocDef[] = [];
+        if (serviceId) {
+          const detail = await getCidadaoServiceDetail(serviceId);
+          if (detail) {
+            fieldsToCollect = (detail.fields ?? []).filter(f => f.requirement === "required" || f.requirement === "complementary") as WebchatServiceFieldDef[];
+            docsRequired = (detail.documents ?? []) as WebchatServiceDocDef[];
+          }
+        }
+        if (fieldsToCollect.length === 0) {
+          fieldsToCollect = [
+            { id: -1, name: "requesterName", label: "Nome completo", fieldType: "text", requirement: "required", placeholder: "Ex: João da Silva" },
+            { id: -2, name: "requesterCpf", label: "CPF", fieldType: "cpf", requirement: "required", placeholder: "Ex: 12345678901" },
+            { id: -3, name: "subject", label: "Assunto da solicitação", fieldType: "textarea", requirement: "required", placeholder: `Descreva sua solicitação sobre ${updatedData._selectedServiceName}` },
+          ];
+        }
+        updatedData._fieldsToCollect = fieldsToCollect;
+        updatedData._docsRequired = docsRequired;
+        updatedData._currentFieldIndex = 0;
+        updatedData._dynamicFields = {};
+        updatedData._serviceListState = "collecting_field";
+        const intro = `Para abrir o protocolo de *${updatedData._selectedServiceName}*, preciso de algumas informações.\n\n` + buildFieldPromptWC(fieldsToCollect[0]!);
+        replies.push(intro);
+        await saveData();
+        return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+      } else {
+        await cancelWC();
+        return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+      }
+    }
+
+    // ── Estado padrão: exibindo lista ───────────────────────────────────────
+    if (trimmed === "0") {
+      nextNodeId = currentNode.nextNodeId ?? null;
+    } else {
+      const services = slCache ?? await getCidadaoServices();
+      updatedData._serviceListCache = services;
+      const selectedIndex = parseInt(trimmed, 10) - 1;
+      if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= services.length) {
+        replies.push(formatListWC(currentNode.message, services));
+        replies.push(`⚠️ Opção inválida. Digite o número do serviço (1 a ${services.length}) ou *0* para voltar.`);
+        await saveData();
+        return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+      }
+      const chosen = services[selectedIndex]!;
+      updatedData._selectedServiceId = String(chosen.id);
+      updatedData._selectedServiceName = chosen.name;
+      updatedData._selectedServiceMode = chosen.serviceMode ?? "form";
+
+      let detail = `📋 *${chosen.name}*`;
+      if (chosen.category) detail += `\n🏷 _${chosen.category}_`;
+      if (chosen.description) detail += `\n\n${chosen.description}`;
+      if (chosen.purpose) detail += `\n\n📌 *Para que serve:* ${chosen.purpose}`;
+      if (chosen.whoCanRequest) detail += `\n👥 *Quem pode solicitar:* ${chosen.whoCanRequest}`;
+      if (chosen.cost) detail += `\n💰 *Custo:* ${chosen.cost}`;
+      if (chosen.formOfService) detail += `\n🏢 *Forma de atendimento:* ${chosen.formOfService}`;
+      if (chosen.slaResponseHours) detail += `\n⏱ *Prazo:* ${chosen.slaResponseHours}h`;
+      if (chosen.importantNotes) detail += `\n\n⚠️ *Informações importantes:*\n${chosen.importantNotes}`;
+
+      if (chosen.serviceMode === "external" && chosen.externalUrl) {
+        detail += `\n\n🔗 *Este serviço é realizado pelo portal externo:*\n${chosen.externalUrl}\n\nAcesse o link para realizar sua solicitação.\n\nDigite *0* para voltar.`;
+        replies.push(detail);
+        updatedData._serviceListState = "listing";
+        await saveData();
+        return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+      }
+
+      detail += `\n\n*1.* ✅ Solicitar este serviço\n*0.* ↩ Voltar à lista`;
+      replies.push(detail);
+      updatedData._serviceListState = "awaiting_service_confirm";
+      await saveData();
+      return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
     }
 
   } else {
