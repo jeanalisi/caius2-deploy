@@ -67,6 +67,7 @@ import { documentsRouter } from "./routers-documents";
 import { publicServicesRouter } from "./routers-public-services";
 import { chatbotRouter } from "./routers-chatbot";
 import { webchatRouter } from "./routers-webchat";
+import { bulkRouter } from "./routers-bulk";
 import { emailInstitutionalRouter } from "./routers-email-institutional";
 import { requireDb } from "./db";
 import { userMenuPermissions } from "../drizzle/schema";
@@ -620,6 +621,9 @@ export const appRouter = router({
   }),
   // ── Webchat ────────────────────────────────────────────────────────────────
   webchat: webchatRouter,
+
+  // ── Envio em Massa WhatsApp ───────────────────────────────────────────────
+  bulk: bulkRouter,
 
   controle: controleRouter,
   voice: router({

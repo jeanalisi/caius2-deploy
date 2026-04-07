@@ -295,7 +295,7 @@ export async function sendOfficialDocument(input: SendDocumentInput): Promise<{
   if (shouldEmail && resolvedEmail) {
     try {
       const allAccounts = await getAllAccounts();
-      const emailAccount = allAccounts.find((a: Account) => a.type === "email" && a.isActive);
+      const emailAccount = allAccounts.find((a: Account) => a.channel === "email" && a.status === "connected");
       if (!emailAccount?.smtpHost) throw new Error("Nenhuma conta de e-mail SMTP configurada");
 
       const originLabel = input.originType === "internal" ? "[INTERNO]" : "[EXTERNO]";
@@ -357,7 +357,7 @@ export async function sendOfficialDocument(input: SendDocumentInput): Promise<{
   if (shouldWhatsApp && resolvedPhone) {
     try {
       const allAccounts = await getAllAccounts();
-      const waAccount = allAccounts.find((a: Account) => a.type === "whatsapp" && a.isActive);
+      const waAccount = allAccounts.find((a: Account) => a.channel === "whatsapp" && a.status === "connected");
       if (!waAccount) throw new Error("Nenhuma conta WhatsApp conectada");
 
       const originLabel = input.originType === "internal" ? "🏛️ *INTERNO*" : "🌐 *EXTERNO*";

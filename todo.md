@@ -445,3 +445,24 @@
 - [x] ProtocolDetail: exibir seção "Documentos Anexados" com grid de cards (thumbnail, nome, tipo, tamanho, data, link)
 - [x] ProtocolPrintView: incluir tabela de anexos no PDF (nome, tipo, tamanho, categoria, data, link)
 - [x] Interface ProtocolData atualizada para incluir protocolAttachments
+
+## Selfie/Foto pelo canal (WhatsApp e Webchat)
+- [ ] Verificar fluxo atual de selfie no bot-engine.ts e webchat-bot.ts
+- [ ] bot-engine.ts: ao solicitar selfie, aceitar imagem enviada pelo WhatsApp (hasMedia + mimetype image)
+- [ ] bot-engine.ts: salvar imagem no S3 e anexar ao protocolo como selfie
+- [ ] webchat-bot.ts: ao solicitar selfie, exibir botão de câmera/upload no widget
+- [ ] WebchatWidget.tsx: adicionar botão de câmera com captura direta (getUserMedia) e upload
+- [ ] Feedback visual: exibir miniatura da selfie enviada no chat antes de confirmar
+
+## Envio em Massa WhatsApp via Planilha
+- [x] Schema: tabelas bulkCampaigns e bulkRecipients criadas no banco (migração 0010 aplicada)
+- [x] Backend: procedures create, list, byId, start, pause, cancel, delete, stats
+- [x] Backend: parser de planilha XLSX/CSV com colunas telefone, nome, mensagem
+- [x] Backend: worker runCampaign com rate limiting, personalização {nome}, pausa/cancelamento
+- [x] Frontend: página BulkCampaigns.tsx com lista de campanhas e detalhes inline
+- [x] Frontend: dialog para criar campanha (nome, conta WhatsApp, mensagem, upload planilha)
+- [x] Frontend: painel de progresso com contadores (enviados, pendentes, erros) e barra de progresso
+- [x] Frontend: lista de destinatários com status individual (enviado, pendente, falha)
+- [x] Navegação: item "Envio em Massa WhatsApp" adicionado na seção Canais do OmniLayout
+- [x] Rota /bulk-campaigns registrada no App.tsx
+- [x] TypeScript: corrigidos 26 erros de 'db possibly null' no routers-bulk.ts

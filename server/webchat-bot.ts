@@ -629,6 +629,54 @@ export async function processWebchatBotMessage(
       if (currentField) {
         const isOptional = currentField.requirement === "complementary";
         const skipped = isOptional && (trimmed === "-" || trimmed === "");
+
+        // ── Campos de mídia: selfie, image, file_upload ─────────────────────────────
+        const isMediaFieldWC = ["selfie", "image", "file_upload"].includes(currentField.fieldType);
+        if (!skipped && isMediaFieldWC) {
+          if (uploadedFile) {
+            const suffix = Date.now();
+            const ext = uploadedFile.fileName.split(".").pop() ?? "bin";
+            const s3Key = `bot-fields/wc-${session.id}-${currentField.name}-${suffix}.${ext}`;
+            const { url: s3Url } = await storagePut(s3Key, uploadedFile.buffer, uploadedFile.mimeType);
+            const dynFields2 = (updatedData._dynamicFields as Record<string, string>) ?? {};
+            dynFields2[currentField.name] = s3Url;
+            updatedData._dynamicFields = dynFields2;
+            const collectedDocs2 = ((updatedData._collectedDocs ?? []) as WebchatCollectedDocument[]);
+            collectedDocs2.push({ docName: currentField.label, requirement: currentField.requirement, s3Key, s3Url, mimeType: uploadedFile.mimeType, fileName: uploadedFile.fileName, fileSizeBytes: uploadedFile.fileSizeBytes });
+            updatedData._collectedDocs = collectedDocs2;
+            const mediaLabel2 = currentField.fieldType === "selfie" ? "Selfie" : "Arquivo";
+            const nextIdx2 = idx + 1;
+            if (nextIdx2 < fields.length) {
+              updatedData._currentFieldIndex = nextIdx2;
+              replies.push(`✅ ${mediaLabel2} recebido!`);
+              replies.push(buildFieldPromptWC(fields[nextIdx2]!));
+            } else {
+              const docs2 = (updatedData._docsRequired as WebchatServiceDocDef[]) ?? [];
+              const docsToCollect2 = docs2.filter(d => d.requirement === "required" || d.requirement === "complementary");
+              if (docsToCollect2.length > 0) {
+                updatedData._serviceListState = "collecting_doc";
+                updatedData._currentDocIndex = 0;
+                updatedData._collectedDocs = collectedDocs2;
+                replies.push(`✅ ${mediaLabel2} recebido!`);
+                replies.push(buildDocPromptWC(docsToCollect2[0]!, 0, docsToCollect2.length));
+              } else {
+                updatedData._serviceListState = "awaiting_confirm_protocol";
+                replies.push(`✅ ${mediaLabel2} recebido!`);
+                replies.push(buildConfirmWC(updatedData, fields));
+              }
+            }
+            await saveData();
+            return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+          }
+          // Arquivo não recebido — solicitar novamente
+          const mediaHintWC = currentField.fieldType === "selfie"
+            ? `📸 Por favor, envie uma *selfie* (foto do seu rosto) para o campo *${currentField.label}*.${isOptional ? " Ou clique em Pular." : ""}`
+            : `🖼️ Por favor, envie um *arquivo ou imagem* para o campo *${currentField.label}*.${isOptional ? " Ou clique em Pular." : ""}`;
+          replies.push(mediaHintWC);
+          await saveData();
+          return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+        }
+
         if (!skipped) {
           const dynFields = (updatedData._dynamicFields as Record<string, string>) ?? {};
           // Resolver opção numerada de select

@@ -572,8 +572,8 @@ function ControlePermissionsPanel({
 
   const handleUnitToggle = (unitId: number, checked: boolean) => {
     const newIds = checked
-      ? [...currentUnitIds, unitId]
-      : [...currentUnitIds].filter(id => id !== unitId);
+      ? Array.from(currentUnitIds).concat(unitId)
+      : Array.from(currentUnitIds).filter(id => id !== unitId);
     setUnits.mutate({ userId: user.id, unitIds: newIds });
   };
 

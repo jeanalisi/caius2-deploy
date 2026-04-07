@@ -127,7 +127,7 @@ export default function WidgetProtocolo() {
           <img src={org.logoUrl} alt="Logo" className="h-7 w-7 rounded object-contain" />
         )}
         <div>
-          <p className="text-xs font-bold text-indigo-700 leading-tight">{org?.name ?? "Central do Cidadão"}</p>
+          <p className="text-xs font-bold text-indigo-700 leading-tight">{org?.orgName ?? "Central do Cidadão"}</p>
           <p className="text-[10px] text-gray-500 leading-tight">Abertura de Protocolo</p>
         </div>
         <div className="ml-auto flex items-center gap-1">

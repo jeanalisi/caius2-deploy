@@ -97,6 +97,7 @@ const channelItems = [
   { href: "/channel-health", icon: Activity, label: "Saúde dos Canais" },
   { href: "/email-institucional", icon: MailOpen, label: "E-mail Institucional" },
   { href: "/chatbot", icon: Bot, label: "Chatbot WhatsApp" },
+  { href: "/bulk-campaigns", icon: Upload, label: "Envio em Massa WhatsApp" },
   { href: "/atendimento", icon: MessageSquare, label: "Webchat Cidadão" },
   { href: "/caius", icon: Sparkles, label: "cAIus — Agente de IA" },
   { href: "/caius-config", icon: Settings, label: "Configurações do cAIus" },

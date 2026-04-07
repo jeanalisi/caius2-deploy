@@ -10,7 +10,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, X, Send, Loader2, Bot, User, ChevronDown, Shield, Paperclip } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, Bot, User, ChevronDown, Shield, Paperclip, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -208,6 +208,12 @@ export default function WebchatWidget() {
     (messages[messages.length - 1]?.content?.includes("Envie o arquivo") ||
      messages[messages.length - 1]?.content?.includes("Documento ") ||
      messages[messages.length - 1]?.content?.includes("documento"));
+
+  const isAwaitingSelfie = messages.length > 0 &&
+    messages[messages.length - 1]?.direction === "outbound" &&
+    (messages[messages.length - 1]?.content?.includes("selfie") ||
+     messages[messages.length - 1]?.content?.includes("Selfie") ||
+     messages[messages.length - 1]?.content?.includes("foto do seu rosto"));
 
   // Polling de mensagens (a cada 3s quando a sessão existe)
   const { data: messagesData } = trpc.webchat.messages.useQuery(
@@ -541,7 +547,7 @@ export default function WebchatWidget() {
                   </div>
                 ) : (
                   <>
-                    {/* Input de arquivo oculto */}
+                    {/* Input de arquivo oculto (geral) */}
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -552,6 +558,32 @@ export default function WebchatWidget() {
                         if (file) handleFileUpload(file);
                       }}
                     />
+                    {/* Input de câmera oculto (selfie) */}
+                    <input
+                      id="selfie-input"
+                      type="file"
+                      className="hidden"
+                      accept="image/*"
+                      capture="user"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                    />
+                    {/* Botão de câmera — visível apenas quando bot aguarda selfie */}
+                    {isAwaitingSelfie && (
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={() => document.getElementById("selfie-input")?.click()}
+                        disabled={isUploadingFile || isSending}
+                        title="Tirar selfie"
+                        className="flex-shrink-0 border-purple-500 text-purple-600 bg-purple-50 hover:bg-purple-100 animate-pulse"
+                      >
+                        {isUploadingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                      </Button>
+                    )}
                     {/* Botão de upload — sempre visível, destaque quando bot aguarda doc */}
                     <Button
                       type="button"

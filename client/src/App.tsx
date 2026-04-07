@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Accounts from "./pages/Accounts";
 import AdminProcesses from "./pages/AdminProcesses";
+import BulkCampaigns from "./pages/BulkCampaigns";
 import Agents from "./pages/Agents";
 import AiSettings from "./pages/AiSettings";
 import Audit from "./pages/Audit";
@@ -108,6 +109,7 @@ function Router() {
       <Route path={"/protocols/:id"} component={ProtocolDetailWrapper} />
       <Route path={"/documents"} component={Documents} />
       <Route path={"/processes"} component={AdminProcesses} />
+      <Route path={"/bulk-campaigns"} component={BulkCampaigns} />
       <Route path={"/ombudsman"} component={Ombudsman} />
       <Route path={"/templates"} component={Templates} />
       <Route path={"/sectors"} component={Sectors} />

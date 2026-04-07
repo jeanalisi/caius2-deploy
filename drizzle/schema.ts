@@ -2485,3 +2485,38 @@ export const docRecipients = mysqlTable("docRecipients", {
 });
 export type DocRecipient = typeof docRecipients.$inferSelect;
 export type InsertDocRecipient = typeof docRecipients.$inferInsert;
+
+// ─── Envio em Massa WhatsApp ───────────────────────────────────────────────────
+export const bulkCampaigns = mysqlTable("bulkCampaigns", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  accountId: int("accountId").notNull(),
+  message: text("message").notNull(),
+  status: mysqlEnum("status", ["draft", "running", "paused", "completed", "cancelled"]).notNull().default("draft"),
+  totalCount: int("totalCount").notNull().default(0),
+  sentCount: int("sentCount").notNull().default(0),
+  failedCount: int("failedCount").notNull().default(0),
+  delaySeconds: int("delaySeconds").notNull().default(3),
+  scheduledAt: timestamp("scheduledAt"),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  createdById: int("createdById").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+export type BulkCampaign = typeof bulkCampaigns.$inferSelect;
+export type InsertBulkCampaign = typeof bulkCampaigns.$inferInsert;
+
+export const bulkRecipients = mysqlTable("bulkRecipients", {
+  id: int("id").autoincrement().primaryKey(),
+  campaignId: int("campaignId").notNull(),
+  phone: varchar("phone", { length: 64 }).notNull(),
+  name: varchar("name", { length: 255 }),
+  customMessage: text("customMessage"),
+  status: mysqlEnum("status", ["pending", "sent", "failed", "skipped"]).notNull().default("pending"),
+  errorMessage: text("errorMessage"),
+  sentAt: timestamp("sentAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type BulkRecipient = typeof bulkRecipients.$inferSelect;
+export type InsertBulkRecipient = typeof bulkRecipients.$inferInsert;

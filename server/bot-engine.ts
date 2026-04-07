@@ -477,6 +477,52 @@ export async function processBotMessage(
         const isOptional = currentField.requirement === "complementary";
         const skipped = isOptional && (trimmedInput === "-" || trimmedInput === "");
 
+        // ── Campos de mídia: selfie, image, file_upload ─────────────────────────────
+        const isMediaField = ["selfie", "image", "file_upload"].includes(currentField.fieldType);
+        if (!skipped && isMediaField) {
+          if (downloadMediaFn && rawMsg) {
+            const media = await downloadMediaFn(rawMsg).catch(() => null);
+            if (media) {
+              const suffix = Date.now();
+              const ext = media.fileName.split(".").pop() ?? "bin";
+              const s3Key = `bot-fields/${jid.split("@")[0]}-${currentField.name}-${suffix}.${ext}`;
+              const { url: s3Url } = await storagePut(s3Key, media.buffer, media.mimeType);
+              // Salvar URL no campo dinâmico
+              const dynFields = (updatedData._dynamicFields as Record<string, string>) ?? {};
+              dynFields[currentField.name] = s3Url;
+              updatedData._dynamicFields = dynFields;
+              // Registrar como attachment para o protocolo
+              const collectedDocs = ((updatedData._collectedDocs ?? []) as CollectedDocument[]);
+              collectedDocs.push({ docName: currentField.label, requirement: currentField.requirement, s3Key, s3Url, mimeType: media.mimeType, fileName: media.fileName, fileSizeBytes: media.fileSizeBytes });
+              updatedData._collectedDocs = collectedDocs;
+              const mediaLabel = currentField.fieldType === "selfie" ? "Selfie" : "Arquivo";
+              const nextIdx0 = idx + 1;
+              if (nextIdx0 < fields.length) {
+                updatedData._currentFieldIndex = nextIdx0;
+                await sendFn(jid, `✅ ${mediaLabel} recebido!\n\n` + buildFieldPrompt(fields[nextIdx0]!));
+              } else {
+                const docs0 = (updatedData._docsRequired ?? []) as ServiceDocDef[];
+                const docsToCollect0 = docs0.filter(d => d.requirement === "required" || d.requirement === "complementary");
+                if (docsToCollect0.length > 0) {
+                  updatedData._serviceListState = "collecting_doc";
+                  updatedData._currentDocIndex = 0;
+                  await sendFn(jid, `✅ ${mediaLabel} recebido!\n\n` + buildDocPrompt(docsToCollect0[0]!, 0, docsToCollect0.length));
+                } else {
+                  updatedData._serviceListState = "awaiting_confirm_protocol";
+                  await sendFn(jid, `✅ ${mediaLabel} recebido!\n\n` + buildConfirmMessage(updatedData, fields));
+                }
+              }
+              return await saveAndReturn();
+            }
+          }
+          // Mídia não detectada — pedir novamente
+          const hint = currentField.fieldType === "selfie"
+            ? `📸 Por favor, envie uma *selfie* (foto do seu rosto) para o campo *${currentField.label}*.${isOptional ? "\n\nDigite *-* para pular." : ""}`
+            : `🖼️ Por favor, envie uma *imagem ou arquivo* para o campo *${currentField.label}*.${isOptional ? "\n\nDigite *-* para pular." : ""}`;
+          await sendFn(jid, hint);
+          return await saveAndReturn();
+        }
+
         if (!skipped) {
           // Validar opção de select se houver
           if (currentField.options) {
