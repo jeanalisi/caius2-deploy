@@ -9,7 +9,38 @@ import {
 import { eq, and, or, desc } from "drizzle-orm";
 import crypto from "crypto";
 import QRCode from "qrcode";
-import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
+import { PDFDocument, rgb, degrees } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Resolver o diretório da fonte em runtime (funciona tanto em dev quanto em prod)
+const __dirname_fonts = (() => {
+  try {
+    const d = path.dirname(fileURLToPath(import.meta.url));
+    return path.join(d, "fonts");
+  } catch {
+    return path.join(process.cwd(), "server", "fonts");
+  }
+})();
+
+/** Carrega bytes de uma fonte TTF do sistema de arquivos local */
+function loadFontBytes(fileName: string): Uint8Array {
+  const localPath = path.join(__dirname_fonts, fileName);
+  if (fs.existsSync(localPath)) {
+    return new Uint8Array(fs.readFileSync(localPath));
+  }
+  // Fallback: tentar caminhos alternativos
+  const fallbacks = [
+    path.join(process.cwd(), "server", "fonts", fileName),
+    path.join("/usr/share/fonts/truetype/liberation", fileName),
+  ];
+  for (const p of fallbacks) {
+    if (fs.existsSync(p)) return new Uint8Array(fs.readFileSync(p));
+  }
+  throw new Error(`Fonte não encontrada: ${fileName}`);
+}
 import { storageGet } from "./storage";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -482,9 +513,11 @@ export const verificationRouter = router({
       const CONTENT_W = PAGE_W - 2 * MARGIN;
 
       const signaturePdf = await PDFDocument.create();
-      const fontBold = await signaturePdf.embedFont(StandardFonts.HelveticaBold);
-      const fontRegular = await signaturePdf.embedFont(StandardFonts.Helvetica);
-      const fontMono = await signaturePdf.embedFont(StandardFonts.Courier);
+      signaturePdf.registerFontkit(fontkit);
+      // Usar fontes TTF com suporte Unicode completo (evita erro WinAnsi com caracteres do português)
+      const fontBold = await signaturePdf.embedFont(loadFontBytes("LiberationSans-Bold.ttf"), { subset: true });
+      const fontRegular = await signaturePdf.embedFont(loadFontBytes("LiberationSans-Regular.ttf"), { subset: true });
+      const fontMono = await signaturePdf.embedFont(loadFontBytes("LiberationMono-Regular.ttf"), { subset: true });
 
       const blue = rgb(0.1, 0.22, 0.42);
       const lightBlue = rgb(0.93, 0.96, 1.0);
@@ -728,9 +761,11 @@ export const verificationRouter = router({
 
           // Carregar PDF original e inserir chancela lateral vertical em cada página
           const originalDoc = await PDFDocument.load(originalPdfBytes, { ignoreEncryption: true });
-          const refFontBold = await originalDoc.embedFont(StandardFonts.HelveticaBold);
-          const refFontReg = await originalDoc.embedFont(StandardFonts.Helvetica);
-          const refFontMono = await originalDoc.embedFont(StandardFonts.Courier);
+          originalDoc.registerFontkit(fontkit);
+          // Fontes TTF com suporte Unicode para a faixa lateral das páginas originais
+          const refFontBold = await originalDoc.embedFont(loadFontBytes("LiberationSans-Bold.ttf"), { subset: true });
+          const refFontReg = await originalDoc.embedFont(loadFontBytes("LiberationSans-Regular.ttf"), { subset: true });
+          const refFontMono = await originalDoc.embedFont(loadFontBytes("LiberationMono-Regular.ttf"), { subset: true });
           const refBlue = rgb(0.1, 0.22, 0.42);
           const refDark = rgb(0.15, 0.15, 0.15);
           const refGray = rgb(0.35, 0.35, 0.35);

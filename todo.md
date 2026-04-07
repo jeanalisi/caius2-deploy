@@ -474,3 +474,9 @@
 - [x] Persistir latitude e longitude na tabela documentSignatures (migração 0011 aplicada)
 - [x] Exibir IP e coordenadas no bloco de cada assinatura na página de chancela
 - [x] Chancela nas páginas originais: faixa lateral direita com textos verticais rotacionados 90°, fontes escuras (rgb 0.15,0.15,0.15)
+
+## Correção PDF — Erro WinAnsi (caracteres especiais)
+- [x] Substituir StandardFonts (Helvetica/Courier) por fontes TTF Liberation Sans/Mono com suporte Unicode completo
+- [x] Registrar fontkit (@pdf-lib/fontkit) no PDFDocument para habilitar fontes customizadas
+- [x] Fontes copiadas para server/fonts/ e uploadádas para CDN
+- [x] Testado: ç, ã, ê, ú, á, é, í, ó, â, ô renderizados corretamente no PDF
