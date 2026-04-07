@@ -1707,13 +1707,14 @@ export const botNodes = mysqlTable("botNodes", {
   id: int("id").autoincrement().primaryKey(),
   flowId: int("flowId").notNull(),
   // Tipo do nó:
-  //   menu       → exibe lista numerada de opções
-  //   message    → envia mensagem e avança automaticamente para nextNodeId
-  //   collect    → coleta dado do usuário (nome, CPF, etc.)
-  //   transfer   → transfere para atendente (setor ou agente específico)
-  //   protocol   → abre protocolo NUP automaticamente e encerra bot
-  //   end        → encerra o fluxo sem abrir protocolo
-  nodeType: mysqlEnum("nodeType", ["menu", "message", "collect", "transfer", "protocol", "end"]).notNull(),
+  //   menu         → exibe lista numerada de opções
+  //   message      → envia mensagem e avança automaticamente para nextNodeId
+  //   collect      → coleta dado do usuário (nome, CPF, etc.)
+  //   transfer     → transfere para atendente (setor ou agente específico)
+  //   protocol     → abre protocolo NUP automaticamente e encerra bot
+  //   end          → encerra o fluxo sem abrir protocolo
+  //   service_list → lista serviços públicos cadastrados dinamicamente
+  nodeType: mysqlEnum("nodeType", ["menu", "message", "collect", "transfer", "protocol", "end", "service_list"]).notNull(),
   // Título interno para identificação no painel
   title: varchar("title", { length: 255 }).notNull(),
   // Texto enviado ao usuário neste nó

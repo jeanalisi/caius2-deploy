@@ -27,7 +27,7 @@ import {
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
-type NodeType = "menu" | "message" | "collect" | "transfer" | "protocol" | "end";
+type NodeType = "menu" | "message" | "collect" | "transfer" | "protocol" | "end" | "service_list";
 
 const NODE_TYPE_LABELS: Record<NodeType, string> = {
   menu: "Menu de Opções",
@@ -36,6 +36,7 @@ const NODE_TYPE_LABELS: Record<NodeType, string> = {
   transfer: "Transferir para Atendente",
   protocol: "Abrir Protocolo",
   end: "Encerrar",
+  service_list: "Lista de Serviços (Dinâmica)",
 };
 
 const NODE_TYPE_ICONS: Record<NodeType, React.ReactNode> = {
@@ -45,6 +46,7 @@ const NODE_TYPE_ICONS: Record<NodeType, React.ReactNode> = {
   transfer: <Users className="w-4 h-4" />,
   protocol: <CheckCircle2 className="w-4 h-4" />,
   end: <XCircle className="w-4 h-4" />,
+  service_list: <Sparkles className="w-4 h-4" />,
 };
 
 const NODE_TYPE_COLORS: Record<NodeType, string> = {
@@ -54,6 +56,7 @@ const NODE_TYPE_COLORS: Record<NodeType, string> = {
   transfer: "bg-purple-100 text-purple-700 border-purple-200",
   protocol: "bg-green-100 text-green-700 border-green-200",
   end: "bg-red-100 text-red-700 border-red-200",
+  service_list: "bg-indigo-100 text-indigo-700 border-indigo-200",
 };
 
 const PROTOCOL_TYPES = [
@@ -420,6 +423,21 @@ function NodeDialog({
                   onChange={(e) => setForm({ ...form, protocolSubject: e.target.value })}
                   placeholder="{{subject}}"
                 />
+              </div>
+            </div>
+          )}
+
+          {/* service_list: painel informativo */}
+          {form.nodeType === "service_list" && (
+            <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-3 flex gap-2 text-sm text-indigo-800">
+              <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-indigo-500" />
+              <div>
+                <p className="font-semibold mb-1">Lista Dinâmica de Serviços</p>
+                <p className="text-xs text-indigo-700">
+                  Ao ativar este nó, o bot busca automaticamente os serviços publicados no catálogo e os exibe numerados.
+                  O cidadão digita o número do serviço desejado para ver os detalhes e, se quiser, abrir um protocolo.
+                  O <strong>"Próximo Nó"</strong> abaixo será ativado quando o cidadão confirmar que deseja solicitar o serviço selecionado.
+                </p>
               </div>
             </div>
           )}

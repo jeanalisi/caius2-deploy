@@ -12,6 +12,7 @@
 
 import { getDb } from "./db";
 import { generateNup } from "./db-caius";
+import { getCidadaoServices } from "./db-service-config";
 import {
   botFlows,
   botNodes,
@@ -36,7 +37,11 @@ export interface BotCollectedData {
   requesterEmail?: string;
   subject?: string;
   description?: string;
-  [key: string]: string | undefined;
+  _serviceListCache?: Array<{ id: number; name: string; category?: string | null; slaResponseHours?: number | null; serviceMode?: string | null; externalUrl?: string | null; description?: string | null }>;
+  _serviceListState?: string;
+  _selectedServiceId?: string;
+  _selectedServiceName?: string;
+  [key: string]: unknown;
 }
 
 // Callback para enviar mensagem ao usuário via WhatsApp
@@ -348,6 +353,72 @@ export async function processBotMessage(
       updatedData[currentNode.collectField] = trimmedInput;
     }
     nextNodeId = currentNode.nextNodeId ?? null;
+  } else if (currentNode.nodeType === "service_list") {
+    // Processar seleção de serviço
+    const serviceListCache = updatedData._serviceListCache as Array<{ id: number; name: string; category?: string | null; slaResponseHours?: number | null; serviceMode?: string | null; externalUrl?: string | null; description?: string | null }> | undefined;
+    const serviceListState = updatedData._serviceListState as string | undefined;
+
+    if (serviceListState === "awaiting_confirm") {
+      // Cidadão está confirmando se quer abrir protocolo
+      if (trimmedInput === "1") {
+        // Avançar para próximo nó (normalmente collect ou protocol)
+        nextNodeId = currentNode.nextNodeId ?? null;
+        updatedData._serviceListState = "confirmed";
+      } else {
+        // Voltar à lista de serviços
+        const services = serviceListCache ?? await getCidadaoServices();
+        updatedData._serviceListCache = services;
+        updatedData._serviceListState = "listing";
+        const listText = formatServiceListMessage(currentNode.message, services);
+        await sendFn(jid, listText);
+        await logInteraction(session.id, currentNode.id, listText, null);
+        await db.update(botSessions).set({ collectedData: updatedData as any, lastInteractionAt: new Date(), updatedAt: new Date() }).where(eq(botSessions.id, session.id));
+        return true;
+      }
+    } else {
+      // Estado normal: cidadão está selecionando da lista
+      if (trimmedInput === "0") {
+        // Voltar ao nó anterior
+        nextNodeId = currentNode.nextNodeId ?? null;
+      } else {
+        const services = serviceListCache ?? await getCidadaoServices();
+        updatedData._serviceListCache = services;
+        const selectedIndex = parseInt(trimmedInput, 10) - 1;
+        if (isNaN(selectedIndex) || selectedIndex < 0 || selectedIndex >= services.length) {
+          // Opção inválida — reenviar lista
+          const listText = formatServiceListMessage(currentNode.message, services);
+          await sendFn(jid, listText);
+          await sendFn(jid, `⚠️ Opção inválida. Digite o número do serviço desejado (1 a ${services.length}) ou *0* para voltar.`);
+          await logInteraction(session.id, currentNode.id, listText, null);
+          await db.update(botSessions).set({ collectedData: updatedData as any, lastInteractionAt: new Date(), updatedAt: new Date() }).where(eq(botSessions.id, session.id));
+          return true;
+        }
+        const chosen = services[selectedIndex]!;
+        updatedData._selectedServiceId = String(chosen.id);
+        updatedData._selectedServiceName = chosen.name;
+
+        // Montar mensagem de detalhe
+        let detail = `📋 *${chosen.name}*`;
+        if (chosen.description) detail += `\n\n${chosen.description}`;
+        if (chosen.slaResponseHours) detail += `\n\n⏱ Prazo de resposta: ${chosen.slaResponseHours}h`;
+
+        if (chosen.serviceMode === "external" && chosen.externalUrl) {
+          detail += `\n\n🔗 Este serviço é realizado pelo portal externo:\n${chosen.externalUrl}\n\nDigite *0* para voltar à lista.`;
+          await sendFn(jid, detail);
+          await logInteraction(session.id, currentNode.id, detail, null);
+          updatedData._serviceListState = "listing";
+          await db.update(botSessions).set({ collectedData: updatedData as any, lastInteractionAt: new Date(), updatedAt: new Date() }).where(eq(botSessions.id, session.id));
+          return true;
+        }
+
+        detail += `\n\nDeseja solicitar este serviço?\n*1.* Sim, abrir protocolo\n*0.* Voltar à lista`;
+        await sendFn(jid, detail);
+        await logInteraction(session.id, currentNode.id, detail, null);
+        updatedData._serviceListState = "awaiting_confirm";
+        await db.update(botSessions).set({ collectedData: updatedData as any, lastInteractionAt: new Date(), updatedAt: new Date() }).where(eq(botSessions.id, session.id));
+        return true;
+      }
+    }
   } else if (
     currentNode.nodeType === "message" ||
     currentNode.nodeType === "transfer" ||
@@ -442,12 +513,42 @@ export async function processBotMessage(
       .update(botSessions)
       .set({ status: "completed", updatedAt: new Date() })
       .where(eq(botSessions.id, session.id));
+  } else if (nextNode.nodeType === "service_list") {
+    // Carregar serviços dinamicamente e exibir lista numerada
+    const services = await getCidadaoServices();
+    const serviceData = (updatedSession.collectedData as BotCollectedData) ?? {};
+    const listText = formatServiceListMessage(nextNode.message, services);
+    // Salvar cache dos serviços na sessão
+    await db.update(botSessions).set({
+      collectedData: { ...serviceData, _serviceListCache: services, _serviceListState: "listing" } as any,
+      lastInteractionAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(botSessions.id, session.id));
+    await sendFn(jid, listText);
+    await logInteraction(session.id, nextNode.id, listText, null);
   } else {
     // message, menu, collect — enviar mensagem e aguardar próxima entrada
     await sendNodeMessage(updatedSession, nextNode, sendFn);
   }
 
   return true;
+}
+
+/**
+ * Formata a lista de serviços como mensagem numerada para o bot.
+ */
+function formatServiceListMessage(
+  header: string,
+  services: Array<{ name: string; category?: string | null; slaResponseHours?: number | null }>
+): string {
+  if (services.length === 0) {
+    return `${header}\n\n⚠️ Nenhum serviço disponível no momento.\n\nDigite *0* para voltar.`;
+  }
+  const lines = services.map((s, i) => {
+    const sla = s.slaResponseHours ? ` (${s.slaResponseHours}h)` : "";
+    return `*${i + 1}.* ${s.name}${sla}`;
+  }).join("\n");
+  return `${header}\n\n${lines}\n\n*0.* Voltar`;
 }
 
 // ─── Funções de gerenciamento de fluxos (usadas pelo painel admin) ────────────

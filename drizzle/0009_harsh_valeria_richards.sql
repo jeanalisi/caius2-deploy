@@ -1,0 +1,3 @@
+ALTER TABLE `botNodes` MODIFY COLUMN `nodeType` enum('menu','message','collect','transfer','protocol','end','service_list') NOT NULL;--> statement-breakpoint
+ALTER TABLE `notifications` MODIFY COLUMN `type` enum('new_message','ticket_assigned','ticket_resolved','queue_assigned','mention','protocol_update','tramitation','signature_request','document_received') NOT NULL;--> statement-breakpoint
+ALTER TABLE `notifications` ADD `relatedDocumentId` int;

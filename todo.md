@@ -354,3 +354,10 @@
 - [x] Usar endpoint cidadao.submitRequest existente
 - [x] Exibir NUP gerado na tela de sucesso com link para /widget/consulta
 - [x] Registrar rota em App.tsx e configurar headers para embedding externo
+
+## Bot: Integração de Serviços Cadastrados (WhatsApp + WebChat)
+- [x] WhatsApp: novo tipo de nó `service_list` no schema e motor do bot
+- [x] WhatsApp: listar serviços dinâmicos por número, ver detalhes, confirmar e abrir protocolo
+- [x] WhatsApp: serviços externos exibem link e retornam à lista
+- [x] Editor visual do bot atualizado com tipo `service_list` (painel indigo + dica informativa)
+- [x] Migração SQL aplicada: `service_list` adicionado ao enum nodeType no banco
