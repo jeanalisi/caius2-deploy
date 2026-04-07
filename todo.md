@@ -396,3 +396,8 @@
 - [x] Frontend: botão "Duplicar" (cópia) na lista/card de cada tipo de atendimento
 - [x] Frontend: dialog com card de origem, campo de novo nome e código opcional
 - [x] Feedback visual: toast de sucesso e atualização da lista após duplicação
+
+## Melhoria: Renumeração automática do código ao duplicar
+- [x] Backend: procedure `nextCode` que recebe um código base e retorna o próximo código disponível na sequência
+- [x] Frontend: ao abrir o dialog de duplicar, chamar nextCode automaticamente e preencher o campo de código
+- [x] Frontend: exibir indicador de carregamento enquanto busca o próximo código disponível

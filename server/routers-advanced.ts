@@ -14,6 +14,7 @@ import {
   deleteFormTemplate,
   deleteServiceType,
   duplicateServiceType,
+  getNextAvailableCode,
   getActiveSessions,
   getAttachmentConfigs,
   getAttachments,
@@ -138,6 +139,10 @@ export const serviceTypesRouter = router({
     .mutation(({ input, ctx }) =>
       duplicateServiceType(input.id, { name: input.name, code: input.code }, ctx.user.id)
     ),
+
+  nextCode: protectedProcedure
+    .input(z.object({ baseCode: z.string() }))
+    .query(({ input }) => getNextAvailableCode(input.baseCode).then(code => ({ code }))),
 });
 
 // ─── Form Templates Router ─────────────────────────────────────────────────────

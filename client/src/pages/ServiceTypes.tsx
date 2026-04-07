@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import OmniLayout from "@/components/OmniLayout";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -156,6 +156,24 @@ export default function ServiceTypes() {
     onSuccess: () => { toast.success("Tipo removido."); refetch(); setSelectedId(null); },
     onError: (e) => toast.error(e.message),
   });
+  // Query para buscar o próximo código disponível (só executa quando há um código base)
+  const nextCodeQuery = trpc.serviceTypes.nextCode.useQuery(
+    { baseCode: duplicatingType?.code ?? "" },
+    {
+      enabled: duplicateDialogOpen && !!duplicatingType?.code,
+      staleTime: 0,
+    }
+  );
+
+  // Preencher o campo de código automaticamente quando a query retornar
+  const prevNextCode = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (nextCodeQuery.data?.code && nextCodeQuery.data.code !== prevNextCode.current) {
+      prevNextCode.current = nextCodeQuery.data.code;
+      setDuplicateCode(nextCodeQuery.data.code);
+    }
+  }, [nextCodeQuery.data?.code]);
+
   const duplicateMutation = trpc.serviceTypes.duplicate.useMutation({
     onSuccess: (newType) => {
       toast.success(`Tipo "${newType.name}" criado com sucesso!`);
@@ -220,9 +238,11 @@ export default function ServiceTypes() {
 
   function openCreate() { setEditId(null); setForm(defaultForm); setOpen(true); }
   function openDuplicate(st: any) {
+    prevNextCode.current = undefined; // limpar estado anterior
     setDuplicatingType(st);
     setDuplicateName(`${st.name} (Cópia)`);
-    setDuplicateCode(st.code ? `${st.code}-COPIA` : "");
+    // Se tem código, deixar vazio enquanto a query busca o próximo; senão deixar vazio
+    setDuplicateCode("");
     setDuplicateDialogOpen(true);
   }
   function handleDuplicate() {
@@ -935,13 +955,25 @@ export default function ServiceTypes() {
 
               {/* Novo código */}
               <div className="space-y-1.5">
-                <Label>Código <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-                <Input
-                  value={duplicateCode}
-                  onChange={(e) => setDuplicateCode(e.target.value)}
-                  placeholder="Ex: ALV-002"
-                />
-                <p className="text-xs text-muted-foreground">Deixe em branco para criar sem código. O código deve ser único.</p>
+                <Label className="flex items-center gap-2">
+                  Código <span className="text-muted-foreground text-xs">(opcional)</span>
+                  {nextCodeQuery.isFetching && (
+                    <span className="text-xs text-primary animate-pulse">buscando próximo disponível...</span>
+                  )}
+                </Label>
+                <div className="relative">
+                  <Input
+                    value={duplicateCode}
+                    onChange={(e) => setDuplicateCode(e.target.value)}
+                    placeholder={duplicatingType?.code ? "Calculando..." : "Ex: ALV-002"}
+                    className={nextCodeQuery.isFetching ? "opacity-60" : ""}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {duplicatingType?.code
+                    ? "Código sugerido automaticamente com base na sequência. Edite se necessário."
+                    : "Deixe em branco para criar sem código. O código deve ser único."}
+                </p>
               </div>
             </div>
           )}

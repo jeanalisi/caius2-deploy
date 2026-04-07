@@ -62,6 +62,41 @@ export async function deleteServiceType(id: number) {
   await db.update(serviceTypes).set({ isActive: false }).where(eq(serviceTypes.id, id));
 }
 
+export async function getNextAvailableCode(baseCode: string): Promise<string> {
+  const db = await getDb();
+  if (!db) return baseCode;
+
+  // Detectar prefixo e parte numérica: "ALV-001" → prefix="ALV-", num=1, padding=3
+  const match = baseCode.match(/^(.*?)(\d+)([^\d]*)$/);
+  if (!match) {
+    // Código sem número: apenas adicionar "-2" no final
+    const candidate = `${baseCode}-2`;
+    const existing = await db.select({ code: serviceTypes.code }).from(serviceTypes)
+      .where(eq(serviceTypes.code, candidate)).limit(1);
+    return existing.length === 0 ? candidate : `${baseCode}-${Date.now()}`;
+  }
+
+  const prefix = match[1];   // "ALV-"
+  const padding = match[2].length; // 3 (para preservar zeros à esquerda)
+  const suffix = match[3];   // "" (geralmente vazio)
+  let num = parseInt(match[2], 10) + 1;
+
+  // Buscar todos os códigos com o mesmo prefixo para evitar colissões
+  const rows = await db.select({ code: serviceTypes.code }).from(serviceTypes)
+    .where(like(serviceTypes.code, `${prefix}%${suffix}`));
+  const existingCodes = new Set(rows.map(r => r.code));
+
+  // Incrementar até encontrar um código livre
+  for (let i = 0; i < 1000; i++) {
+    const candidate = `${prefix}${String(num).padStart(padding, "0")}${suffix}`;
+    if (!existingCodes.has(candidate)) return candidate;
+    num++;
+  }
+
+  // Fallback: adicionar timestamp
+  return `${prefix}${String(num).padStart(padding, "0")}${suffix}`;
+}
+
 export async function duplicateServiceType(
   id: number,
   overrides: { name: string; code?: string | null },
