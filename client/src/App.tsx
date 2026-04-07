@@ -62,6 +62,7 @@ import ControleConfiguracaoPage from "./pages/ControleConfiguracaoPage";
 import ControleUnidadesPage from "./pages/ControleUnidadesPage";
 import ControleHistoricoPage from "./pages/ControleHistoricoPage";
 import ControleAuditoriaPage from "./pages/ControleAuditoriaPage";
+import SystemPresentation from "./pages/SystemPresentation";
 
 function ProtocolDetailWrapper() {
   const params = useParams<{ id: string }>();
@@ -160,6 +161,9 @@ function Router() {
       <Route path={"/controle/unidades"} component={ControleUnidadesPage} />
       <Route path={"/controle/historico"} component={ControleHistoricoPage} />
       <Route path={"/controle/auditoria"} component={ControleAuditoriaPage} />
+
+      {/* Apresentação do Sistema */}
+      <Route path={"/apresentacao"} component={SystemPresentation} />
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

@@ -492,3 +492,21 @@
 - [x] Manter webchat-bot.ts com createDefaultWebchatFlow (função única do webchat-bot)
 - [x] Atualizar mock do webchat.test.ts para usar bot-engine
 - [x] 120 testes passando após a unificação
+
+## Apresentação Interativa do Sistema (Tour/Demo)
+- [x] Criar página SystemPresentation.tsx com 10 slides interativos
+- [x] Slide 1: Capa com identidade visual do CAIUS e badges de canais
+- [x] Slide 2: Visão Geral com grid de 8 módulos principais
+- [x] Slide 3: Atendimento Omnichannel (4 canais + recursos do Inbox)
+- [x] Slide 4: Chatbot Inteligente (fluxo de 6 etapas + motor unificado)
+- [x] Slide 5: Gestão de Protocolos (ciclo de vida + recursos)
+- [x] Slide 6: Assinatura Digital (unidade certificadora + funcionalidades)
+- [x] Slide 7: Envio em Massa WhatsApp (como funciona + recursos avançados)
+- [x] Slide 8: Ouvidoria, e-SIC e Processos Adm. (3 colunas)
+- [x] Slide 9: Analytics, IA e Automação (cAIus + Dashboard Executivo)
+- [x] Slide 10: Encerramento com estatísticas e identidade institucional
+- [x] Navegação: setas anterior/próximo, barra de progresso, dots, atalhos de teclado
+- [x] Modo tela cheia (Fullscreen API) com botão e atalho F
+- [x] Animações de transição entre slides (fade + slide)
+- [x] Rota /apresentacao registrada no App.tsx
+- [x] Item "Apresentação do Sistema" adicionado na seção Configurações do menu lateral

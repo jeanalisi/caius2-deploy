@@ -52,6 +52,7 @@ import {
   ListOrdered,
   BookMarked,
   ExternalLink,
+  Presentation,
 } from "lucide-react";
 import React, { useState, useRef, createContext, useContext, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -130,6 +131,7 @@ const advancedItems = [
   { href: "/institutional", icon: Building2, label: "Config. Institucional" },
   { href: "/online-sessions", icon: Monitor, label: "Sessões Online" },
   { href: "/context-help", icon: HelpCircle, label: "Ajuda Contextual" },
+  { href: "/apresentacao", icon: Presentation, label: "Apresentação do Sistema" },
 ];
 
 const orgItems = [
