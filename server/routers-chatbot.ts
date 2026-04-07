@@ -31,7 +31,7 @@ const botNodeOptionSchema = z.object({
 // Schema para criação/atualização de nó
 const nodeInputSchema = z.object({
   flowId: z.number().int(),
-  nodeType: z.enum(["menu", "message", "collect", "transfer", "protocol", "end"]),
+  nodeType: z.enum(["menu", "message", "collect", "transfer", "protocol", "end", "service_list"]),
   title: z.string().min(1).max(255),
   message: z.string().min(1),
   collectField: z.string().max(64).optional().nullable(),
@@ -335,17 +335,16 @@ export const chatbotRouter = router({
       });
       const node6Id = Number((node6Result[0] as any).insertId);
 
-      // Nó 7: Informações sobre serviços
+      // Nó 7: Lista dinâmica de serviços cadastrados
       const node7Result = await db.insert(botNodes).values({
         flowId,
-        nodeType: "message",
-        title: "Informações Serviços",
+        nodeType: "service_list",
+        title: "Catálogo de Serviços",
         message:
-          `ℹ️ Para consultar nossos serviços disponíveis, acesse:\n\n` +
-          `🌐 *Portal do Cidadão* — Disponível 24h\n\n` +
-          `Você pode abrir solicitações, acompanhar protocolos e muito mais!\n\n` +
-          `Deseja falar com um atendente?`,
-        nextNodeId: 0, // será atualizado para nó de transferência
+          `📋 *Serviços disponíveis da ${input.orgName}:*\n\n` +
+          `{{service_list}}\n\n` +
+          `Digite o *número* do serviço desejado para ver mais detalhes.`,
+        nextNodeId: 0, // será atualizado para nó de coleta após confirmação
         sortOrder: 7,
       });
       const node7Id = Number((node7Result[0] as any).insertId);
@@ -411,9 +410,10 @@ export const chatbotRouter = router({
         .set({ nextNodeId: node6Id })
         .where(eq(botNodes.id, node5Id));
 
+      // Nó 7 (service_list): após confirmação do serviço, inicia coleta de dados para protocolo
       await db
         .update(botNodes)
-        .set({ nextNodeId: node8Id })
+        .set({ nextNodeId: node2Id })
         .where(eq(botNodes.id, node7Id));
 
       // 4. Definir nó raiz do fluxo

@@ -46,7 +46,7 @@ const NODE_TYPE_ICONS: Record<NodeType, React.ReactNode> = {
   transfer: <Users className="w-4 h-4" />,
   protocol: <CheckCircle2 className="w-4 h-4" />,
   end: <XCircle className="w-4 h-4" />,
-  service_list: <Sparkles className="w-4 h-4" />,
+  service_list: <Sparkles className="w-5 h-5 text-indigo-600" />,
 };
 
 const NODE_TYPE_COLORS: Record<NodeType, string> = {
@@ -56,7 +56,7 @@ const NODE_TYPE_COLORS: Record<NodeType, string> = {
   transfer: "bg-purple-100 text-purple-700 border-purple-200",
   protocol: "bg-green-100 text-green-700 border-green-200",
   end: "bg-red-100 text-red-700 border-red-200",
-  service_list: "bg-indigo-100 text-indigo-700 border-indigo-200",
+  service_list: "bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-800 border-indigo-400",
 };
 
 const PROTOCOL_TYPES = [
@@ -95,8 +95,16 @@ function NodeCard({
   const options = (node.options as { label: string; nextNodeId: number }[]) ?? [];
   const nextNode = allNodes.find((n) => n.id === node.nextNodeId);
 
+  const isServiceList = node.nodeType === "service_list";
+
   return (
-    <div className={`rounded-xl border-2 p-4 ${NODE_TYPE_COLORS[node.nodeType as NodeType] ?? "bg-gray-50 border-gray-200"}`}>
+    <div className={`rounded-xl border-2 p-4 ${NODE_TYPE_COLORS[node.nodeType as NodeType] ?? "bg-gray-50 border-gray-200"} ${isServiceList ? "shadow-md ring-2 ring-indigo-300 ring-offset-1" : ""}`}>
+      {isServiceList && (
+        <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-indigo-200">
+          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+          <span className="text-xs font-bold text-indigo-600 uppercase tracking-wide">Catálogo Dinâmico de Serviços</span>
+        </div>
+      )}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <span className="shrink-0">{NODE_TYPE_ICONS[node.nodeType as NodeType]}</span>
@@ -168,6 +176,18 @@ function NodeCard({
               <span className="font-medium">Tipo de protocolo:</span>{" "}
               {PROTOCOL_TYPES.find((t) => t.value === node.protocolType)?.label ?? node.protocolType}
             </p>
+          )}
+
+          {node.nodeType === "service_list" && (
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2 space-y-1">
+              <p className="text-xs font-semibold text-indigo-700 flex items-center gap-1">
+                <Sparkles className="w-3 h-3" /> Como funciona
+              </p>
+              <p className="text-xs text-indigo-600">
+                O bot busca automaticamente os serviços publicados no catálogo e os exibe numerados.
+                O cidadão digita o número para ver detalhes e confirmar a solicitação.
+              </p>
+            </div>
           )}
 
           {nextNode && node.nodeType !== "menu" && (
@@ -264,7 +284,13 @@ function NodeDialog({
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {Object.entries(NODE_TYPE_LABELS).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>{label}</SelectItem>
+                    <SelectItem key={value} value={value}>
+                      <span className={value === "service_list" ? "font-semibold text-indigo-700 flex items-center gap-1.5" : ""}>
+                        {value === "service_list" && <Sparkles className="w-3.5 h-3.5 inline" />}
+                        {label}
+                        {value === "service_list" && <span className="ml-1 text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full">Novo</span>}
+                      </span>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -427,17 +453,41 @@ function NodeDialog({
             </div>
           )}
 
-          {/* service_list: painel informativo */}
+          {/* service_list: painel informativo destacado */}
           {form.nodeType === "service_list" && (
-            <div className="rounded-lg bg-indigo-50 border border-indigo-200 p-3 flex gap-2 text-sm text-indigo-800">
-              <Sparkles className="w-4 h-4 mt-0.5 shrink-0 text-indigo-500" />
-              <div>
-                <p className="font-semibold mb-1">Lista Dinâmica de Serviços</p>
-                <p className="text-xs text-indigo-700">
-                  Ao ativar este nó, o bot busca automaticamente os serviços publicados no catálogo e os exibe numerados.
-                  O cidadão digita o número do serviço desejado para ver os detalhes e, se quiser, abrir um protocolo.
-                  O <strong>"Próximo Nó"</strong> abaixo será ativado quando o cidadão confirmar que deseja solicitar o serviço selecionado.
-                </p>
+            <div className="rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 border-2 border-indigo-300 p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4 h-4 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-indigo-800 text-sm">Catálogo Dinâmico de Serviços</p>
+                  <p className="text-xs text-indigo-500">Nó especial — integração automática com o banco de serviços</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-2 text-xs">
+                <div className="bg-white/70 rounded-lg p-2.5 border border-indigo-100">
+                  <p className="font-semibold text-indigo-700 mb-0.5">📊 Como funciona</p>
+                  <p className="text-indigo-600">
+                    O bot busca automaticamente todos os serviços <strong>publicados</strong> no catálogo
+                    e os exibe numerados na conversa. O cidadão digita o número para ver detalhes.
+                  </p>
+                </div>
+                <div className="bg-white/70 rounded-lg p-2.5 border border-indigo-100">
+                  <p className="font-semibold text-indigo-700 mb-0.5">✅ Fluxo após seleção</p>
+                  <p className="text-indigo-600">
+                    Quando o cidadão <strong>confirmar</strong> que deseja solicitar o serviço,
+                    o bot avança para o <strong>"Próximo Nó"</strong> configurado abaixo
+                    (normalmente coleta de dados para abertura de protocolo).
+                  </p>
+                </div>
+                <div className="bg-amber-50 rounded-lg p-2.5 border border-amber-200">
+                  <p className="font-semibold text-amber-700 mb-0.5">⚠️ Pré-requisito</p>
+                  <p className="text-amber-600">
+                    Certifique-se de que há serviços com status <strong>Publicado</strong> no
+                    módulo <strong>Serviços</strong> para que a lista seja exibida ao cidadão.
+                  </p>
+                </div>
               </div>
             </div>
           )}

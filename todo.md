@@ -364,3 +364,11 @@
 
 ## Bug: React Error #31 nos Widgets
 - [x] Corrigir renderização de objeto {nup, protocolId} como filho React nos widgets (submitRequest retornava objeto em vez de string)
+
+## Melhoria: Evidência visual do nó service_list no chatbot
+- [x] Corrigir nodeInputSchema no backend: adicionar service_list ao z.enum (bloqueava criação do nó com erro de validação)
+- [x] Fluxo padrão atualizado: nó 7 agora é service_list real (em vez de mensagem genérica de texto)
+- [x] Card do nó service_list com borda ring indigo, gradiente e banner "Catálogo Dinâmico de Serviços"
+- [x] Painel expandido no card com explicação de como funciona o nó
+- [x] Dialog de criação com painel destacado (3 blocos: como funciona, fluxo após seleção, pré-requisito)
+- [x] Item no Select de tipo de nó com ícone Sparkles e badge "Novo" para fácil identificação
