@@ -342,3 +342,8 @@
 - [x] Criar página pública /widget/consulta embeddável via iframe
 - [x] Busca por NUP e por CPF/CNPJ com linha do tempo de tramitações
 - [x] Registrar rota em App.tsx e configurar headers para embedding externo
+
+## Bug: Links do Widget não funcionam no iframe
+- [x] Corrigir links do WidgetServicos (Solicitar serviço, Acessar Central do Cidadão)
+- [x] Corrigir links do WidgetConsulta (Acessar Central do Cidadão)
+- [x] Garantir que todos os links abram em nova aba (target="_blank") quando em iframe

@@ -315,6 +315,8 @@ export default function WidgetConsulta() {
   const org = useOrgConfig();
 
   // Pré-preenche NUP via query string ?nup=PMI-2026-...
+  // Base URL do CAIUS — garante links absolutos mesmo dentro de iframe em portal externo
+  const CAIUS_ORIGIN = window.location.origin;
   const urlParams = new URLSearchParams(window.location.search);
   const initialNup = urlParams.get("nup") ?? "";
 
@@ -544,7 +546,7 @@ export default function WidgetConsulta() {
       <div className="px-4 py-2.5 border-t border-gray-100 bg-white text-center">
         <p className="text-[10px] text-gray-400">
           <a
-            href="/central-cidadao"
+            href={`${CAIUS_ORIGIN}/central-cidadao`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-indigo-500 hover:underline"

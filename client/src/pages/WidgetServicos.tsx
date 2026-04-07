@@ -33,6 +33,9 @@ import {
   ChevronLeft,
 } from "lucide-react";
 
+// Base URL do CAIUS — garante links absolutos mesmo dentro de iframe em portal externo
+const CAIUS_ORIGIN = window.location.origin;
+
 const PAGE_SIZE = 16;
 
 // ─── Cor por categoria ────────────────────────────────────────────────────────
@@ -199,7 +202,7 @@ function ServiceDetail({ service, onBack }: { service: any; onBack: () => void }
           </a>
         ) : (
           <a
-            href={`/servico/${service.id}`}
+            href={`${CAIUS_ORIGIN}/servico/${service.id}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors"
@@ -472,7 +475,7 @@ export default function WidgetServicos() {
             </>
           )}
           <a
-            href="/central-cidadao"
+            href={`${CAIUS_ORIGIN}/central-cidadao`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-indigo-500 hover:underline"
