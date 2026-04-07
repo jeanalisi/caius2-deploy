@@ -52,7 +52,7 @@ vi.mock("./db-caius", () => ({
   getProtocolByNup: vi.fn().mockResolvedValue(null),
 }));
 
-vi.mock("./webchat-bot", () => ({
+vi.mock("./bot-engine", () => ({
   processWebchatBotMessage: vi.fn().mockResolvedValue({
     replies: ["Olá! Como posso ajudar?"],
     sessionStatus: "bot",

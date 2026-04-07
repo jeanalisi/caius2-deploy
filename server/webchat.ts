@@ -13,7 +13,7 @@
 import { randomBytes } from "crypto";
 import { getDb, upsertContact, createMessage } from "./db";
 import { generateNup, createProtocolWithNup } from "./db-caius";
-import { processWebchatBotMessage } from "./webchat-bot";
+import { processWebchatBotMessage } from "./bot-engine";
 import { getIo } from "./_core/socketio";
 import {
   webchatSessions,

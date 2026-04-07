@@ -480,3 +480,15 @@
 - [x] Registrar fontkit (@pdf-lib/fontkit) no PDFDocument para habilitar fontes customizadas
 - [x] Fontes copiadas para server/fonts/ e uploadádas para CDN
 - [x] Testado: ç, ã, ê, ú, á, é, í, ó, â, ô renderizados corretamente no PDF
+
+## Unificação Motor Chatbot (WhatsApp + WebChat)
+- [x] Estender bot-engine.ts: nova função processWebchatBotMessage com suporte a canal "web"
+- [x] Estender bot-engine.ts: adapter de envio para WebChat (acumula respostas em array)
+- [x] Estender bot-engine.ts: abertura de protocolo com channel="web" (openWebchatProtocolUnified)
+- [x] Estender bot-engine.ts: busca de fluxo por nome contendo "webchat" (getWebchatFlow)
+- [x] Estender bot-engine.ts: suporte a consultNup no nó collect
+- [x] Estender bot-engine.ts: suporte a upload de arquivo (WebchatUploadedFile)
+- [x] Atualizar webchat.ts para importar processWebchatBotMessage do bot-engine em vez do webchat-bot
+- [x] Manter webchat-bot.ts com createDefaultWebchatFlow (função única do webchat-bot)
+- [x] Atualizar mock do webchat.test.ts para usar bot-engine
+- [x] 120 testes passando após a unificação
