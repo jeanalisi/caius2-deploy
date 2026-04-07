@@ -429,3 +429,13 @@
 - [x] webchat-bot.ts: implementar o mesmo fluxo dinâmico do WhatsApp (service_list com campos, documentos e confirmação)
 - [x] Fallback: se tipo não tiver campos cadastrados, usar campos padrão (nome, CPF, assunto)
 - [x] Serviço externo: exibir detalhes e link externo, sem coleta de dados
+
+## URGENTE: Coleta de documentos via WhatsApp e Webchat
+- [x] bot-engine.ts (WhatsApp): após coletar campos, solicitar cada documento exigido um a um
+- [x] bot-engine.ts (WhatsApp): aguardar envio de arquivo (image/document) do cidadão e salvar no S3 via downloadMediaMessage do Baileys
+- [x] bot-engine.ts (WhatsApp): anexar documentos coletados ao protocolo (tabela attachments) antes de abrir o NUP
+- [x] webchat-bot.ts: após coletar campos, solicitar cada documento exigido com botão de upload
+- [x] WebchatWidget.tsx: adicionar botão de upload (Paperclip) com destaque animado quando bot aguarda documento
+- [x] webchat-bot.ts: salvar arquivo enviado no S3 e anexar ao protocolo (procedure sendFile)
+- [x] Documentos opcionais: aceitar "Pular" ou "0" para continuar sem o documento
+- [x] Exibir lista de documentos coletados no resumo antes da confirmação final

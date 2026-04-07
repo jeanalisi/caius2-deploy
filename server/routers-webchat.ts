@@ -90,7 +90,39 @@ export const webchatRouter = router({
       }
     }),
 
-  // ── Cidadão: Histórico de mensagens ─────────────────────────────────────
+  // ── Cidadão: Enviar arquivo (documento exigido pelo bot) ──────────────────
+  sendFile: publicProcedure
+    .input(
+      z.object({
+        sessionToken: z.string().length(64),
+        fileBase64: z.string(), // arquivo codificado em base64
+        mimeType: z.string(),
+        fileName: z.string(),
+        fileSizeBytes: z.number().int().positive(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      try {
+        const fileBuffer = Buffer.from(input.fileBase64, "base64");
+        const result = await processWebchatMessage({
+          sessionToken: input.sessionToken,
+          content: `[Arquivo: ${input.fileName}]`,
+          contentType: "document",
+          fileBuffer,
+          fileMimeType: input.mimeType,
+          fileName: input.fileName,
+          fileSizeBytes: input.fileSizeBytes,
+        });
+        return result;
+      } catch (err: any) {
+        if (err.message === "Sessão não encontrada") {
+          throw new TRPCError({ code: "NOT_FOUND", message: err.message });
+        }
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: err.message });
+      }
+    }),
+
+  // ── Cidadão: Histórico de mensagens ──────────────────────────────────────
   messages: publicProcedure
     .input(z.object({ sessionToken: z.string().length(64) }))
     .query(async ({ input }) => {

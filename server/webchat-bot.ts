@@ -20,6 +20,7 @@
 import { getDb } from "./db";
 import { generateNup, createProtocolWithNup, getProtocolByNup } from "./db-caius";
 import { getCidadaoServices, getCidadaoServiceDetail } from "./db-service-config";
+import { storagePut } from "./storage";
 import {
   botFlows,
   botNodes,
@@ -28,6 +29,7 @@ import {
   conversations,
   protocols,
   webchatSessions,
+  attachments,
 } from "../drizzle/schema";
 import { eq, and, isNull, or } from "drizzle-orm";
 
@@ -57,6 +59,23 @@ export interface WebchatServiceDocDef {
   acceptedFormats?: string | null;
 }
 
+// Documento coletado via webchat
+export interface WebchatCollectedDocument {
+  docName: string;
+  requirement: string;
+  s3Key: string;
+  s3Url: string;
+  mimeType: string;
+  fileName: string;
+  fileSizeBytes: number;
+}
+// Tipo para upload de arquivo recebido pelo webchat
+export interface WebchatUploadedFile {
+  buffer: Buffer;
+  mimeType: string;
+  fileName: string;
+  fileSizeBytes: number;
+}
 export interface WebchatBotCollectedData {
   requesterName?: string;
   requesterPhone?: string;
@@ -81,6 +100,9 @@ export interface WebchatBotCollectedData {
   _docsRequired?: WebchatServiceDocDef[];
   _currentFieldIndex?: number;
   _dynamicFields?: Record<string, string>;
+  // Documentos coletados pelo cidadão
+  _collectedDocs?: WebchatCollectedDocument[];
+  _currentDocIndex?: number;
   [key: string]: unknown;
 }
 
@@ -377,7 +399,8 @@ export async function processWebchatBotMessage(
   sessionToken: string,
   userInput: string,
   conversationId: number,
-  existingNup: string | null
+  existingNup: string | null,
+  uploadedFile?: WebchatUploadedFile
 ): Promise<WebchatBotResult> {
   const db = await getDb();
   if (!db) {
@@ -516,6 +539,17 @@ export async function processWebchatBotMessage(
       return `${header}\n\n${lines}\n\n*0.* Voltar`;
     };
 
+    const buildDocPromptWC = (doc: WebchatServiceDocDef, idx: number, total: number): string => {
+      const req = doc.requirement === "required" ? "*obrigatório*" : "_opcional_";
+      let msg = `📎 *Documento ${idx + 1} de ${total}: ${doc.name}* (${req})\n`;
+      if (doc.description) msg += `_${doc.description}_\n`;
+      if (doc.acceptedFormats) msg += `Formatos aceitos: ${doc.acceptedFormats}\n`;
+      msg += `\nEnvie o arquivo agora`;
+      if (doc.requirement !== "required") msg += ` ou clique em *Pular* para continuar sem este documento`;
+      msg += `.`;
+      return msg;
+    };
+
     const cancelWC = async () => {
       const services = slCache ?? await getCidadaoServices();
       updatedData._serviceListCache = services;
@@ -552,6 +586,25 @@ export async function processWebchatBotMessage(
         priority: "normal",
         isConfidential: false,
       });
+      // Anexar documentos coletados ao protocolo
+      const collectedDocsWC = (updatedData._collectedDocs ?? []) as WebchatCollectedDocument[];
+      if (collectedDocsWC.length > 0) {
+        for (const doc of collectedDocsWC) {
+          await db.insert(attachments).values({
+            nup,
+            entityType: "protocol",
+            entityId: 0,
+            uploadedById: 1,
+            fileName: doc.fileName,
+            originalName: doc.docName,
+            mimeType: doc.mimeType,
+            fileSizeBytes: doc.fileSizeBytes,
+            s3Key: doc.s3Key,
+            s3Url: doc.s3Url,
+            category: "documento_exigido",
+          });
+        }
+      }
       await db.update(botSessions).set({
         generatedNup: nup,
         status: "completed",
@@ -559,7 +612,8 @@ export async function processWebchatBotMessage(
         updatedAt: new Date(),
       }).where(eq(botSessions.id, session.id));
       generatedNup = nup;
-      replies.push(`✅ *Protocolo aberto com sucesso!*\n\n📋 *NUP:* ${nup}\n\nSua solicitação foi registrada. Guarde este número para acompanhar o andamento.`);
+      const docsConfirmWC = collectedDocsWC.length > 0 ? `\n\n📎 *Documentos anexados:* ${collectedDocsWC.length}` : "";
+      replies.push(`✅ *Protocolo aberto com sucesso!*\n\n📋 *NUP:* ${nup}${docsConfirmWC}\n\nSua solicitação foi registrada. Guarde este número para acompanhar o andamento.`);
       if (currentNode.nextNodeId) {
         const [endNode] = await db.select().from(botNodes).where(eq(botNodes.id, currentNode.nextNodeId)).limit(1);
         if (endNode) replies.push(buildNodeMessage(endNode, updatedData));
@@ -607,21 +661,14 @@ export async function processWebchatBotMessage(
           await saveData();
           return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
         } else {
-          // Todos os campos coletados
+          // Todos os campos coletados — iniciar coleta de documentos (se houver)
           const docs = (updatedData._docsRequired as WebchatServiceDocDef[]) ?? [];
-          const requiredDocs = docs.filter(d => d.requirement === "required");
-          if (requiredDocs.length > 0) {
-            updatedData._serviceListState = "awaiting_docs_confirm";
-            let docsMsg = `📎 *Documentos necessários para este serviço:*\n\n`;
-            docs.forEach((doc, i) => {
-              const req = doc.requirement === "required" ? "_(obrigatório)_" : "_(opcional)_";
-              docsMsg += `*${i + 1}.* ${doc.name} ${req}`;
-              if (doc.description) docsMsg += `\n   _${doc.description}_`;
-              if (doc.acceptedFormats) docsMsg += `\n   Formatos: ${doc.acceptedFormats}`;
-              docsMsg += "\n";
-            });
-            docsMsg += `\n⚠️ Tenha esses documentos em mãos.\n\n` + buildConfirmWC(updatedData, fields);
-            replies.push(docsMsg);
+          const docsToCollect = docs.filter(d => d.requirement === "required" || d.requirement === "complementary");
+          if (docsToCollect.length > 0) {
+            updatedData._serviceListState = "collecting_doc";
+            updatedData._currentDocIndex = 0;
+            updatedData._collectedDocs = [];
+            replies.push(buildDocPromptWC(docsToCollect[0]!, 0, docsToCollect.length));
           } else {
             updatedData._serviceListState = "awaiting_confirm_protocol";
             replies.push(buildConfirmWC(updatedData, fields));
@@ -632,8 +679,78 @@ export async function processWebchatBotMessage(
       }
     }
 
-    // ── Estado: confirmação após documentos ──────────────────────────────────
-    if (slState === "awaiting_docs_confirm" || slState === "awaiting_confirm_protocol") {
+    // ── Estado: coletando documentos um a um ────────────────────────────────
+    if (slState === "collecting_doc") {
+      const docs = (updatedData._docsRequired as WebchatServiceDocDef[]) ?? [];
+      const docsToCollect = docs.filter(d => d.requirement === "required" || d.requirement === "complementary");
+      const docIdx = (updatedData._currentDocIndex as number) ?? 0;
+      const currentDoc = docsToCollect[docIdx];
+      const collectedDocs = ((updatedData._collectedDocs ?? []) as WebchatCollectedDocument[]);
+
+      if (!currentDoc) {
+        // Todos os documentos coletados
+        updatedData._serviceListState = "awaiting_confirm_protocol";
+        const fields2 = (updatedData._fieldsToCollect ?? []) as WebchatServiceFieldDef[];
+        replies.push(buildConfirmWC(updatedData, fields2));
+        await saveData();
+        return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+      }
+
+      const isOptional = currentDoc.requirement !== "required";
+
+      // Verificar se o cidadão pulou (opcional)
+      if (isOptional && (trimmed.toLowerCase() === "pular" || trimmed === "0")) {
+        const nextDocIdx = docIdx + 1;
+        if (nextDocIdx < docsToCollect.length) {
+          updatedData._currentDocIndex = nextDocIdx;
+          replies.push(buildDocPromptWC(docsToCollect[nextDocIdx]!, nextDocIdx, docsToCollect.length));
+        } else {
+          updatedData._serviceListState = "awaiting_confirm_protocol";
+          const fields2 = (updatedData._fieldsToCollect ?? []) as WebchatServiceFieldDef[];
+          replies.push(buildConfirmWC(updatedData, fields2));
+        }
+        await saveData();
+        return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+      }
+
+      // Verificar se veio um arquivo
+      if (uploadedFile) {
+        const suffix = Date.now();
+        const ext = uploadedFile.fileName.split(".").pop() ?? "bin";
+        const s3Key = `bot-docs/${sessionToken}-${suffix}.${ext}`;
+        const { url: s3Url } = await storagePut(s3Key, uploadedFile.buffer, uploadedFile.mimeType);
+        collectedDocs.push({
+          docName: currentDoc.name,
+          requirement: currentDoc.requirement,
+          s3Key,
+          s3Url,
+          mimeType: uploadedFile.mimeType,
+          fileName: uploadedFile.fileName,
+          fileSizeBytes: uploadedFile.fileSizeBytes,
+        });
+        updatedData._collectedDocs = collectedDocs;
+        const nextDocIdx = docIdx + 1;
+        if (nextDocIdx < docsToCollect.length) {
+          updatedData._currentDocIndex = nextDocIdx;
+          replies.push(`✅ *${currentDoc.name}* recebido!\n\n` + buildDocPromptWC(docsToCollect[nextDocIdx]!, nextDocIdx, docsToCollect.length));
+        } else {
+          updatedData._serviceListState = "awaiting_confirm_protocol";
+          const fields2 = (updatedData._fieldsToCollect ?? []) as WebchatServiceFieldDef[];
+          const docsLine = collectedDocs.map(d => `  📎 ${d.docName}`).join("\n");
+          replies.push(`✅ Todos os documentos recebidos!\n\n${docsLine}\n\n` + buildConfirmWC(updatedData, fields2));
+        }
+        await saveData();
+        return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+      }
+
+      // Nenhum arquivo recebido
+      replies.push(`⚠️ Por favor, envie o arquivo do documento *${currentDoc.name}*${isOptional ? " ou clique em *Pular* para continuar sem ele" : ""}.`);
+      await saveData();
+      return { replies, sessionStatus: "bot", nup: existingNup ?? undefined, ended: false };
+    }
+
+    // ── Estado: confirmação final antes de abrir protocolo ─────────────────
+    if (slState === "awaiting_confirm_protocol") {
       if (trimmed === "1") {
         await openProtocolWC();
       } else {

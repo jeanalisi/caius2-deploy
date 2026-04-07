@@ -29,6 +29,11 @@ export interface WebchatIncomingMessage {
   content: string;
   contentType?: "text" | "image" | "audio" | "document";
   mediaUrl?: string;
+  // Arquivo enviado pelo cidadão (para coleta de documentos)
+  fileBuffer?: Buffer;
+  fileMimeType?: string;
+  fileName?: string;
+  fileSizeBytes?: number;
 }
 
 export interface WebchatStartPayload {
@@ -230,11 +235,18 @@ export async function processWebchatMessage(
   }
 
   // Processar chatbot dedicado para webchat
+  const uploadedFile = msg.fileBuffer ? {
+    buffer: msg.fileBuffer,
+    mimeType: msg.fileMimeType ?? "application/octet-stream",
+    fileName: msg.fileName ?? `arquivo-${Date.now()}.bin`,
+    fileSizeBytes: msg.fileSizeBytes ?? msg.fileBuffer.length,
+  } : undefined;
   const botResult = await processWebchatBotMessage(
     msg.sessionToken,
     msg.content,
     convId,
-    nup
+    nup,
+    uploadedFile
   );
 
   // Salvar respostas do bot no banco e emitir via Socket.IO

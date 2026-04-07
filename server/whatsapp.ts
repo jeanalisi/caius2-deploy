@@ -16,6 +16,7 @@ import makeWASocket, {
   DisconnectReason,
   fetchLatestBaileysVersion,
   Browsers,
+  downloadMediaMessage,
   type WAMessageContent,
 } from "@whiskeysockets/baileys";
 import P from "pino";
@@ -330,6 +331,28 @@ export async function connectWhatsApp(accountId: number) {
             sock
           );
 
+          // Função para baixar mídia de mensagens WhatsApp (usada pelo bot para coletar documentos)
+          const downloadMediaFn = async (rawMessage: unknown) => {
+            try {
+              const waMsg = rawMessage as any;
+              const m = waMsg?.message;
+              if (!m) return null;
+              const hasMedia = !!(m.imageMessage || m.videoMessage || m.audioMessage || m.documentMessage);
+              if (!hasMedia) return null;
+              const buffer = await downloadMediaMessage(waMsg, "buffer", {}) as Buffer;
+              let mimeType = "application/octet-stream";
+              let fileName = `arquivo-${Date.now()}.bin`;
+              if (m.imageMessage) { mimeType = m.imageMessage.mimetype || "image/jpeg"; fileName = `imagem-${Date.now()}.jpg`; }
+              else if (m.videoMessage) { mimeType = m.videoMessage.mimetype || "video/mp4"; fileName = `video-${Date.now()}.mp4`; }
+              else if (m.audioMessage) { mimeType = m.audioMessage.mimetype || "audio/ogg"; fileName = `audio-${Date.now()}.ogg`; }
+              else if (m.documentMessage) { mimeType = m.documentMessage.mimetype || "application/octet-stream"; fileName = m.documentMessage.fileName || `documento-${Date.now()}.bin`; }
+              return { buffer, mimeType, fileName, fileSizeBytes: buffer.length };
+            } catch (err) {
+              console.error("[Bot] Erro ao baixar mídia:", err);
+              return null;
+            }
+          };
+
           // Tentar processar via chatbot
           const botHandled = await processBotMessage(
             accountId,
@@ -352,7 +375,9 @@ export async function connectWhatsApp(accountId: number) {
               } catch (err) {
                 console.error("[Bot] Erro ao enviar resposta:", err);
               }
-            }
+            },
+            downloadMediaFn,
+            msg
           );
 
           // Registrar mensagem recebida no banco (sempre, para histórico completo)

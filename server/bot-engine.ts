@@ -13,6 +13,7 @@
 import { getDb } from "./db";
 import { generateNup } from "./db-caius";
 import { getCidadaoServices, getCidadaoServiceDetail } from "./db-service-config";
+import { storagePut } from "./storage";
 import {
   botFlows,
   botNodes,
@@ -20,6 +21,7 @@ import {
   botSessionLogs,
   conversations,
   protocols,
+  attachments,
 } from "../drizzle/schema";
 import { eq, and, lt } from "drizzle-orm";
 
@@ -66,6 +68,10 @@ export interface BotCollectedData {
   _currentFieldIndex?: number;
   // Lista de documentos exigidos (para exibir antes de confirmar)
   _docsRequired?: ServiceDocDef[];
+  // Documentos coletados (enviados pelo cidadão)
+  _collectedDocs?: CollectedDocument[];
+  // Índice do documento sendo coletado no momento
+  _currentDocIndex?: number;
   _serviceListCache?: Array<{
     id: number;
     name: string;
@@ -87,8 +93,20 @@ export interface BotCollectedData {
   [key: string]: unknown;
 }
 
+// Documento coletado durante o fluxo (arquivo enviado pelo cidadão)
+export interface CollectedDocument {
+  docName: string;       // nome do documento exigido
+  requirement: string;   // required | optional
+  s3Key: string;
+  s3Url: string;
+  mimeType: string;
+  fileName: string;
+  fileSizeBytes: number;
+}
 // Callback para enviar mensagem ao usuário via WhatsApp
 export type SendMessageFn = (jid: string, text: string) => Promise<void>;
+// Callback para baixar mídia de uma mensagem WhatsApp (retorna Buffer ou null)
+export type DownloadMediaFn = (msg: unknown) => Promise<{ buffer: Buffer; mimeType: string; fileName: string; fileSizeBytes: number } | null>;
 
 // ─── Funções auxiliares ────────────────────────────────────────────────────────
 
@@ -327,7 +345,9 @@ export async function processBotMessage(
   jid: string,
   userInput: string,
   conversationId: number,
-  sendFn: SendMessageFn
+  sendFn: SendMessageFn,
+  downloadMediaFn?: DownloadMediaFn,
+  rawMsg?: unknown
 ): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
@@ -514,22 +534,15 @@ export async function processBotMessage(
           await sendFn(jid, buildFieldPrompt(nextField));
           return await saveAndReturn();
         } else {
-          // Todos os campos coletados — verificar documentos
-          const docs = (updatedData._docsRequired ?? []) as Array<{ name: string; description?: string | null; requirement: string; acceptedFormats?: string | null }>;
-          const requiredDocs = docs.filter(d => d.requirement === "required");
-          if (requiredDocs.length > 0) {
-            updatedData._serviceListState = "awaiting_docs_confirm";
-            let docsMsg = `📎 *Documentos necessários para este serviço:*\n\n`;
-            docs.forEach((doc, i) => {
-              const req = doc.requirement === "required" ? "_(obrigatório)_" : "_(opcional)_";
-              docsMsg += `*${i + 1}.* ${doc.name} ${req}`;
-              if (doc.description) docsMsg += `\n   _${doc.description}_`;
-              if (doc.acceptedFormats) docsMsg += `\n   Formatos: ${doc.acceptedFormats}`;
-              docsMsg += "\n";
-            });
-            docsMsg += `\n⚠️ Tenha esses documentos em mãos ao comparecer ao atendimento.\n\n`;
-            docsMsg += buildConfirmMessage(updatedData, fields);
-            await sendFn(jid, docsMsg);
+          // Todos os campos coletados — iniciar coleta de documentos (se houver)
+          const docs = (updatedData._docsRequired ?? []) as ServiceDocDef[];
+          const docsToCollect = docs.filter(d => d.requirement === "required" || d.requirement === "complementary");
+          if (docsToCollect.length > 0) {
+            updatedData._serviceListState = "collecting_doc";
+            updatedData._currentDocIndex = 0;
+            updatedData._collectedDocs = [];
+            const firstDoc = docsToCollect[0]!;
+            await sendFn(jid, buildDocPrompt(firstDoc, 0, docsToCollect.length));
           } else {
             updatedData._serviceListState = "awaiting_confirm_protocol";
             const confirmMsg = buildConfirmMessage(updatedData, fields);
@@ -540,13 +553,74 @@ export async function processBotMessage(
       }
     }
 
-    // ── Estado: confirmação após exibir documentos ──────────────────────────
-    if (serviceListState === "awaiting_docs_confirm") {
-      if (trimmedInput === "1") {
-        return await openServiceProtocol(updatedData, session, currentNode, sendFn, jid, db);
-      } else {
-        return await cancelToServiceList(updatedData, serviceListCache, currentNode, sendFn, jid, saveAndReturn);
+    // ── Estado: coletando documentos um a um ───────────────────────────────
+    if (serviceListState === "collecting_doc") {
+      const docs = (updatedData._docsRequired ?? []) as ServiceDocDef[];
+      const docsToCollect = docs.filter(d => d.requirement === "required" || d.requirement === "complementary");
+      const docIdx = (updatedData._currentDocIndex as number) ?? 0;
+      const currentDoc = docsToCollect[docIdx];
+      const collectedDocs = ((updatedData._collectedDocs ?? []) as CollectedDocument[]);
+
+      if (!currentDoc) {
+        // Todos os documentos coletados — ir para confirmação
+        updatedData._serviceListState = "awaiting_confirm_protocol";
+        const fields2 = (updatedData._fieldsToCollect ?? []) as ServiceFieldDef[];
+        await sendFn(jid, buildConfirmMessage(updatedData, fields2));
+        return await saveAndReturn();
       }
+
+      // Verificar se o cidadão pulou (enviou texto "pular" ou "0" para doc opcional)
+      const isOptional = currentDoc.requirement !== "required";
+      if (isOptional && (trimmedInput.toLowerCase() === "pular" || trimmedInput === "0")) {
+        // Pular documento opcional
+        const nextDocIdx = docIdx + 1;
+        if (nextDocIdx < docsToCollect.length) {
+          updatedData._currentDocIndex = nextDocIdx;
+          await sendFn(jid, buildDocPrompt(docsToCollect[nextDocIdx]!, nextDocIdx, docsToCollect.length));
+        } else {
+          updatedData._serviceListState = "awaiting_confirm_protocol";
+          const fields2 = (updatedData._fieldsToCollect ?? []) as ServiceFieldDef[];
+          await sendFn(jid, buildConfirmMessage(updatedData, fields2));
+        }
+        return await saveAndReturn();
+      }
+
+      // Tentar baixar mídia da mensagem atual
+      if (downloadMediaFn && rawMsg) {
+        const media = await downloadMediaFn(rawMsg).catch(() => null);
+        if (media) {
+          // Fazer upload no S3
+          const suffix = Date.now();
+          const ext = media.fileName.split(".").pop() ?? "bin";
+          const s3Key = `bot-docs/${jid.split("@")[0]}-${suffix}.${ext}`;
+          const { url: s3Url } = await storagePut(s3Key, media.buffer, media.mimeType);
+          collectedDocs.push({
+            docName: currentDoc.name,
+            requirement: currentDoc.requirement,
+            s3Key,
+            s3Url,
+            mimeType: media.mimeType,
+            fileName: media.fileName,
+            fileSizeBytes: media.fileSizeBytes,
+          });
+          updatedData._collectedDocs = collectedDocs;
+          const nextDocIdx = docIdx + 1;
+          if (nextDocIdx < docsToCollect.length) {
+            updatedData._currentDocIndex = nextDocIdx;
+            await sendFn(jid, `✅ *${currentDoc.name}* recebido!\n\n` + buildDocPrompt(docsToCollect[nextDocIdx]!, nextDocIdx, docsToCollect.length));
+          } else {
+            updatedData._serviceListState = "awaiting_confirm_protocol";
+            const fields2 = (updatedData._fieldsToCollect ?? []) as ServiceFieldDef[];
+            const docsLine = collectedDocs.map(d => `  📎 ${d.docName}`).join("\n");
+            await sendFn(jid, `✅ Todos os documentos recebidos!\n\n${docsLine}\n\n` + buildConfirmMessage(updatedData, fields2));
+          }
+          return await saveAndReturn();
+        }
+      }
+
+      // Nenhum arquivo recebido — pedir novamente
+      await sendFn(jid, `⚠️ Por favor, envie o arquivo do documento *${currentDoc.name}*${isOptional ? " ou digite *pular* para continuar sem ele" : ""}.`);
+      return await saveAndReturn();
     }
 
     // ── Estado: confirmação final antes de abrir protocolo ─────────────────
@@ -797,6 +871,20 @@ function buildConfirmMessage(
 }
 
 /**
+ * Monta a mensagem de solicitação de documento ao cidadão.
+ */
+function buildDocPrompt(doc: ServiceDocDef, idx: number, total: number): string {
+  const req = doc.requirement === "required" ? "*obrigatório*" : "_opcional_";
+  let msg = `📎 *Documento ${idx + 1} de ${total}: ${doc.name}* (${req})\n`;
+  if (doc.description) msg += `_${doc.description}_\n`;
+  if (doc.acceptedFormats) msg += `Formatos aceitos: ${doc.acceptedFormats}\n`;
+  msg += `\nEnvie o arquivo agora`;
+  if (doc.requirement !== "required") msg += ` ou digite *pular* para continuar sem este documento`;
+  msg += `.`;
+  return msg;
+}
+
+/**
  * Abre protocolo a partir do fluxo service_list (coleta dinâmica).
  */
 async function openServiceProtocol(
@@ -833,15 +921,37 @@ async function openServiceProtocol(
     isConfidential: false,
     responsibleSectorId: undefined,
   });
+  // Anexar documentos coletados ao protocolo
+  const collectedDocs = (updatedData._collectedDocs ?? []) as CollectedDocument[];
+  if (collectedDocs.length > 0) {
+    for (const doc of collectedDocs) {
+      await db.insert(attachments).values({
+        nup,
+        entityType: "protocol",
+        entityId: 0, // será atualizado abaixo
+        uploadedById: 1, // sistema
+        fileName: doc.fileName,
+        originalName: doc.docName,
+        mimeType: doc.mimeType,
+        fileSizeBytes: doc.fileSizeBytes,
+        s3Key: doc.s3Key,
+        s3Url: doc.s3Url,
+        category: "documento_exigido",
+      });
+    }
+  }
   await db.update(botSessions).set({
     generatedNup: nup,
     status: "completed",
     collectedData: updatedData as any,
     updatedAt: new Date(),
   }).where(eq(botSessions.id, session.id));
+  const docsConfirm = collectedDocs.length > 0
+    ? `\n\n📎 *Documentos anexados:* ${collectedDocs.length}`
+    : "";
   const successMsg =
     `✅ *Protocolo aberto com sucesso!*\n\n` +
-    `📋 *Número do Protocolo (NUP):* ${nup}\n\n` +
+    `📋 *Número do Protocolo (NUP):* ${nup}${docsConfirm}\n\n` +
     `Sua solicitação foi registrada e em breve um atendente irá analisá-la.\n` +
     `Guarde este número para acompanhar o andamento.`;
   await sendFn(jid, successMsg);

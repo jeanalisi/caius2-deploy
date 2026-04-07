@@ -10,7 +10,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquare, X, Send, Loader2, Bot, User, ChevronDown, Shield } from "lucide-react";
+import { MessageSquare, X, Send, Loader2, Bot, User, ChevronDown, Shield, Paperclip } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -198,6 +198,16 @@ export default function WebchatWidget() {
   // Mutações tRPC
   const startMutation = trpc.webchat.start.useMutation();
   const sendMutation = trpc.webchat.send.useMutation();
+  const sendFileMutation = trpc.webchat.sendFile.useMutation();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+
+  // Detectar se o bot está aguardando um documento
+  const isAwaitingDoc = messages.length > 0 &&
+    messages[messages.length - 1]?.direction === "outbound" &&
+    (messages[messages.length - 1]?.content?.includes("Envie o arquivo") ||
+     messages[messages.length - 1]?.content?.includes("Documento ") ||
+     messages[messages.length - 1]?.content?.includes("documento"));
 
   // Polling de mensagens (a cada 3s quando a sessão existe)
   const { data: messagesData } = trpc.webchat.messages.useQuery(
@@ -331,6 +341,65 @@ export default function WebchatWidget() {
       inputRef.current?.focus();
     }
   }, [inputText, sessionToken, isSending, sendMutation]);
+
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!sessionToken || isUploadingFile) return;
+    const MAX_SIZE = 16 * 1024 * 1024; // 16MB
+    if (file.size > MAX_SIZE) {
+      alert("Arquivo muito grande. O tamanho máximo é 16MB.");
+      return;
+    }
+    setIsUploadingFile(true);
+    // Mensagem otimista do arquivo
+    const optimisticId = `opt-file-${Date.now()}`;
+    const optimisticMsg: ChatMessage = {
+      id: optimisticId,
+      direction: "inbound",
+      content: `📎 ${file.name}`,
+      senderName: null,
+      createdAt: new Date(),
+      isOptimistic: true,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setIsBotTyping(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
+      let binary = "";
+      for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i]!);
+      const fileBase64 = btoa(binary);
+      const result = await sendFileMutation.mutateAsync({
+        sessionToken,
+        fileBase64,
+        mimeType: file.type || "application/octet-stream",
+        fileName: file.name,
+        fileSizeBytes: file.size,
+      });
+      if (result.nup) setNup(result.nup);
+      if (result.status) setSessionStatus(result.status);
+      if (result.botReplies.length > 0) {
+        const botMessages: ChatMessage[] = result.botReplies.map((reply, i) => ({
+          id: `bot-file-${Date.now()}-${i}`,
+          direction: "outbound" as const,
+          content: reply,
+          senderName: "Bot CAIUS",
+          createdAt: new Date(),
+        }));
+        setMessages((prev) => [
+          ...prev.filter((m) => m.id !== optimisticId),
+          optimisticMsg,
+          ...botMessages,
+        ]);
+      }
+    } catch (err) {
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+      console.error("[WebchatWidget] Erro ao enviar arquivo:", err);
+    } finally {
+      setIsUploadingFile(false);
+      setIsBotTyping(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [sessionToken, isUploadingFile, sendFileMutation]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -472,19 +541,51 @@ export default function WebchatWidget() {
                   </div>
                 ) : (
                   <>
+                    {/* Input de arquivo oculto */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      className="hidden"
+                      accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,.rar"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file);
+                      }}
+                    />
+                    {/* Botão de upload — sempre visível, destaque quando bot aguarda doc */}
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploadingFile || isSending}
+                      title="Enviar arquivo"
+                      className={cn(
+                        "flex-shrink-0 transition-colors",
+                        isAwaitingDoc
+                          ? "border-blue-500 text-blue-600 bg-blue-50 hover:bg-blue-100 animate-pulse"
+                          : "text-gray-500 hover:text-blue-600"
+                      )}
+                    >
+                      {isUploadingFile ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Paperclip className="w-4 h-4" />
+                      )}
+                    </Button>
                     <Input
                       ref={inputRef}
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      placeholder="Digite sua mensagem..."
-                      disabled={isSending}
+                      placeholder={isAwaitingDoc ? "Envie o arquivo acima ou digite..." : "Digite sua mensagem..."}
+                      disabled={isSending || isUploadingFile}
                       className="text-sm flex-1"
                       maxLength={4096}
                     />
                     <Button
                       onClick={handleSend}
-                      disabled={!inputText.trim() || isSending}
+                      disabled={!inputText.trim() || isSending || isUploadingFile}
                       size="icon"
                       className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0"
                     >
