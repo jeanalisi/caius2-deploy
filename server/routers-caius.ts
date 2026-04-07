@@ -454,12 +454,16 @@ export const caiusRouter = router({
         if (input.originType === "internal" && result.success && input.recipientUserId) {
           try {
             const doc = await getOfficialDocumentById(input.documentId);
+            const docTitle = doc?.document?.title ?? "—";
+            const docNumber = doc?.document?.number ?? "—";
+            const docNup = doc?.document?.nup ?? undefined;
             await createNotification({
               userId: input.recipientUserId,
-              type: "tramitation",
-              title: "Documento recebido",
-              body: `Você recebeu o documento "${doc?.title ?? "—"}" (${doc?.nup ?? doc?.documentNumber ?? "—"}) de ${ctx.user.name ?? ctx.user.email}.`,
-              relatedProtocolId: null,
+              type: "document_received",
+              title: `Documento recebido: ${docTitle}`,
+              body: `Enviado por ${ctx.user.name ?? ctx.user.email}. Número: ${docNumber}.`,
+              relatedDocumentId: input.documentId,
+              nup: docNup,
             });
           } catch (_) { /* notificação não crítica */ }
         }

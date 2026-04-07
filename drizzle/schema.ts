@@ -398,13 +398,14 @@ export type InsertQueue = typeof queue.$inferInsert;
 export const notifications = mysqlTable("notifications", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId").notNull(),
-  type: mysqlEnum("type", ["new_message", "ticket_assigned", "ticket_resolved", "queue_assigned", "mention", "protocol_update", "tramitation", "signature_request"]).notNull(),
+  type: mysqlEnum("type", ["new_message", "ticket_assigned", "ticket_resolved", "queue_assigned", "mention", "protocol_update", "tramitation", "signature_request", "document_received"]).notNull(),
   title: varchar("title", { length: 255 }).notNull(),
   body: text("body"),
   isRead: boolean("isRead").default(false).notNull(),
   relatedConversationId: int("relatedConversationId"),
   relatedTicketId: int("relatedTicketId"),
   relatedProtocolId: int("relatedProtocolId"),
+  relatedDocumentId: int("relatedDocumentId"),
   nup: varchar("nup", { length: 32 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

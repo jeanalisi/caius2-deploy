@@ -51,6 +51,7 @@ import {
   Hash,
   ListOrdered,
   BookMarked,
+  ExternalLink,
 } from "lucide-react";
 import React, { useState, useRef, createContext, useContext, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -727,18 +728,49 @@ export default function OmniLayout({ children, title, fullHeight }: OmniLayoutPr
                 </div>
               ) : (
                 <div className="divide-y divide-border">
-                  {notifications?.map((n) => (
-                    <div key={n.id} className={cn("px-4 py-3 transition-colors", !n.isRead && "bg-primary/5")}>
-                      <p className="text-sm font-medium text-foreground">{n.title}</p>
-                      {n.body && <p className="text-xs text-muted-foreground mt-0.5">{n.body}</p>}
-                      {(n as any).nup && (
-                        <p className="text-[10px] text-primary/70 mt-0.5 font-mono">NUP: {(n as any).nup}</p>
-                      )}
-                      <p className="text-[10px] text-muted-foreground/50 mt-1">
-                        {new Date(n.createdAt).toLocaleString("pt-BR")}
-                      </p>
-                    </div>
-                  ))}
+                  {notifications?.map((n) => {
+                    const isDocNotif = n.type === "document_received";
+                    const relatedDocId = (n as any).relatedDocumentId as number | undefined;
+                    const NotifIcon = isDocNotif ? FileText : Bell;
+                    const iconColor = isDocNotif ? "text-blue-500" : "text-primary/60";
+                    return (
+                      <div
+                        key={n.id}
+                        className={cn(
+                          "px-4 py-3 transition-colors group",
+                          !n.isRead && "bg-primary/5",
+                          isDocNotif && relatedDocId && "cursor-pointer hover:bg-accent/60"
+                        )}
+                        onClick={() => {
+                          if (isDocNotif && relatedDocId) {
+                            setNotifOpen(false);
+                            window.location.href = `/documents?highlight=${relatedDocId}`;
+                          }
+                        }}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <div className={cn("mt-0.5 flex-shrink-0 p-1 rounded-md", isDocNotif ? "bg-blue-500/10" : "bg-primary/10")}>
+                            <NotifIcon className={cn("h-3.5 w-3.5", iconColor)} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-1">
+                              <p className="text-sm font-medium text-foreground leading-snug flex-1 min-w-0">{n.title}</p>
+                              {isDocNotif && relatedDocId && (
+                                <ExternalLink className="h-3 w-3 text-muted-foreground/40 flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                              )}
+                            </div>
+                            {n.body && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{n.body}</p>}
+                            {(n as any).nup && (
+                              <p className="text-[10px] text-primary/70 mt-0.5 font-mono">NUP: {(n as any).nup}</p>
+                            )}
+                            <p className="text-[10px] text-muted-foreground/50 mt-1">
+                              {new Date(n.createdAt).toLocaleString("pt-BR")}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>

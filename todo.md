@@ -321,3 +321,9 @@
 - [x] Documents.tsx: adicionar coluna "Último Envio" na tabela com status do envio mais recente
 - [x] Protocols.tsx: converter CreateProtocolDialog para painel inline
 - [x] Consulta pública NUP: verificar e corrigir página /consulta com histórico de tramitações
+
+## Notificação no Inbox ao Receber Documento Interno
+- [x] Backend: criar notificação na tabela notifications ao enviar documento para destinatário interno
+- [x] Backend: endpoint notifications.list e notifications.markRead no router
+- [x] Frontend: sino do header exibe badge de não lidas e lista de notificações de documentos
+- [x] Frontend: link direto para o documento na notificação

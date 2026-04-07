@@ -36,7 +36,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useRef, useState, useMemo } from "react";
+import { useRef, useState, useMemo, useEffect } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -520,8 +520,21 @@ export default function Documents() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [activePanel, setActivePanel] = useState<ActivePanel | null>(null);
+  const [highlightId, setHighlightId] = useState<number | null>(null);
   const utils = trpc.useUtils();
   const [, setLocation] = useLocation();
+
+  // Handle ?highlight=ID from notification click
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("highlight");
+    if (id) {
+      setHighlightId(Number(id));
+      window.history.replaceState({}, "", "/documents");
+      const t = setTimeout(() => setHighlightId(null), 5000);
+      return () => clearTimeout(t);
+    }
+  }, []);
 
   const { data: documents, isLoading } = trpc.caius.documents.list.useQuery({
     type: typeFilter === "all" ? undefined : typeFilter,
@@ -638,8 +651,12 @@ export default function Documents() {
                     ) : (
                       documents.map(({ document, author, sector }: any) => {
                         const status = STATUS_CONFIG[document.status] ?? STATUS_CONFIG.draft;
+                        const isHighlighted = highlightId === document.id;
                         return (
-                          <tr key={document.id} className="hover:bg-muted/30 transition-colors">
+                          <tr key={document.id} className={cn(
+                            "hover:bg-muted/30 transition-colors",
+                            isHighlighted && "bg-blue-500/10 ring-1 ring-inset ring-blue-500/30 animate-pulse"
+                          )}>
                             <td className="px-4 py-3">
                               <span className="font-mono text-xs bg-primary/10 text-primary border border-primary/20 rounded px-1.5 py-0.5">
                                 {document.nup ?? document.documentNumber ?? "—"}
