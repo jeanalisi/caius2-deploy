@@ -547,7 +547,7 @@ export const cidadaoRouter = router({
       isConfidential: z.boolean().default(false),
     }))
     .mutation(async ({ input }) => {
-      const nup = await createProtocol({
+      const result = await createProtocol({
         subject: input.subject,
         description: input.description,
         type: input.type,
@@ -560,6 +560,8 @@ export const cidadaoRouter = router({
         requesterCpfCnpj: input.requesterCpfCnpj,
         isConfidential: input.isConfidential,
       });
+      // createProtocol returns { nup, protocolId } — extract just the nup string
+      const nup = typeof result === "string" ? result : result.nup;
       return { nup, success: true };
     }),
 });

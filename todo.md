@@ -361,3 +361,6 @@
 - [x] WhatsApp: serviços externos exibem link e retornam à lista
 - [x] Editor visual do bot atualizado com tipo `service_list` (painel indigo + dica informativa)
 - [x] Migração SQL aplicada: `service_list` adicionado ao enum nodeType no banco
+
+## Bug: React Error #31 nos Widgets
+- [x] Corrigir renderização de objeto {nup, protocolId} como filho React nos widgets (submitRequest retornava objeto em vez de string)
