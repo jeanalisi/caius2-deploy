@@ -731,7 +731,7 @@ export default function ProtocolDetail({ id, onBack }: Props) {
     );
   }
 
-  const { protocol, sector, responsible, creator, contact, conversation, conversationMessages } = data as any;
+  const { protocol, sector, responsible, creator, contact, conversation, conversationMessages, protocolAttachments } = data as any;
   const status = STATUS_CONFIG[protocol.status] ?? STATUS_CONFIG.open;
 
   return (
@@ -826,6 +826,57 @@ export default function ProtocolDetail({ id, onBack }: Props) {
             </CardContent>
           </Card>
         </div>
+
+        {/* Anexos do Protocolo */}
+        {protocolAttachments && protocolAttachments.length > 0 && (
+          <Card className="bg-card border-border col-span-2">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Documentos Anexados ({protocolAttachments.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {protocolAttachments.map((att: any) => {
+                  const isImage = att.mimeType?.startsWith("image/");
+                  const isPdf = att.mimeType === "application/pdf";
+                  const sizeKb = att.fileSizeBytes ? Math.round(att.fileSizeBytes / 1024) : null;
+                  return (
+                    <a
+                      key={att.id}
+                      href={att.s3Url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-border hover:border-primary/40 hover:bg-primary/5 transition-colors group"
+                    >
+                      <div className="flex-shrink-0 w-9 h-9 rounded-md bg-muted flex items-center justify-center">
+                        {isImage ? (
+                          <img src={att.s3Url} alt={att.originalName} className="w-9 h-9 object-cover rounded-md" />
+                        ) : isPdf ? (
+                          <FileText className="h-5 w-5 text-red-400" />
+                        ) : (
+                          <Paperclip className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate group-hover:text-primary">
+                          {att.originalName || att.fileName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {att.category && <span className="mr-2 capitalize">{att.category}</span>}
+                          {sizeKb !== null && <span>{sizeKb < 1024 ? `${sizeKb} KB` : `${(sizeKb / 1024).toFixed(1)} MB`}</span>}
+                          {att.createdAt && <span className="ml-2">{new Date(att.createdAt).toLocaleDateString("pt-BR")}</span>}
+                        </p>
+                      </div>
+                      <Upload className="h-4 w-4 text-muted-foreground group-hover:text-primary flex-shrink-0 rotate-180" />
+                    </a>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Sidebar info */}
         <div className="space-y-4">

@@ -439,3 +439,9 @@
 - [x] webchat-bot.ts: salvar arquivo enviado no S3 e anexar ao protocolo (procedure sendFile)
 - [x] Documentos opcionais: aceitar "Pular" ou "0" para continuar sem o documento
 - [x] Exibir lista de documentos coletados no resumo antes da confirmação final
+
+## Melhoria: Exibir e exportar anexos do protocolo
+- [x] Backend: incluir anexos (attachments) no retorno de protocols.byId (busca por NUP + fallback por entityId)
+- [x] ProtocolDetail: exibir seção "Documentos Anexados" com grid de cards (thumbnail, nome, tipo, tamanho, data, link)
+- [x] ProtocolPrintView: incluir tabela de anexos no PDF (nome, tipo, tamanho, categoria, data, link)
+- [x] Interface ProtocolData atualizada para incluir protocolAttachments

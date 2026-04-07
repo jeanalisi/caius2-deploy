@@ -56,6 +56,16 @@ interface ProtocolData {
   contact?: { name?: string | null; phone?: string | null; email?: string | null; cpf?: string | null } | null;
   conversation?: { id: number; externalId?: string | null; channel?: string | null } | null;
   conversationMessages?: ConversationMessage[];
+  protocolAttachments?: Array<{
+    id: number;
+    originalName?: string | null;
+    fileName: string;
+    mimeType: string;
+    fileSizeBytes?: number | null;
+    s3Url: string;
+    category?: string | null;
+    createdAt: Date | string;
+  }>;
 }
 
 interface VerifiableDoc {
@@ -160,7 +170,7 @@ function buildPrintHtml(
   verifiableDoc: VerifiableDoc | null | undefined,
   appTitle: string,
 ): string {
-  const { protocol, sector, responsible, creator, contact, conversation, conversationMessages } = protocolData;
+  const { protocol, sector, responsible, creator, contact, conversation, conversationMessages, protocolAttachments } = protocolData;
   const verifyUrl = verifiableDoc?.verificationUrl
     ?? `${window.location.origin}/verificar/${verifiableDoc?.verificationKey ?? ""}`;
 
@@ -360,6 +370,32 @@ function buildPrintHtml(
     </div>
   </div>
   `}
+
+  <!-- Documentos Anexados -->
+  ${(protocolAttachments && protocolAttachments.length > 0) ? `
+  <div class="section" style="margin-top:16px;">
+    <h2>Documentos Anexados (${protocolAttachments.length})</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Nome do Arquivo</th>
+          <th>Tipo</th>
+          <th>Tamanho</th>
+          <th>Categoria</th>
+          <th>Data de Envio</th>
+          <th>Link</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${protocolAttachments.map((att: any, i: number) => {
+          const sizeKb = att.fileSizeBytes ? Math.round(att.fileSizeBytes / 1024) : null;
+          const sizeStr = sizeKb !== null ? (sizeKb < 1024 ? sizeKb + ' KB' : (sizeKb/1024).toFixed(1) + ' MB') : '-';
+          return '<tr><td style="font-weight:500">' + (att.originalName || att.fileName) + '</td><td style="color:#666;font-size:9px">' + att.mimeType + '</td><td>' + sizeStr + '</td><td>' + (att.category || '-') + '</td><td>' + fmt(att.createdAt) + '</td><td><a href="' + att.s3Url + '" style="color:#1a56db">Acessar</a></td></tr>';
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+  ` : ''}
 
   <!-- Rodapé -->
   <div class="footer">

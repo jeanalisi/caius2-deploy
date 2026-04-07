@@ -4,6 +4,8 @@ import {
   adminProcesses,
   processDeadlineHistory,
   InsertProcessDeadlineHistory,
+  attachments,
+  Attachment,
   aiProviders,
   aiUsageLogs,
   auditLogs,
@@ -222,7 +224,36 @@ export async function getProtocolById(id: number) {
       .limit(50);
     conversationMessages = msgs.reverse();
   }
-  return { ...row, creator, contact, conversation, conversationMessages };
+  // Buscar anexos vinculados ao protocolo
+  let protocolAttachments: Attachment[] = [];
+  if (row.protocol.nup) {
+    protocolAttachments = await db
+      .select()
+      .from(attachments)
+      .where(
+        and(
+          eq(attachments.entityType, "protocol"),
+          eq(attachments.isDeleted, false),
+          eq(attachments.nup, row.protocol.nup)
+        )
+      )
+      .orderBy(attachments.createdAt);
+  }
+  // Fallback: buscar por entityId se nup não encontrou nada
+  if (protocolAttachments.length === 0) {
+    protocolAttachments = await db
+      .select()
+      .from(attachments)
+      .where(
+        and(
+          eq(attachments.entityType, "protocol"),
+          eq(attachments.entityId, id),
+          eq(attachments.isDeleted, false)
+        )
+      )
+      .orderBy(attachments.createdAt);
+  }
+  return { ...row, creator, contact, conversation, conversationMessages, protocolAttachments };
 }
 
 export async function createProtocol(data: Omit<InsertProtocol, "nup">) {
