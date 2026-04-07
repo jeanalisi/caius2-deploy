@@ -63,6 +63,8 @@ import ControleUnidadesPage from "./pages/ControleUnidadesPage";
 import ControleHistoricoPage from "./pages/ControleHistoricoPage";
 import ControleAuditoriaPage from "./pages/ControleAuditoriaPage";
 import SystemPresentation from "./pages/SystemPresentation";
+import PresentationCidadao from "./pages/PresentationCidadao";
+import PresentationOnboarding from "./pages/PresentationOnboarding";
 
 function ProtocolDetailWrapper() {
   const params = useParams<{ id: string }>();
@@ -162,8 +164,10 @@ function Router() {
       <Route path={"/controle/historico"} component={ControleHistoricoPage} />
       <Route path={"/controle/auditoria"} component={ControleAuditoriaPage} />
 
-      {/* Apresentação do Sistema */}
+      {/* Apresentações do Sistema */}
       <Route path={"/apresentacao"} component={SystemPresentation} />
+      <Route path={"/apresentacao-cidadao"} component={PresentationCidadao} />
+      <Route path={"/apresentacao-onboarding"} component={PresentationOnboarding} />
 
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />

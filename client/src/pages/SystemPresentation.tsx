@@ -327,53 +327,53 @@ const slides: Slide[] = [
     ),
   },
 
-  // ── Slide 7: Envio em Massa ───────────────────────────────────────────────
+  // ── Slide 7: Documentos Oficiais ─────────────────────────────────────────
   {
     id: 7,
     type: "feature",
-    title: "Envio em Massa WhatsApp",
-    subtitle: "Campanhas de mensagens para listas de contatos via planilha",
-    bg: "from-rose-950 via-slate-900 to-slate-900",
-    accent: "text-rose-400",
+    title: "Documentos Oficiais e Controle de Numeração",
+    subtitle: "Emissão, tramitação e controle de documentos institucionais com numeração automática",
+    bg: "from-teal-950 via-slate-900 to-slate-900",
+    accent: "text-teal-400",
     content: (
       <div className="flex flex-col md:flex-row gap-8 w-full max-w-4xl items-start">
         <div className="flex flex-col gap-3 flex-1">
-          <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-5 space-y-3">
-            <p className="text-rose-300 font-semibold text-sm uppercase tracking-wide">Como Funciona</p>
+          <div className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-5 space-y-3">
+            <p className="text-teal-300 font-semibold text-sm uppercase tracking-wide">Documentos Oficiais</p>
             {[
-              { n: "1", t: "Criar Campanha", d: "Defina nome, conta WhatsApp e mensagem" },
-              { n: "2", t: "Importar Planilha", d: "Upload de XLSX/CSV com telefone e nome" },
-              { n: "3", t: "Pré-visualizar", d: "Revise os destinatários antes de enviar" },
-              { n: "4", t: "Iniciar Envio", d: "Worker processa com rate limiting automático" },
-              { n: "5", t: "Monitorar", d: "Acompanhe enviados, pendentes e erros" },
+              "Criação de documentos com modelos pré-definidos",
+              "Editor de texto com variáveis automáticas",
+              "Assinatura digital integrada (chancela municipal)",
+              "Tramitação entre setores com histórico",
+              "Exportação em PDF com cabeçalho institucional",
+              "Vinculação a protocolos e processos",
+              "Controle de versões e revisões",
+            ].map((f) => (
+              <div key={f} className="flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-teal-400 flex-shrink-0 mt-0.5" />
+                <p className="text-slate-300 text-sm">{f}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-col gap-3 flex-1">
+          <div className="rounded-xl border border-teal-500/20 bg-teal-500/5 p-5 space-y-3">
+            <p className="text-teal-300 font-semibold text-sm uppercase tracking-wide">Controle de Numeração</p>
+            {[
+              { n: "1", t: "Configurar Séries", d: "Defina prefixo, ano e sequência por unidade" },
+              { n: "2", t: "Emitir Número", d: "Geração automática sequencial e única" },
+              { n: "3", t: "Vincular Documento", d: "Associe ao ofício, portaria ou memorando" },
+              { n: "4", t: "Registrar Histórico", d: "Trilha completa de emissões por setor" },
+              { n: "5", t: "Auditar", d: "Relatório de numeração com filtros avançados" },
             ].map((s) => (
               <div key={s.n} className="flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-300 text-xs font-bold flex-shrink-0">
+                <div className="w-6 h-6 rounded-full bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-300 text-xs font-bold flex-shrink-0">
                   {s.n}
                 </div>
                 <div>
                   <span className="text-white font-semibold text-sm">{s.t}</span>
                   <span className="text-slate-400 text-xs ml-2">{s.d}</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex flex-col gap-3 flex-1">
-          <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-5 space-y-3">
-            <p className="text-rose-300 font-semibold text-sm uppercase tracking-wide">Recursos Avançados</p>
-            {[
-              "Personalização com variável {nome} na mensagem",
-              "Controle de pausa e cancelamento em tempo real",
-              "Rate limiting configurável (mensagens/minuto)",
-              "Barra de progresso com contadores ao vivo",
-              "Status individual por destinatário (enviado/falha)",
-              "Suporte a múltiplas contas WhatsApp",
-              "Histórico completo de campanhas anteriores",
-            ].map((f) => (
-              <div key={f} className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
-                <p className="text-slate-300 text-sm">{f}</p>
               </div>
             ))}
           </div>

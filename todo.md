@@ -510,3 +510,12 @@
 - [x] Animações de transição entre slides (fade + slide)
 - [x] Rota /apresentacao registrada no App.tsx
 - [x] Item "Apresentação do Sistema" adicionado na seção Configurações do menu lateral
+
+## Três Apresentações do Sistema
+- [x] Apresentação Interna: SystemPresentation.tsx revisada — removido slide de Envio em Massa, adicionado slide de Documentos Oficiais, foco operacional
+- [x] Apresentação Interna: 10 slides cobrindo Inbox, Protocolos, Documentos, Assinatura Digital, Ouvidoria, Chatbot, Relatórios, IA
+- [x] Apresentação Cidadão: PresentationCidadao.tsx criada — linguagem acessível, 10 slides sobre canais, protocolo, consulta, webchat
+- [x] Onboarding Servidor: PresentationOnboarding.tsx criado — guia passo a passo para novos servidores (10 slides)
+- [x] Rotas /apresentacao-cidadao e /apresentacao-onboarding registradas no App.tsx
+- [x] Seção dedicada "Apresentações" adicionada no menu lateral com os 3 itens
+- [x] 120 testes passando após as alterações

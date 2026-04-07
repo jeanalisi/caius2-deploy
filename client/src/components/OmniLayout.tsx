@@ -131,7 +131,12 @@ const advancedItems = [
   { href: "/institutional", icon: Building2, label: "Config. Institucional" },
   { href: "/online-sessions", icon: Monitor, label: "Sessões Online" },
   { href: "/context-help", icon: HelpCircle, label: "Ajuda Contextual" },
-  { href: "/apresentacao", icon: Presentation, label: "Apresentação do Sistema" },
+];
+
+const presentationItems = [
+  { href: "/apresentacao", icon: Presentation, label: "Apresentação Interna" },
+  { href: "/apresentacao-cidadao", icon: Globe, label: "Apresentação ao Cidadão" },
+  { href: "/apresentacao-onboarding", icon: BookOpen, label: "Onboarding do Servidor" },
 ];
 
 const orgItems = [
@@ -431,6 +436,7 @@ export default function OmniLayout({ children, title, fullHeight }: OmniLayoutPr
     if (channelItems.some(i => loc === i.href || (i.href !== "/" && loc.startsWith(i.href)))) return "Canais";
     if (adminItems.some(i => loc === i.href || (i.href !== "/" && loc.startsWith(i.href)))) return "Administração";
     if (advancedItems.some(i => loc === i.href || (i.href !== "/" && loc.startsWith(i.href)))) return "Configurações";
+    if (presentationItems.some(i => loc === i.href || (i.href !== "/" && loc.startsWith(i.href)))) return "Apresentações";
     if (orgItems.some(i => loc === i.href || (i.href !== "/" && loc.startsWith(i.href)))) return "Estrutura Org.";
     return "Atendimento"; // default
   }
@@ -548,6 +554,12 @@ export default function OmniLayout({ children, title, fullHeight }: OmniLayoutPr
 
                   <NavGroup label="Configurações">
                     {advancedItems.map((item) => (
+                      <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
+                    ))}
+                  </NavGroup>
+
+                  <NavGroup label="Apresentações">
+                    {presentationItems.map((item) => (
                       <NavItem key={item.href} {...item} isActive={location === item.href || (item.href !== "/" && location.startsWith(item.href))} />
                     ))}
                   </NavGroup>
