@@ -378,3 +378,15 @@
 - [x] Serviço interno: após confirmação, coletar nome/CPF/assunto automaticamente e abrir protocolo NUP sem nós adicionais
 - [x] Exibir detalhes completos do serviço (descrição, purpose, whoCanRequest, cost, formOfService, importantNotes) antes de confirmar
 - [x] Atualizar painel informativo no ChatbotAdmin para refletir o novo comportamento autônomo
+
+## Melhoria: Pop-ups inline e PDF completo
+- [x] OuvidoriaAdmin: converter Dialog para painel inline (split-view: lista à esquerda, detalhe à direita)
+- [x] OuvidoriaAdmin: adicionar histórico de status e respostas no painel inline
+- [x] OuvidoriaAdmin: adicionar botão Exportar PDF com tramitação completa
+- [x] Protocols.tsx: já usa inline via ProtocolDetail — sem modais internos a converter
+- [x] AdminProcesses.tsx: converter Sheet lateral para painel inline (split-view)
+- [x] AdminProcesses.tsx: converter DeadlineModal para painel inline dentro do detalhe (DeadlineInlinePanel)
+- [x] ProtocolPrintView: incluir transcrição da conversa (conversationMessages) no PDF
+- [x] ProtocolPrintView: incluir dados do contato vinculado (nome, CPF, e-mail, telefone) no PDF
+- [x] ProtocolPrintView: incluir histórico de tramitações completo no PDF
+- [x] OuvidoriaAdmin: criar exportação PDF com histórico de status, respostas e dados completos

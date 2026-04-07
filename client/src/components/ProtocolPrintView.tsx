@@ -1,13 +1,13 @@
 /**
  * ProtocolPrintView.tsx
  * Componente de impressão/exportação PDF do protocolo.
- * Abre uma janela de impressão com layout institucional completo:
- * NUP, dados do protocolo, histórico de tramitações e chancela com QR Code.
+ * Inclui: NUP, dados do protocolo, solicitante/contato, histórico de tramitações,
+ * transcrição completa da conversa e chancela com QR Code.
  */
 import { useRef } from "react";
 import QRCode from "react-qr-code";
 import { Button } from "@/components/ui/button";
-import { FileDown, Printer } from "lucide-react";
+import { FileDown } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useOrgConfig } from "@/hooks/useOrgConfig";
 
@@ -21,6 +21,15 @@ interface TramitationItem {
     createdAt: Date | string;
   };
   fromUser?: { name: string } | null;
+}
+
+interface ConversationMessage {
+  id: number;
+  direction: string;
+  content?: string | null;
+  type?: string | null;
+  senderName?: string | null;
+  createdAt: Date | string;
 }
 
 interface ProtocolData {
@@ -44,6 +53,9 @@ interface ProtocolData {
   sector?: { name: string } | null;
   responsible?: { name: string } | null;
   creator?: { name: string } | null;
+  contact?: { name?: string | null; phone?: string | null; email?: string | null; cpf?: string | null } | null;
+  conversation?: { id: number; externalId?: string | null; channel?: string | null } | null;
+  conversationMessages?: ConversationMessage[];
 }
 
 interface VerifiableDoc {
@@ -148,7 +160,7 @@ function buildPrintHtml(
   verifiableDoc: VerifiableDoc | null | undefined,
   appTitle: string,
 ): string {
-  const { protocol, sector, responsible, creator } = protocolData;
+  const { protocol, sector, responsible, creator, contact, conversation, conversationMessages } = protocolData;
   const verifyUrl = verifiableDoc?.verificationUrl
     ?? `${window.location.origin}/verificar/${verifiableDoc?.verificationKey ?? ""}`;
 
@@ -160,6 +172,20 @@ function buildPrintHtml(
       <td>${t.tramitation.note ?? "—"}</td>
     </tr>
   `).join("");
+
+  // Transcrição da conversa — filtra mensagens sem conteúdo e localização
+  const msgs = (conversationMessages ?? []).filter((m) => m.content && m.type !== "location");
+  const msgRows = msgs.map((m) => {
+    const dir = m.direction === "outbound" ? "Atendente" : (m.senderName ?? "Cidadão");
+    const dirColor = m.direction === "outbound" ? "#1a3a6b" : "#166534";
+    const safeContent = (m.content ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return `
+      <tr>
+        <td style="white-space:nowrap;font-size:9px">${fmt(m.createdAt)}</td>
+        <td style="font-weight:600;color:${dirColor};white-space:nowrap">${dir}</td>
+        <td style="white-space:pre-wrap">${safeContent}</td>
+      </tr>`;
+  }).join("");
 
   const sigRows = (verifiableDoc?.signatures ?? []).map((s) => `
     <tr>
@@ -177,6 +203,14 @@ function buildPrintHtml(
       QR Code<br/>${verifiableDoc.verificationKey?.slice(0, 8)}...
     </div>
   ` : "";
+
+  // Dados do solicitante: combina protocolo + contato vinculado
+  const reqName = protocol.requesterName ?? contact?.name;
+  const reqCpf = protocol.requesterCpfCnpj ?? contact?.cpf;
+  const reqEmail = protocol.requesterEmail ?? contact?.email;
+  const reqPhone = protocol.requesterPhone ?? contact?.phone;
+
+  const channelLabel = CHANNEL_LABELS[conversation?.channel ?? protocol.channel] ?? (conversation?.channel ?? protocol.channel);
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -202,6 +236,8 @@ function buildPrintHtml(
     th { background: #1a3a6b; color: #fff; padding: 5px 6px; text-align: left; font-size: 10px; }
     td { padding: 4px 6px; border-bottom: 1px solid #eee; vertical-align: top; }
     tr:nth-child(even) td { background: #f9f9f9; }
+    .msg-outbound td:nth-child(2) { color: #1a3a6b; }
+    .msg-inbound td:nth-child(2) { color: #166534; }
     .chancela { border: 2px solid #1a3a6b; border-radius: 6px; padding: 12px; margin-top: 20px; page-break-inside: avoid; }
     .chancela-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .chancela-title { font-size: 12px; font-weight: bold; color: #1a3a6b; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -210,8 +246,6 @@ function buildPrintHtml(
     .chancela-qr { width: 80px; flex-shrink: 0; }
     .key-box { background: #f0f4ff; border: 1px solid #c0d0f0; border-radius: 4px; padding: 4px 8px; font-family: monospace; font-size: 10px; color: #1a3a6b; margin: 4px 0; word-break: break-all; }
     .chancela-text { font-size: 9px; color: #555; line-height: 1.4; margin-top: 6px; }
-    .sig-status-valid { color: #166534; font-weight: bold; }
-    .sig-status-invalid { color: #991b1b; font-weight: bold; }
     .footer { margin-top: 20px; border-top: 1px solid #ccc; padding-top: 8px; font-size: 9px; color: #888; display: flex; justify-content: space-between; }
     @media print {
       body { padding: 0; }
@@ -239,11 +273,12 @@ function buildPrintHtml(
   <h2>Informações do Protocolo</h2>
   <div class="grid">
     <div class="field"><span class="field-label">Tipo:</span><span class="field-value">${TYPE_LABELS[protocol.type] ?? protocol.type}</span></div>
-    <div class="field"><span class="field-label">Canal:</span><span class="field-value">${CHANNEL_LABELS[protocol.channel] ?? protocol.channel}</span></div>
+    <div class="field"><span class="field-label">Canal:</span><span class="field-value">${channelLabel}</span></div>
     <div class="field"><span class="field-label">Prioridade:</span><span class="field-value">${PRIORITY_LABELS[protocol.priority] ?? protocol.priority}</span></div>
     <div class="field"><span class="field-label">Setor:</span><span class="field-value">${sector?.name ?? "—"}</span></div>
     <div class="field"><span class="field-label">Responsável:</span><span class="field-value">${responsible?.name ?? "—"}</span></div>
     <div class="field"><span class="field-label">Criado por:</span><span class="field-value">${creator?.name ?? "—"}</span></div>
+    ${conversation?.externalId ? `<div class="field"><span class="field-label">ID Conversa:</span><span class="field-value" style="font-family:monospace">${conversation.externalId}</span></div>` : ""}
     ${protocol.isConfidential ? `<div class="field"><span class="field-label">Sigilo:</span><span class="field-value" style="color:#b91c1c;font-weight:bold">SIGILOSO</span></div>` : ""}
   </div>
 
@@ -252,13 +287,13 @@ function buildPrintHtml(
   <div class="description-box">${protocol.description.replace(/<[^>]+>/g, " ").trim()}</div>
   ` : ""}
 
-  ${(protocol.requesterName || protocol.requesterEmail) ? `
+  ${(reqName || reqEmail) ? `
   <h2>Dados do Solicitante</h2>
   <div class="grid">
-    ${protocol.requesterName ? `<div class="field"><span class="field-label">Nome:</span><span class="field-value">${protocol.requesterName}</span></div>` : ""}
-    ${protocol.requesterCpfCnpj ? `<div class="field"><span class="field-label">CPF/CNPJ:</span><span class="field-value">${protocol.requesterCpfCnpj}</span></div>` : ""}
-    ${protocol.requesterEmail ? `<div class="field"><span class="field-label">E-mail:</span><span class="field-value">${protocol.requesterEmail}</span></div>` : ""}
-    ${protocol.requesterPhone ? `<div class="field"><span class="field-label">Telefone:</span><span class="field-value">${protocol.requesterPhone}</span></div>` : ""}
+    ${reqName ? `<div class="field"><span class="field-label">Nome:</span><span class="field-value">${reqName}</span></div>` : ""}
+    ${reqCpf ? `<div class="field"><span class="field-label">CPF/CNPJ:</span><span class="field-value">${reqCpf}</span></div>` : ""}
+    ${reqEmail ? `<div class="field"><span class="field-label">E-mail:</span><span class="field-value">${reqEmail}</span></div>` : ""}
+    ${reqPhone ? `<div class="field"><span class="field-label">Telefone:</span><span class="field-value">${reqPhone}</span></div>` : ""}
   </div>
   ` : ""}
 
@@ -270,6 +305,15 @@ function buildPrintHtml(
     <tbody>${tramRows}</tbody>
   </table>
   `}
+
+  <!-- Transcrição da conversa -->
+  ${msgs.length > 0 ? `
+  <h2>Transcrição da Conversa (${msgs.length} mensagens${conversation ? ` — ${channelLabel}${conversation.externalId ? " | ID: " + conversation.externalId : ""}` : ""})</h2>
+  <table>
+    <thead><tr><th style="width:120px">Data/Hora</th><th style="width:100px">Remetente</th><th>Mensagem</th></tr></thead>
+    <tbody>${msgRows}</tbody>
+  </table>
+  ` : ""}
 
   ${(verifiableDoc?.signatures?.length ?? 0) > 0 ? `
   <h2>Assinaturas Eletrônicas</h2>
