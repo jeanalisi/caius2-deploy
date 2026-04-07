@@ -333,3 +333,7 @@
 - [x] Exibir categorias e serviços com busca e filtro
 - [x] Configurar headers X-Frame-Options e CSP para permitir embedding externo
 - [x] Documentar código de incorporação para o portal
+
+## Widget: Grade de Blocos com Paginação
+- [x] Converter widget /widget/servicos de lista para grade de blocos
+- [x] 16 serviços por página com paginação abaixo
