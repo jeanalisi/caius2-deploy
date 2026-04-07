@@ -173,12 +173,46 @@ export async function duplicateServiceType(
     await db.insert(serviceSubjects).values(subjectsCopy);
   }
 
+  // 6. Copiar modelos de formulário (formTemplates) e seus campos (formFields)
+  const originalTemplates = await db
+    .select()
+    .from(formTemplates)
+    .where(and(eq(formTemplates.serviceTypeId, id), eq(formTemplates.isActive, true)));
+
+  let copiedTemplates = 0;
+  for (const tmpl of originalTemplates) {
+    const { id: _tid, createdAt: _tca, updatedAt: _tua, ...tmplRest } = tmpl;
+    const newTmplData: InsertFormTemplate = { ...tmplRest, serviceTypeId: newType.id };
+    await db.insert(formTemplates).values(newTmplData);
+    const newTmplRows = await db.select().from(formTemplates)
+      .orderBy(desc(formTemplates.createdAt)).limit(1);
+    const newTmpl = newTmplRows[0];
+    if (!newTmpl) continue;
+    copiedTemplates++;
+
+    const originalTmplFields = await db
+      .select()
+      .from(formFields)
+      .where(eq(formFields.formTemplateId, tmpl.id))
+      .orderBy(formFields.displayOrder);
+    if (originalTmplFields.length > 0) {
+      const tmplFieldsCopy: InsertFormField[] = originalTmplFields.map(
+        ({ id: _fid, createdAt: _fca, updatedAt: _fua, ...f }) => ({
+          ...f,
+          formTemplateId: newTmpl.id,
+        })
+      );
+      await db.insert(formFields).values(tmplFieldsCopy);
+    }
+  }
+
   return {
     ...newType,
     _copied: {
       fields: originalFields.length,
       documents: originalDocs.length,
       subjects: originalSubjects.length,
+      templates: copiedTemplates,
     },
   };
 }

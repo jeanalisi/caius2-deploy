@@ -181,6 +181,7 @@ export default function ServiceTypes() {
       if (copied?.fields > 0) parts.push(`${copied.fields} campo${copied.fields > 1 ? "s" : ""}`);
       if (copied?.documents > 0) parts.push(`${copied.documents} documento${copied.documents > 1 ? "s" : ""}`);
       if (copied?.subjects > 0) parts.push(`${copied.subjects} assunto${copied.subjects > 1 ? "s" : ""}`);
+      if (copied?.templates > 0) parts.push(`${copied.templates} modelo${copied.templates > 1 ? "s" : ""} de formulário`);
       const detail = parts.length > 0 ? ` (copiados: ${parts.join(", ")})` : "";
       toast.success(`"${newType.name}" criado com sucesso!${detail}`);
       refetch();
@@ -958,6 +959,9 @@ export default function ServiceTypes() {
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
                     ✓ Assuntos vinculados
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-xs font-medium">
+                    ✓ Modelos de formulário
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground">

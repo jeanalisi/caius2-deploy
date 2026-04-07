@@ -409,3 +409,9 @@
 - [x] Backend: copiar informações de publicação (purpose, whoCanRequest, cost, formOfService, responseChannel, importantNotes, faq)
 - [x] Frontend: exibir resumo do que será copiado no dialog com badges (configurações gerais, publicação, campos, documentos, assuntos)
 - [x] Frontend: toast de sucesso exibe quantos campos, documentos e assuntos foram copiados
+
+## Melhoria: Copiar modelos de formulário na duplicação
+- [x] Backend: copiar formTemplates vinculados ao tipo original para o novo tipo
+- [x] Backend: copiar formFields de cada formTemplate copiado
+- [x] Frontend: adicionar badge "✓ Modelos de formulário" no dialog de duplicar
+- [x] Frontend: toast de sucesso exibe quantos modelos foram copiados
