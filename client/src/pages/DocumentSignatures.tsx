@@ -201,6 +201,8 @@ function SignDialog({ open, onClose, verifiableDocumentId, nup, onSigned }: Sign
   const [unit, setUnit] = useState("");
   const [pin, setPin] = useState("");
   const [showPin, setShowPin] = useState(false);
+  const [geoCoords, setGeoCoords] = useState<{ lat: string; lng: string } | null>(null);
+  const [geoStatus, setGeoStatus] = useState<"idle" | "loading" | "ok" | "denied">("idle");
   const pinRef = useRef<HTMLInputElement>(null);
 
   // PIN gerado dinamicamente: últimos 4 dígitos do ID do usuário + 2 aleatórios
@@ -222,9 +224,24 @@ function SignDialog({ open, onClose, verifiableDocumentId, nup, onSigned }: Sign
     onError: (e) => toast.error(e.message),
   });
 
+  // Capturar geolocalização quando o usuário avança para o passo de confirmação
   const handleProceedToPin = () => {
     setStep("pin");
     setTimeout(() => pinRef.current?.focus(), 100);
+    if (geoStatus === "idle" && navigator.geolocation) {
+      setGeoStatus("loading");
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setGeoCoords({
+            lat: pos.coords.latitude.toString(),
+            lng: pos.coords.longitude.toString(),
+          });
+          setGeoStatus("ok");
+        },
+        () => setGeoStatus("denied"),
+        { timeout: 8000, maximumAge: 60000 }
+      );
+    }
   };
 
   const handleSign = () => {
@@ -241,6 +258,8 @@ function SignDialog({ open, onClose, verifiableDocumentId, nup, onSigned }: Sign
       unit: unit || undefined,
       userAgent: navigator.userAgent,
       origin: window.location.origin,
+      latitude: geoCoords?.lat,
+      longitude: geoCoords?.lng,
     });
   };
 
@@ -369,6 +388,16 @@ function SignDialog({ open, onClose, verifiableDocumentId, nup, onSigned }: Sign
               <p className="text-xs text-muted-foreground">
                 Assinatura do tipo: <strong>{selectedType?.label}</strong>
               </p>
+              {/* Status de geolocalização */}
+              {geoStatus === "loading" && (
+                <p className="text-xs text-amber-600">&#x1F4CD; Capturando localização geográfica...</p>
+              )}
+              {geoStatus === "ok" && geoCoords && (
+                <p className="text-xs text-green-600">&#x2705; Localização capturada: {parseFloat(geoCoords.lat).toFixed(5)}, {parseFloat(geoCoords.lng).toFixed(5)}</p>
+              )}
+              {geoStatus === "denied" && (
+                <p className="text-xs text-muted-foreground">&#x26A0;&#xFE0F; Localização não autorizada (será omitida da chancela).</p>
+              )}
             </div>
           </div>
         )}

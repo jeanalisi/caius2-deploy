@@ -466,3 +466,11 @@
 - [x] Navegação: item "Envio em Massa WhatsApp" adicionado na seção Canais do OmniLayout
 - [x] Rota /bulk-campaigns registrada no App.tsx
 - [x] TypeScript: corrigidos 26 erros de 'db possibly null' no routers-bulk.ts
+
+## Assinatura Digital — Chancela Atualizada
+- [x] Unidade certificadora fixa: "Município de Itabaiana-PB — CNPJ: 09.072.430/0001-93" no rodapé da chancela e na faixa lateral
+- [x] Capturar IP do assinante (já existia no backend, agora exibido na chancela)
+- [x] Capturar coordenadas geográficas via Geolocation API no frontend (DocumentSignatures.tsx e SignExternalPDF.tsx)
+- [x] Persistir latitude e longitude na tabela documentSignatures (migração 0011 aplicada)
+- [x] Exibir IP e coordenadas no bloco de cada assinatura na página de chancela
+- [x] Chancela nas páginas originais: faixa lateral direita com textos verticais rotacionados 90°, fontes escuras (rgb 0.15,0.15,0.15)

@@ -60,6 +60,7 @@ export default function SignExternalPDF() {
   });
   const [signedDoc, setSignedDoc] = useState<SignedDoc | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [geoCoords, setGeoCoords] = useState<{ lat: string; lng: string } | null>(null);
 
   // Estado de download
   const [isDownloading, setIsDownloading] = useState(false);
@@ -150,6 +151,21 @@ export default function SignExternalPDF() {
       return;
     }
 
+    // Tentar capturar geolocalização antes de assinar
+    let coords = geoCoords;
+    if (!coords && navigator.geolocation) {
+      try {
+        coords = await new Promise<{ lat: string; lng: string } | null>((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ lat: pos.coords.latitude.toString(), lng: pos.coords.longitude.toString() }),
+            () => resolve(null),
+            { timeout: 5000, maximumAge: 60000 }
+          );
+        });
+        if (coords) setGeoCoords(coords);
+      } catch { /* ignorar erro de geolocalização */ }
+    }
+
     try {
       // 1. Emitir chancela
       const issued = await issueChancela.mutateAsync({
@@ -170,6 +186,9 @@ export default function SignExternalPDF() {
         signatureType: signForm.signatureType,
         role: signForm.role || undefined,
         origin: window.location.origin,
+        userAgent: navigator.userAgent,
+        latitude: coords?.lat,
+        longitude: coords?.lng,
       });
 
       setSignedDoc({

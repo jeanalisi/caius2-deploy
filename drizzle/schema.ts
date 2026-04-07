@@ -1000,6 +1000,8 @@ export const documentSignatures = mysqlTable("documentSignatures", {
   // Evidências
   ipAddress: varchar("ipAddress", { length: 64 }),
   userAgent: text("userAgent"),
+  latitude: varchar("latitude", { length: 32 }),   // Coordenada geográfica do assinante
+  longitude: varchar("longitude", { length: 32 }),  // Coordenada geográfica do assinante
   // Código de acesso e verificação
   accessCode: varchar("accessCode", { length: 128 }).notNull().unique(),
   verificationUrl: varchar("verificationUrl", { length: 1024 }),

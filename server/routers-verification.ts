@@ -9,7 +9,7 @@ import {
 import { eq, and, or, desc } from "drizzle-orm";
 import crypto from "crypto";
 import QRCode from "qrcode";
-import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts, degrees } from "pdf-lib";
 import { storageGet } from "./storage";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -265,6 +265,8 @@ export const verificationRouter = router({
       ipAddress: z.string().optional(),
       userAgent: z.string().optional(),
       origin: z.string().optional(),
+      latitude: z.string().optional(),   // Coordenada geográfica do assinante
+      longitude: z.string().optional(),  // Coordenada geográfica do assinante
     }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -312,8 +314,11 @@ export const verificationRouter = router({
         documentHash: documentHash ?? undefined,
         signatureHash,
         algorithm: "SHA-256",
+        certIssuer: "Município de Itabaiana-PB — CNPJ: 09.072.430/0001-93",
         ipAddress: input.ipAddress ?? undefined,
         userAgent: input.userAgent ?? undefined,
+        latitude: input.latitude ?? undefined,
+        longitude: input.longitude ?? undefined,
         accessCode,
         verificationUrl: verificationUrl ?? undefined,
         status: "valid",
@@ -638,11 +643,12 @@ export const verificationRouter = router({
           const hasRoleUnit = !!(sig.signerRole || sig.signerUnit);
           const hasCpf = !!sig.signerCpfMasked;
           const hasCode = !!sig.accessCode;
-          const blockH = 16 + (hasRoleUnit ? 14 : 0) + 12 + 12 + (hasCode ? 12 : 0) + 8;
+          const hasIp = !!(sig as any).ipAddress;
+          const hasCoords = !!(sig as any).latitude && !!(sig as any).longitude;
+          const blockH = 16 + (hasRoleUnit ? 14 : 0) + 12 + 12 + (hasCode ? 12 : 0) + (hasIp ? 12 : 0) + (hasCoords ? 12 : 0) + 8;
 
           ensureSpace(blockH + 10);
 
-          const blockTop = y + 4;
           currentPage.drawRectangle({ x: MARGIN, y: y - blockH + 8, width: CONTENT_W, height: blockH, color: rgb(0.97, 0.97, 0.97) });
           currentPage.drawRectangle({ x: MARGIN, y: y - blockH + 8, width: 3, height: blockH, color: green });
 
@@ -670,6 +676,18 @@ export const verificationRouter = router({
           currentPage.drawText(`Tipo: ${typeLabel}${cpfPart}`, { x: sigX, y, size: 7.5, font: fontRegular, color: gray, maxWidth: CONTENT_W - 20 });
           y -= 12;
 
+          if (hasIp) {
+            currentPage.drawText(`Endereço IP: ${(sig as any).ipAddress}`, { x: sigX, y, size: 7, font: fontMono, color: darkGray });
+            y -= 12;
+          }
+
+          if (hasCoords) {
+            const lat = parseFloat((sig as any).latitude).toFixed(6);
+            const lng = parseFloat((sig as any).longitude).toFixed(6);
+            currentPage.drawText(`Coordenadas: ${lat}, ${lng}`, { x: sigX, y, size: 7, font: fontMono, color: darkGray });
+            y -= 12;
+          }
+
           if (hasCode) {
             currentPage.drawText(`Código de Acesso: ${sig.accessCode}`, { x: sigX, y, size: 7, font: fontMono, color: blue });
             y -= 12;
@@ -680,14 +698,18 @@ export const verificationRouter = router({
       }
 
       // ── Rodapé institucional (fixo na última página de chancela) ──
+      const CERT_ISSUER = "Unidade Certificadora: Município de Itabaiana-PB — CNPJ: 09.072.430/0001-93";
       const footerY = 30;
-      currentPage.drawLine({ start: { x: MARGIN, y: footerY + 28 }, end: { x: PAGE_W - MARGIN, y: footerY + 28 }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+      currentPage.drawLine({ start: { x: MARGIN, y: footerY + 38 }, end: { x: PAGE_W - MARGIN, y: footerY + 38 }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+      currentPage.drawText(CERT_ISSUER, {
+        x: MARGIN, y: footerY + 26, size: 7, font: fontBold, color: darkGray, maxWidth: CONTENT_W,
+      });
       currentPage.drawText("Este documento foi assinado eletronicamente conforme a Lei nº 14.063/2020 e tem validade jurídica.", {
-        x: MARGIN, y: footerY + 16, size: 7, font: fontRegular, color: gray, maxWidth: CONTENT_W,
+        x: MARGIN, y: footerY + 14, size: 7, font: fontRegular, color: gray, maxWidth: CONTENT_W,
       });
       const footerLinkLines = wrapText("Autenticidade verificável em: " + verifyUrl, fontMono, 6.5, CONTENT_W);
       footerLinkLines.forEach((fl, i) => {
-        currentPage.drawText(fl, { x: MARGIN, y: footerY + 4 - i * 10, size: 6.5, font: fontMono, color: blue });
+        currentPage.drawText(fl, { x: MARGIN, y: footerY + 2 - i * 10, size: 6.5, font: fontMono, color: blue });
       });
 
       // ── Merge com o PDF original ──
@@ -704,43 +726,78 @@ export const verificationRouter = router({
             throw new Error("Invalid PDF header");
           }
 
-          // Carregar PDF original e inserir rodapé de referência em cada página
+          // Carregar PDF original e inserir chancela lateral vertical em cada página
           const originalDoc = await PDFDocument.load(originalPdfBytes, { ignoreEncryption: true });
           const refFontBold = await originalDoc.embedFont(StandardFonts.HelveticaBold);
           const refFontReg = await originalDoc.embedFont(StandardFonts.Helvetica);
+          const refFontMono = await originalDoc.embedFont(StandardFonts.Courier);
           const refBlue = rgb(0.1, 0.22, 0.42);
-          const refGray = rgb(0.5, 0.5, 0.5);
+          const refDark = rgb(0.15, 0.15, 0.15);
+          const refGray = rgb(0.35, 0.35, 0.35);
 
           const nupShort = doc.nup ?? doc.verificationKey;
-          const refText1 = `Documento assinado eletronicamente no CAIUS  |  NUP: ${nupShort}`;
-          const refText2 = `Chave: ${doc.verificationKey}  |  Verificar autenticidade na última página ou em: ${verifyUrl}`;
+          // Texto da chancela lateral (será rotacionado 90°)
+          const sideText1 = `CAIUS • Assinado Eletronicamente • NUP: ${nupShort}`;
+          const sideText2 = `Chave: ${doc.verificationKey}`;
+          const sideText3 = `Unidade Certificadora: Município de Itabaiana-PB — CNPJ: 09.072.430/0001-93`;
+          const sideText4 = `Verificar em: ${verifyUrl}`;
 
           const pages = originalDoc.getPages();
           for (const pg of pages) {
             const { width: pgW, height: pgH } = pg.getSize();
-            const refMargin = 30;
-            const refY = 18;
+            // Faixa lateral direita: largura 18pt
+            const sideX = pgW - 18;
+            const sideW = 18;
 
-            // Linha separadora acima do rodapé
+            // Fundo da faixa lateral
+            pg.drawRectangle({
+              x: sideX, y: 0,
+              width: sideW, height: pgH,
+              color: rgb(0.93, 0.96, 1.0),
+            });
+            // Borda esquerda da faixa
             pg.drawLine({
-              start: { x: refMargin, y: refY + 22 },
-              end: { x: pgW - refMargin, y: refY + 22 },
-              thickness: 0.4,
-              color: refGray,
+              start: { x: sideX, y: 0 },
+              end: { x: sideX, y: pgH },
+              thickness: 0.5,
+              color: refBlue,
             });
 
-            // Linha 1: CAIUS + NUP
-            pg.drawText(refText1, {
-              x: refMargin, y: refY + 10,
-              size: 6.5, font: refFontBold, color: refBlue,
-              maxWidth: pgW - 2 * refMargin,
+            // Textos verticais (rotacionados 90°, de baixo para cima)
+            // pdf-lib: rotate = Math.PI/2 gira anti-horário, posicionando o texto de baixo para cima
+            const textX = sideX + 13; // ponto de ancoração (base do texto rotacionado)
+            const gap = 6;
+
+            // Linha 1: CAIUS + NUP (negrito, azul)
+            pg.drawText(sideText1, {
+              x: textX, y: 20,
+              size: 5.5, font: refFontBold, color: refBlue,
+              rotate: degrees(90),
+              maxWidth: pgH - 40,
             });
 
-            // Linha 2: Chave + link
-            pg.drawText(refText2, {
-              x: refMargin, y: refY - 1,
-              size: 5.5, font: refFontReg, color: refGray,
-              maxWidth: pgW - 2 * refMargin,
+            // Linha 2: Chave (mono, escuro)
+            pg.drawText(sideText2, {
+              x: textX - 7, y: 20,
+              size: 5, font: refFontMono, color: refDark,
+              rotate: degrees(90),
+              maxWidth: pgH - 40,
+            });
+
+            // Linha 3: Unidade Certificadora (regular, escuro)
+            pg.drawText(sideText3, {
+              x: textX - 13, y: 20,
+              size: 4.5, font: refFontReg, color: refDark,
+              rotate: degrees(90),
+              maxWidth: pgH - 40,
+            });
+
+            // Linha 4: URL de verificação (mono, cinza escuro)
+            pg.drawText(sideText4, {
+              x: textX - 19, y: 20,
+              size: 4.5, font: refFontMono, color: refGray,
+              rotate: degrees(90),
+              maxWidth: pgH - 40,
             });
           }
 
