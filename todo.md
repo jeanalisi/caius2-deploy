@@ -327,3 +327,9 @@
 - [x] Backend: endpoint notifications.list e notifications.markRead no router
 - [x] Frontend: sino do header exibe badge de não lidas e lista de notificações de documentos
 - [x] Frontend: link direto para o documento na notificação
+
+## Widget de Serviços para Portal Institucional (iframe)
+- [x] Criar página pública /widget/servicos embeddável via iframe
+- [x] Exibir categorias e serviços com busca e filtro
+- [x] Configurar headers X-Frame-Options e CSP para permitir embedding externo
+- [x] Documentar código de incorporação para o portal

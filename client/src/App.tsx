@@ -51,6 +51,7 @@ import ChatbotAdmin from "./pages/ChatbotAdmin";
 import ChatCidadao from "./pages/ChatCidadao";
 import EmailInstitucional from "./pages/EmailInstitucional";
 import CaiusAgent from "./pages/CaiusAgent";
+import WidgetServicos from "./pages/WidgetServicos";
 import CaiusConfig from "./pages/CaiusConfig";
 import ControleDashboard from "./pages/ControleDashboard";
 import ControleDocumentoPage from "./pages/ControleDocumentoPage";
@@ -78,6 +79,7 @@ function Router() {
       <Route path={"/verificar/:key"} component={VerifyDocument} />
       <Route path={"/verificar"} component={VerifyDocument} />
       <Route path={"/central-cidadao"} component={CentralCidadao} />
+      <Route path={"/widget/servicos"} component={WidgetServicos} />
       <Route path={"/atendimento"} component={ChatCidadao} />
       <Route path={"/chat"} component={ChatCidadao} />
       <Route path={"/atendimento-online"} component={ChatCidadao} />

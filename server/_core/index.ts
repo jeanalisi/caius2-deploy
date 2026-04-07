@@ -39,6 +39,13 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
+  // Allow /widget/* routes to be embedded in external iframes
+  app.use("/widget", (_req, res, next) => {
+    res.removeHeader("X-Frame-Options");
+    res.setHeader("Content-Security-Policy", "frame-ancestors *");
+    next();
+  });
+
   // Initialize Socket.io
   initSocketIO(server);
 

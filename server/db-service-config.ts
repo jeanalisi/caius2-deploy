@@ -190,6 +190,8 @@ export async function getCidadaoServices(input?: { search?: string; category?: s
       importantNotes: serviceTypes.importantNotes,
       isPublic: serviceTypes.isPublic,
       publicationStatus: serviceTypes.publicationStatus,
+      serviceMode: serviceTypes.serviceMode,
+      externalUrl: serviceTypes.externalUrl,
     })
     .from(serviceTypes)
     .where(and(...conditions))
