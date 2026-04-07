@@ -51,7 +51,7 @@ import {
   updateSector,
 } from "./db-caius";
 import crypto from "crypto";
-import { sendOfficialDocument, getDocumentRecipients } from "./doc-sender";
+import { sendOfficialDocument, getDocumentRecipients, getLastSendByDocumentIds } from "./doc-sender";
 import { getAllUsers, createNotification } from "./db";
 import { generateProtocolPdf } from "./protocol-pdf";
 import { storagePut } from "./storage";
@@ -485,6 +485,10 @@ export const caiusRouter = router({
     recipients: protectedProcedure
       .input(z.object({ documentId: z.number() }))
       .query(({ input }) => getDocumentRecipients(input.documentId)),
+
+    lastSends: protectedProcedure
+      .input(z.object({ documentIds: z.array(z.number()) }))
+      .query(({ input }) => getLastSendByDocumentIds(input.documentIds)),
   }),
 
   // ── Admin Processes ────────────────────────────────────────────────────────

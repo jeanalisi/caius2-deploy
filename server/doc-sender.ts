@@ -9,7 +9,7 @@ import { getDb, getAllAccounts } from "./db";
 import { sendWhatsAppMessage } from "./whatsapp";
 import { docRecipients, officialDocuments, users, orgUnits } from "../drizzle/schema";
 import type { Account } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { storagePut } from "./storage";
 
 // ─── PDF constants ────────────────────────────────────────────────────────────
@@ -397,4 +397,22 @@ export async function getDocumentRecipients(documentId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(docRecipients).where(eq(docRecipients.documentId, documentId));
+}
+
+/** Retorna o envio mais recente para cada documentId informado */
+export async function getLastSendByDocumentIds(documentIds: number[]) {
+  if (documentIds.length === 0) return [];
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select()
+    .from(docRecipients)
+    .where(sql`${docRecipients.documentId} IN (${sql.join(documentIds.map(id => sql`${id}`), sql`, `)})`)
+    .orderBy(desc(docRecipients.createdAt));
+  const seen = new Set<number>();
+  return rows.filter(r => {
+    if (seen.has(r.documentId)) return false;
+    seen.add(r.documentId);
+    return true;
+  });
 }

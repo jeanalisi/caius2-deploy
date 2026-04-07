@@ -316,3 +316,8 @@
 - [x] Backend: notificação interna ao enviar documento para destinatário interno (caius.documents.send)
 - [x] ServicoDetalhe.tsx: corrigir validação do formulário (assunto usa nome do serviço como fallback, valida campos dinâmicos obrigatórios)
 - [x] Testes: mock de createNotification adicionado, 120 testes passando
+
+## Melhorias Adicionais (Sessão Atual)
+- [x] Documents.tsx: adicionar coluna "Último Envio" na tabela com status do envio mais recente
+- [x] Protocols.tsx: converter CreateProtocolDialog para painel inline
+- [x] Consulta pública NUP: verificar e corrigir página /consulta com histórico de tramitações

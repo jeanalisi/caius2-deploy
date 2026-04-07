@@ -36,7 +36,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 
@@ -530,6 +530,20 @@ export default function Documents() {
     limit: 100,
   });
 
+  const documentIds = useMemo(
+    () => (documents ?? []).map(({ document }: any) => document.id as number),
+    [documents]
+  );
+  const { data: lastSends } = trpc.caius.documents.lastSends.useQuery(
+    { documentIds },
+    { enabled: documentIds.length > 0 }
+  );
+  const lastSendMap = useMemo(() => {
+    const m: Record<number, any> = {};
+    for (const r of lastSends ?? []) m[r.documentId] = r;
+    return m;
+  }, [lastSends]);
+
   const closePanel = () => setActivePanel(null);
 
   return (
@@ -604,6 +618,7 @@ export default function Documents() {
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                       <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Criado em</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Último Envio</th>
                       <th className="px-4 py-3"></th>
                     </tr>
                   </thead>
@@ -642,6 +657,25 @@ export default function Documents() {
                             </td>
                             <td className="px-4 py-3">
                               <span className="text-xs text-muted-foreground">{new Date(document.createdAt).toLocaleDateString("pt-BR")}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              {(() => {
+                                const ls = lastSendMap[document.id];
+                                if (!ls) return <span className="text-xs text-muted-foreground/50">—</span>;
+                                const cfg: Record<string, { label: string; color: string }> = {
+                                  sent: { label: "Enviado", color: "bg-green-500/10 text-green-600 border-green-500/20" },
+                                  failed: { label: "Falhou", color: "bg-red-500/10 text-red-600 border-red-500/20" },
+                                  pending: { label: "Pendente", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" },
+                                  skipped: { label: "Ignorado", color: "bg-muted text-muted-foreground border-border" },
+                                };
+                                const s = cfg[ls.status] ?? cfg.pending;
+                                return (
+                                  <div className="space-y-0.5">
+                                    <span className={cn("text-xs border rounded-full px-2 py-0.5", s.color)}>{s.label}</span>
+                                    {ls.sentAt && <p className="text-xs text-muted-foreground/60">{new Date(ls.sentAt).toLocaleDateString("pt-BR")}</p>}
+                                  </div>
+                                );
+                              })()}
                             </td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-1.5">

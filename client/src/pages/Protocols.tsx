@@ -1,15 +1,9 @@
+
 import OmniLayout from "@/components/OmniLayout";
 import DocumentEditor from "@/components/DocumentEditor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +17,7 @@ import { trpc } from "@/lib/trpc";
 import { cn } from "@/lib/utils";
 import {
   AlertCircle,
+  ArrowLeft,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -83,8 +78,8 @@ function NupBadge({ nup }: { nup: string }) {
   );
 }
 
-function CreateProtocolDialog({ onCreated }: { onCreated: () => void }) {
-  const [open, setOpen] = useState(false);
+// ─── Painel Inline de Criação de Protocolo ────────────────────────────────────
+function CreateProtocolPanel({ onCreated, onCancel }: { onCreated: () => void; onCancel: () => void }) {
   const [form, setForm] = useState({
     subject: "",
     description: "",
@@ -108,7 +103,6 @@ function CreateProtocolDialog({ onCreated }: { onCreated: () => void }) {
 
   const create = trpc.caius.protocols.create.useMutation({
     onSuccess: async (data) => {
-      // Upload pending files linked to the new protocol
       if (pendingFiles.length > 0) {
         setUploading(true);
         try {
@@ -129,9 +123,6 @@ function CreateProtocolDialog({ onCreated }: { onCreated: () => void }) {
         }
       }
       toast.success(`Protocolo criado com NUP: ${data.nup}`, { duration: 8000 });
-      setOpen(false);
-      setForm({ subject: "", description: "", type: "request", channel: "web", priority: "normal", requesterName: "", requesterEmail: "", requesterPhone: "", requesterCpfCnpj: "", isConfidential: false });
-      setPendingFiles([]);
       onCreated();
     },
     onError: (e) => toast.error("Erro ao criar protocolo: " + e.message),
@@ -167,24 +158,25 @@ function CreateProtocolDialog({ onCreated }: { onCreated: () => void }) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Protocolo
+    <Card className="bg-card border-border">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+        <Button variant="ghost" size="sm" onClick={onCancel} className="gap-1.5 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-4 w-4" />Voltar
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ClipboardList className="h-5 w-5 text-primary" />
-            Abrir Novo Protocolo
-          </DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-4 py-2">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <Label>Assunto *</Label>
+        <div className="flex items-center gap-2">
+          <ClipboardList className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold text-foreground">Abrir Novo Protocolo</h2>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-6">
+        {/* Dados do protocolo */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados do Protocolo</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2">
+              <Label>Assunto <span className="text-destructive">*</span></Label>
               <Input
                 value={form.subject}
                 onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
@@ -242,7 +234,7 @@ function CreateProtocolDialog({ onCreated }: { onCreated: () => void }) {
             </div>
 
             {/* Rich Text Editor */}
-            <div className="col-span-2">
+            <div className="md:col-span-2">
               <Label>Descrição</Label>
               <div className="mt-1">
                 <DocumentEditor compact
@@ -255,7 +247,7 @@ function CreateProtocolDialog({ onCreated }: { onCreated: () => void }) {
             </div>
 
             {/* File Upload */}
-            <div className="col-span-2">
+            <div className="md:col-span-2">
               <Label>Documentos Anexos</Label>
               <div
                 className="mt-1 border border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
@@ -293,31 +285,34 @@ function CreateProtocolDialog({ onCreated }: { onCreated: () => void }) {
               )}
             </div>
           </div>
+        </div>
 
-          <div className="border-t border-border pt-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Dados do Solicitante</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Nome</Label>
-                <Input value={form.requesterName} onChange={(e) => setForm((f) => ({ ...f, requesterName: e.target.value }))} className="mt-1" />
-              </div>
-              <div>
-                <Label>CPF/CNPJ</Label>
-                <Input value={form.requesterCpfCnpj} onChange={(e) => setForm((f) => ({ ...f, requesterCpfCnpj: e.target.value }))} className="mt-1" placeholder="000.000.000-00" />
-              </div>
-              <div>
-                <Label>E-mail</Label>
-                <Input type="email" value={form.requesterEmail} onChange={(e) => setForm((f) => ({ ...f, requesterEmail: e.target.value }))} className="mt-1" />
-              </div>
-              <div>
-                <Label>Telefone</Label>
-                <Input value={form.requesterPhone} onChange={(e) => setForm((f) => ({ ...f, requesterPhone: e.target.value }))} className="mt-1" placeholder="(00) 00000-0000" />
-              </div>
+        {/* Dados do Solicitante */}
+        <div className="border-t border-border pt-5 space-y-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Dados do Solicitante</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label>Nome</Label>
+              <Input value={form.requesterName} onChange={(e) => setForm((f) => ({ ...f, requesterName: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label>CPF/CNPJ</Label>
+              <Input value={form.requesterCpfCnpj} onChange={(e) => setForm((f) => ({ ...f, requesterCpfCnpj: e.target.value }))} className="mt-1" placeholder="000.000.000-00" />
+            </div>
+            <div>
+              <Label>E-mail</Label>
+              <Input type="email" value={form.requesterEmail} onChange={(e) => setForm((f) => ({ ...f, requesterEmail: e.target.value }))} className="mt-1" />
+            </div>
+            <div>
+              <Label>Telefone</Label>
+              <Input value={form.requesterPhone} onChange={(e) => setForm((f) => ({ ...f, requesterPhone: e.target.value }))} className="mt-1" placeholder="(00) 00000-0000" />
             </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+
+        {/* Actions */}
+        <div className="flex justify-end gap-2 pt-2 border-t border-border">
+          <Button variant="outline" onClick={onCancel}>Cancelar</Button>
           <Button
             onClick={() => create.mutate({ ...form, responsibleSectorId: sectorId })}
             disabled={!form.subject || create.isPending || uploading}
@@ -326,16 +321,18 @@ function CreateProtocolDialog({ onCreated }: { onCreated: () => void }) {
             {uploading ? "Enviando anexos..." : "Abrir Protocolo e Gerar NUP"}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Card>
   );
 }
 
+// ─── Componente principal ─────────────────────────────────────────────────────
 export default function Protocols() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
   const utils = trpc.useUtils();
 
   const { data: protocols, isLoading } = trpc.caius.protocols.list.useQuery({
@@ -354,145 +351,164 @@ export default function Protocols() {
   return (
     <OmniLayout title="Protocolos — NUP">
       <div className="p-6 space-y-6">
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {[
-            { key: "total", label: "Total", color: "text-foreground" },
-            { key: "open", label: "Abertos", color: "text-blue-400" },
-            { key: "in_analysis", label: "Em Análise", color: "text-yellow-400" },
-            { key: "in_progress", label: "Em Andamento", color: "text-purple-400" },
-            { key: "concluded", label: "Concluídos", color: "text-green-400" },
-            { key: "archived", label: "Arquivados", color: "text-muted-foreground" },
-          ].map((s) => (
-            <Card key={s.key} className="bg-card border-border">
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">{s.label}</p>
-                <p className={cn("text-2xl font-bold mt-1", s.color)}>
-                  {(stats as any)?.[s.key] ?? 0}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
 
-        {/* Filters + Actions */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por NUP, assunto, nome, CPF..."
-              className="pl-9"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-44">
-              <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              {Object.entries(STATUS_CONFIG).map(([v, c]) => (
-                <SelectItem key={v} value={v}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={typeFilter} onValueChange={(v: string) => setTypeFilter(v)}>
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="Tipo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os tipos</SelectItem>
-              {Object.entries(TYPE_LABELS).map(([v, l]) => (
-                <SelectItem key={v} value={v}>{l}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <CreateProtocolDialog onCreated={() => utils.caius.protocols.list.invalidate()} />
-        </div>
+        {/* ── Painel inline de criação ── */}
+        {showCreate && (
+          <CreateProtocolPanel
+            onCreated={() => { utils.caius.protocols.list.invalidate(); setShowCreate(false); }}
+            onCancel={() => setShowCreate(false)}
+          />
+        )}
 
-        {/* Table */}
-        <Card className="bg-card border-border overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">NUP</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assunto</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Prioridade</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Setor</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Abertura</th>
-                  <th className="px-4 py-3"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-12">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                    </td>
-                  </tr>
-                ) : !protocols?.length ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-12">
-                      <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
-                      <p className="text-muted-foreground text-sm">Nenhum protocolo encontrado</p>
-                    </td>
-                  </tr>
-                ) : (
-                  protocols.map(({ protocol, sector }) => {
-                    const status = STATUS_CONFIG[protocol.status] ?? STATUS_CONFIG.open;
-                    const priority = PRIORITY_CONFIG[protocol.priority] ?? PRIORITY_CONFIG.normal;
-                    const StatusIcon = status.icon;
-                    return (
-                      <tr
-                        key={protocol.id}
-                        className="hover:bg-muted/30 cursor-pointer transition-colors"
-                        onClick={() => setSelectedId(protocol.id)}
-                      >
-                        <td className="px-4 py-3">
-                          <NupBadge nup={protocol.nup} />
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-foreground line-clamp-1 max-w-xs">{protocol.subject}</p>
-                          {protocol.requesterName && (
-                            <p className="text-xs text-muted-foreground mt-0.5">{protocol.requesterName}</p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs text-muted-foreground">{TYPE_LABELS[protocol.type] ?? protocol.type}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={cn("inline-flex items-center gap-1 text-xs border rounded-full px-2 py-0.5", status.color)}>
-                            <StatusIcon className="h-3 w-3" />
-                            {status.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={cn("text-xs font-medium", priority.color)}>{priority.label}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs text-muted-foreground">{sector?.name ?? "—"}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(protocol.createdAt).toLocaleDateString("pt-BR")}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        {/* ── Lista de Protocolos ── */}
+        {!showCreate && (
+          <>
+            {/* Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {[
+                { key: "total", label: "Total", color: "text-foreground" },
+                { key: "open", label: "Abertos", color: "text-blue-400" },
+                { key: "in_analysis", label: "Em Análise", color: "text-yellow-400" },
+                { key: "in_progress", label: "Em Andamento", color: "text-purple-400" },
+                { key: "concluded", label: "Concluídos", color: "text-green-400" },
+                { key: "archived", label: "Arquivados", color: "text-muted-foreground" },
+              ].map((s) => (
+                <Card key={s.key} className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <p className="text-xs text-muted-foreground">{s.label}</p>
+                    <p className={cn("text-2xl font-bold mt-1", s.color)}>
+                      {(stats as any)?.[s.key] ?? 0}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Filters + Actions */}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por NUP, assunto, nome, CPF..."
+                  className="pl-9"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-44">
+                  <Filter className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os status</SelectItem>
+                  {Object.entries(STATUS_CONFIG).map(([v, c]) => (
+                    <SelectItem key={v} value={v}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={(v: string) => setTypeFilter(v)}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Tipo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os tipos</SelectItem>
+                  {Object.entries(TYPE_LABELS).map(([v, l]) => (
+                    <SelectItem key={v} value={v}>{l}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button className="gap-2" onClick={() => setShowCreate(true)}>
+                <Plus className="h-4 w-4" />Novo Protocolo
+              </Button>
+            </div>
+
+            {/* Table */}
+            <Card className="bg-card border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">NUP</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assunto</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tipo</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Prioridade</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Setor</th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Abertura</th>
+                      <th className="px-4 py-3"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-12">
+                          <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                         </td>
                       </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                    ) : !protocols?.length ? (
+                      <tr>
+                        <td colSpan={8} className="text-center py-12">
+                          <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                          <p className="text-muted-foreground text-sm">Nenhum protocolo encontrado</p>
+                          <Button variant="outline" size="sm" className="mt-3 gap-2" onClick={() => setShowCreate(true)}>
+                            <Plus className="h-3.5 w-3.5" />Criar primeiro protocolo
+                          </Button>
+                        </td>
+                      </tr>
+                    ) : (
+                      protocols.map(({ protocol, sector }) => {
+                        const status = STATUS_CONFIG[protocol.status] ?? STATUS_CONFIG.open;
+                        const priority = PRIORITY_CONFIG[protocol.priority] ?? PRIORITY_CONFIG.normal;
+                        const StatusIcon = status.icon;
+                        return (
+                          <tr
+                            key={protocol.id}
+                            className="hover:bg-muted/30 cursor-pointer transition-colors"
+                            onClick={() => setSelectedId(protocol.id)}
+                          >
+                            <td className="px-4 py-3">
+                              <NupBadge nup={protocol.nup} />
+                            </td>
+                            <td className="px-4 py-3">
+                              <p className="font-medium text-foreground line-clamp-1 max-w-xs">{protocol.subject}</p>
+                              {protocol.requesterName && (
+                                <p className="text-xs text-muted-foreground mt-0.5">{protocol.requesterName}</p>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs text-muted-foreground">{TYPE_LABELS[protocol.type] ?? protocol.type}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={cn("inline-flex items-center gap-1 text-xs border rounded-full px-2 py-0.5", status.color)}>
+                                <StatusIcon className="h-3 w-3" />
+                                {status.label}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={cn("text-xs font-medium", priority.color)}>{priority.label}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs text-muted-foreground">{sector?.name ?? "—"}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(protocol.createdAt).toLocaleDateString("pt-BR")}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </>
+        )}
       </div>
     </OmniLayout>
   );
