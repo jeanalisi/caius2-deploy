@@ -501,7 +501,7 @@ export default function CentralCidadao() {
               ) : (
                 <>
                   <p className="text-sm text-gray-500 mb-4">
-                    {(services as any[]).length} serviço{(services as any[]).length !== 1 ? "s" : ""} disponível{(services as any[]).length !== 1 ? "is" : ""}
+                    {(services as any[]).length} serviço{(services as any[]).length !== 1 ? "s" : ""} disponíve{(services as any[]).length !== 1 ? "is" : "l"}
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {(services as any[]).map((svc) => {
