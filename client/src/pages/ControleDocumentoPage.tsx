@@ -121,7 +121,7 @@ function ControleDocumentoEmissao({ documentType }: Props) {
     },
   });
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<UseFormData>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<UseFormData>({
     resolver: zodResolver(useSchema) as any,
   });
 
@@ -182,7 +182,9 @@ function ControleDocumentoEmissao({ documentType }: Props) {
                   <Label>Controle de Numeração</Label>
                   <Select
                     onValueChange={(v) => {
-                      setSelectedControlId(Number(v));
+                      const id = Number(v);
+                      setSelectedControlId(id);
+                      setValue("controlId", id, { shouldValidate: true });
                     }}
                   >
                     <SelectTrigger>
@@ -196,7 +198,7 @@ function ControleDocumentoEmissao({ documentType }: Props) {
                       ))}
                     </SelectContent>
                   </Select>
-                  <input type="hidden" {...register("controlId")} value={selectedControlId ?? ""} />
+                  <input type="hidden" {...register("controlId")} />
                   {errors.controlId && (
                     <p className="text-xs text-destructive">{errors.controlId.message}</p>
                   )}
