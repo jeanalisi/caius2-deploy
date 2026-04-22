@@ -33,6 +33,32 @@ export async function getOrgMemberById(id: number) {
   return rows[0] ?? null;
 }
 
+// ─── Buscar por ID (público) ──────────────────────────────────────────────────
+export async function getOrgMemberPublicById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select({
+      id: orgMembers.id,
+      orgUnitId: orgMembers.orgUnitId,
+      positionId: orgMembers.positionId,
+      name: orgMembers.name,
+      matricula: orgMembers.matricula,
+      cargo: orgMembers.cargo,
+      cargoLei: orgMembers.cargoLei,
+      photoUrl: orgMembers.photoUrl,
+      email: orgMembers.email,
+      phone: orgMembers.phone,
+      bio: orgMembers.bio,
+      externalLink: orgMembers.externalLink,
+      sortOrder: orgMembers.sortOrder,
+    })
+    .from(orgMembers)
+    .where(and(eq(orgMembers.id, id), eq(orgMembers.isPublic, true), eq(orgMembers.isActive, true)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
 // ─── Criar membro ─────────────────────────────────────────────────────────────
 export async function createOrgMember(data: Omit<InsertOrgMember, "id" | "createdAt" | "updatedAt">) {
   const db = await getDb();
@@ -76,6 +102,10 @@ export async function getPublicOrgMembers(orgUnitId?: number) {
       cargo: orgMembers.cargo,
       cargoLei: orgMembers.cargoLei,
       photoUrl: orgMembers.photoUrl,
+      email: orgMembers.email,
+      phone: orgMembers.phone,
+      bio: orgMembers.bio,
+      externalLink: orgMembers.externalLink,
       sortOrder: orgMembers.sortOrder,
     })
     .from(orgMembers)

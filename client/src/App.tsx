@@ -39,6 +39,7 @@ import AcceptInvite from "./pages/AcceptInvite";
 import CentralCidadao from "./pages/CentralCidadao";
 import EstruturaAdministrativa from "./pages/EstruturaAdministrativa";
 import ServicoDetalhe from "./pages/ServicoDetalhe";
+import ServidorDetalhes from "./pages/ServidorDetalhes";
 import CustomModules from "./pages/CustomModules";
 import CustomModuleRecords from "./pages/CustomModuleRecords";
 import VerifyDocument from "./pages/VerifyDocument";
@@ -96,6 +97,7 @@ function Router() {
       <Route path={"/estrutura-administrativa"} component={EstruturaAdministrativa} />
       <Route path={"/estrutura"} component={EstruturaAdministrativa} />
       <Route path={"/servico/:id"} component={ServicoDetalhe} />
+      <Route path={"/servidor/:id"} component={ServidorDetalhes} />
 
       {/* Dashboard */}
       <Route path={"/"} component={Dashboard} />

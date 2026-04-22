@@ -649,24 +649,27 @@ export default function EstruturaAdministrativa() {
                       ) : (
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                           {(servants as any[]).map((s) => (
-                            <div key={s.id} className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center">
-                              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
-                                {s.photoUrl ? (
-                                  <img src={s.photoUrl} alt={s.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <Users className="w-8 h-8 text-slate-400" />
-                                )}
+                            <Link key={s.id} href={`/servidor/${s.id}`}>
+                              <div className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer group">
+                                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                                  {s.photoUrl ? (
+                                    <img src={s.photoUrl} alt={s.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Users className="w-8 h-8 text-slate-400 group-hover:text-blue-400" />
+                                  )}
+                                </div>
+                                <div className="min-w-0 w-full">
+                                  <p className="text-xs font-semibold text-slate-800 group-hover:text-blue-700 leading-tight">{s.name.toLowerCase().replace(/\b\w/g, (c: string) => c.toUpperCase())}</p>
+                                  {s.cargo && (
+                                    <p className="text-[10px] text-slate-500 group-hover:text-blue-500 mt-0.5 leading-tight">{s.cargo}</p>
+                                  )}
+                                  {s.matricula && (
+                                    <p className="text-[10px] font-mono text-slate-400 mt-0.5">Mat. {s.matricula}</p>
+                                  )}
+                                  <p className="text-[10px] text-blue-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">Ver detalhes →</p>
+                                </div>
                               </div>
-                              <div className="min-w-0 w-full">
-                                <p className="text-xs font-semibold text-slate-800 leading-tight">{s.name}</p>
-                                {s.positionName && (
-                                  <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{s.positionName}</p>
-                                )}
-                                {s.matricula && (
-                                  <p className="text-[10px] font-mono text-slate-400 mt-0.5">Mat. {s.matricula}</p>
-                                )}
-                              </div>
-                            </div>
+                            </Link>
                           ))}
                         </div>
                       )}

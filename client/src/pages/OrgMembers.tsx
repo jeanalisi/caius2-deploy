@@ -64,6 +64,8 @@ type Member = {
   photoUrl?: string | null;
   email?: string | null;
   phone?: string | null;
+  bio?: string | null;
+  externalLink?: string | null;
   isPublic: boolean;
   isActive: boolean;
   sortOrder: number;
@@ -85,6 +87,8 @@ const EMPTY_FORM = {
   photoUrl: "",
   email: "",
   phone: "",
+  bio: "",
+  externalLink: "",
   isPublic: true,
 };
 
@@ -162,6 +166,8 @@ export default function OrgMembers() {
       photoUrl: m.photoUrl ?? "",
       email: m.email ?? "",
       phone: m.phone ?? "",
+      bio: m.bio ?? "",
+      externalLink: m.externalLink ?? "",
       isPublic: m.isPublic,
     });
     setPhotoPreview(m.photoUrl ?? null);
@@ -206,6 +212,8 @@ export default function OrgMembers() {
         photoUrl: form.photoUrl || null,
         email: form.email || null,
         phone: form.phone || undefined,
+        bio: form.bio || null,
+        externalLink: form.externalLink || null,
         isPublic: form.isPublic,
       });
     } else {
@@ -218,6 +226,8 @@ export default function OrgMembers() {
         photoUrl: form.photoUrl || undefined,
         email: form.email || undefined,
         phone: form.phone || undefined,
+        bio: form.bio || undefined,
+        externalLink: form.externalLink || undefined,
         isPublic: form.isPublic,
       });
     }
@@ -526,6 +536,17 @@ export default function OrgMembers() {
               </Select>
             </div>
 
+            {/* Telefone */}
+            <div>
+              <Label>Telefone / WhatsApp</Label>
+              <Input
+                className="mt-1"
+                type="tel"
+                placeholder="(83) 99999-9999"
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+              />
+            </div>
             {/* Email */}
             <div>
               <Label>E-mail institucional</Label>
@@ -537,7 +558,30 @@ export default function OrgMembers() {
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
               />
             </div>
-
+            {/* Resumo Profissional */}
+            <div>
+              <Label>Resumo Profissional</Label>
+              <textarea
+                className="mt-1 w-full min-h-[80px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-y"
+                placeholder="Breve descrição da trajetória e atribuições do servidor..."
+                value={form.bio}
+                onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+                maxLength={2000}
+              />
+              <p className="text-xs text-slate-400 mt-1">{form.bio.length}/2000 caracteres</p>
+            </div>
+            {/* Link Externo */}
+            <div>
+              <Label>Link Externo</Label>
+              <Input
+                className="mt-1"
+                type="url"
+                placeholder="https://..."
+                value={form.externalLink}
+                onChange={(e) => setForm((f) => ({ ...f, externalLink: e.target.value }))}
+              />
+              <p className="text-xs text-slate-400 mt-1">Ex: perfil no LinkedIn, Lattes, site institucional</p>
+            </div>
             {/* Visibilidade */}
             <div className="flex items-center justify-between p-3 rounded-lg border border-slate-200 bg-slate-50">
               <div>

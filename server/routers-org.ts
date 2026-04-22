@@ -21,7 +21,7 @@ import {
 } from "./db-org";
 import { seedOrgStructure } from "./seed-org";
 import {
-  getOrgMembers, getOrgMemberById, createOrgMember, updateOrgMember, deleteOrgMember, getPublicOrgMembers,
+  getOrgMembers, getOrgMemberById, createOrgMember, updateOrgMember, deleteOrgMember, getPublicOrgMembers, getOrgMemberPublicById,
 } from "./db-org-members";
 
 // ─── Org Units Router ─────────────────────────────────────────────────────────
@@ -66,7 +66,9 @@ export const orgUnitsRouter = router({
   byId: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(({ input }) => getOrgUnitById(input.id)),
-
+  publicById: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(({ input }) => getOrgUnitById(input.id)),
   withBreadcrumb: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(({ input }) => getOrgUnitWithBreadcrumb(input.id)),
@@ -426,6 +428,10 @@ export const orgMembersRouter = router({
   byId: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(({ input }) => getOrgMemberById(input.id)),
+  // Buscar por ID (público — sem autenticação)
+  byIdPublic: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(({ input }) => getOrgMemberPublicById(input.id)),
 
   // Criar membro (admin)
   create: protectedProcedure
@@ -439,6 +445,8 @@ export const orgMembersRouter = router({
       photoUrl: z.string().url().optional().or(z.literal("")),
       email: z.string().email().optional().or(z.literal("")),
       phone: z.string().max(64).optional(),
+      bio: z.string().max(2000).optional(),
+      externalLink: z.string().url().optional().or(z.literal("")),
       isPublic: z.boolean().optional(),
       sortOrder: z.number().optional(),
     }))
@@ -448,6 +456,7 @@ export const orgMembersRouter = router({
         ...input,
         photoUrl: input.photoUrl || null,
         email: input.email || null,
+        externalLink: input.externalLink || null,
         isPublic: input.isPublic ?? true,
         isActive: true,
       });
@@ -466,6 +475,8 @@ export const orgMembersRouter = router({
       photoUrl: z.string().optional().nullable(),
       email: z.string().email().optional().nullable().or(z.literal("")),
       phone: z.string().max(64).optional().nullable(),
+      bio: z.string().max(2000).optional().nullable(),
+      externalLink: z.string().optional().nullable(),
       isPublic: z.boolean().optional(),
       isActive: z.boolean().optional(),
       sortOrder: z.number().optional(),

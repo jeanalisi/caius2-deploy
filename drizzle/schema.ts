@@ -2536,6 +2536,8 @@ export const orgMembers = mysqlTable("orgMembers", {
   photoUrl: text("photoUrl"),
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 64 }),
+  bio: text("bio"),
+  externalLink: varchar("externalLink", { length: 512 }),
   isPublic: boolean("isPublic").default(true).notNull(),
   isActive: boolean("isActive").default(true).notNull(),
   sortOrder: int("sortOrder").default(0),
