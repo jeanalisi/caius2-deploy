@@ -79,7 +79,10 @@ function ServantDialog({
     setUploading(true);
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+      const base64Data = btoa(binary);
       const { url } = await uploadPhotoMutation.mutateAsync({
         base64Data,
         mimeType: file.type || "image/jpeg",

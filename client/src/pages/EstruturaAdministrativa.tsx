@@ -331,20 +331,6 @@ export default function EstruturaAdministrativa() {
     selected ? { orgUnitId: selected.id } : undefined,
     { enabled: !!selected }
   );
-<<<<<<< Updated upstream
-  const { data: members = [] } = trpc.orgMembers.listPublic.useQuery(
-    { orgUnitId: selected?.id },
-    { enabled: !!selected }
-  );
-  const { data: services = [] } = trpc.cidadao.services.useQuery(
-    undefined,
-    { enabled: !!selected }
-  );
-  const unitServices = useMemo(() => {
-    if (!selected) return [];
-    return (services as any[]).filter((s: any) => s.orgUnitId === selected.id);
-  }, [services, selected]);
-=======
   const { data: servants = [] } = trpc.publicServants.list.useQuery(
     selected ? { orgUnitId: selected.id } : {},
     { enabled: !!selected }
@@ -353,7 +339,6 @@ export default function EstruturaAdministrativa() {
     { orgUnitId: selected?.id ?? 0 },
     { enabled: !!selected }
   );
->>>>>>> Stashed changes
 
   const allNodes = useMemo(() => flattenTree(tree as OrgNode[]), [tree]);
 
@@ -653,42 +638,6 @@ export default function EstruturaAdministrativa() {
                     </div>
                   )}
 
-<<<<<<< Updated upstream
-                  {/* Tab: Usuários / Membros */}
-                  {activeTab === "usuarios" && (
-                    <div>
-                      {(members as any[]).length === 0 ? (
-                        <div className="text-center py-8 text-slate-400">
-                          <Users className="w-8 h-8 mx-auto opacity-30 mb-2" />
-                          <p className="text-sm font-medium text-slate-600">Nenhum membro cadastrado</p>
-                          <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                            Os ocupantes de cargos desta unidade serão exibidos aqui quando cadastrados pelo administrador.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {(members as any[]).map((m: any) => (
-                            <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-200 transition-colors">
-                              {m.photoUrl ? (
-                                <img
-                                  src={m.photoUrl}
-                                  alt={m.name}
-                                  className="w-12 h-12 rounded-full object-cover border-2 border-white shadow shrink-0"
-                                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                />
-                              ) : (
-                                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border-2 border-white shadow">
-                                  <UserCircle className="w-7 h-7 text-blue-400" />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-slate-800 truncate">{m.name}</p>
-                                <p className="text-xs text-slate-500 truncate">{m.cargo}</p>
-                                {m.cargoLei && m.cargoLei !== m.cargo && (
-                                  <Badge variant="outline" className="text-[10px] mt-0.5 border-blue-200 text-blue-700 bg-blue-50">
-                                    {m.cargoLei}
-                                  </Badge>
-=======
                   {/* Tab: Servidores */}
                   {activeTab === "servidores" && (
                     <div>
@@ -715,7 +664,6 @@ export default function EstruturaAdministrativa() {
                                 )}
                                 {s.matricula && (
                                   <p className="text-[10px] font-mono text-slate-400 mt-0.5">Mat. {s.matricula}</p>
->>>>>>> Stashed changes
                                 )}
                               </div>
                             </div>
@@ -728,20 +676,12 @@ export default function EstruturaAdministrativa() {
                   {/* Tab: Serviços */}
                   {activeTab === "servicos" && (
                     <div>
-<<<<<<< Updated upstream
-                      {unitServices.length === 0 ? (
-=======
                       {(services as any[]).length === 0 ? (
->>>>>>> Stashed changes
                         <div className="text-center py-8 text-slate-400">
                           <Globe className="w-8 h-8 mx-auto opacity-30 mb-2" />
                           <p className="text-sm font-medium text-slate-600">Nenhum serviço vinculado</p>
                           <p className="text-xs text-slate-400 mt-1">
-<<<<<<< Updated upstream
-                            Os serviços vinculados a esta unidade serão exibidos aqui quando configurados pelo administrador.
-=======
                             Esta unidade ainda não possui serviços vinculados.
->>>>>>> Stashed changes
                           </p>
                           <Link href="/central-cidadao">
                             <Button variant="outline" size="sm" className="mt-4 gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50">
@@ -752,27 +692,6 @@ export default function EstruturaAdministrativa() {
                         </div>
                       ) : (
                         <div className="space-y-2">
-<<<<<<< Updated upstream
-                          {unitServices.map((s: any) => (
-                            <Link key={s.id} href={`/servico/${s.id}`}>
-                              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-200 transition-colors cursor-pointer">
-                                <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center shrink-0">
-                                  <Globe className="w-4 h-4 text-green-600" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-slate-800 truncate">{s.name}</p>
-                                  {s.category && <p className="text-xs text-slate-500">{s.category}</p>}
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
-                              </div>
-                            </Link>
-                          ))}
-                          <div className="pt-2 border-t border-slate-100">
-                            <Link href="/central-cidadao">
-                              <Button variant="outline" size="sm" className="gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50 w-full">
-                                <ExternalLink className="w-3.5 h-3.5" />
-                                Ver todos os serviços
-=======
                           {(services as any[]).map((svc: any) => (
                             <Link key={svc.id} href={`/servico/${svc.id}`}>
                               <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer group">
@@ -794,7 +713,6 @@ export default function EstruturaAdministrativa() {
                               <Button variant="outline" size="sm" className="w-full gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50">
                                 <ExternalLink className="w-3.5 h-3.5" />
                                 Ver todos os serviços disponíveis
->>>>>>> Stashed changes
                               </Button>
                             </Link>
                           </div>

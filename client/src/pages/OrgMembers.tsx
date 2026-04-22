@@ -29,7 +29,7 @@ import {
   Users, Plus, Pencil, Trash2, Search, UserCircle,
   Upload, Building2, RefreshCw, Download, Eye, EyeOff,
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 // ── Cargos previstos na Lei 010/2025 ──────────────────────────────────────────
@@ -89,7 +89,6 @@ const EMPTY_FORM = {
 };
 
 export default function OrgMembers() {
-  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [filterUnit, setFilterUnit] = useState<number | null>(null);
   const [filterActive, setFilterActive] = useState<boolean | null>(null);
@@ -112,39 +111,36 @@ export default function OrgMembers() {
   const createMutation = trpc.orgMembers.create.useMutation({
     onSuccess: () => {
       utils.orgMembers.list.invalidate();
-      toast({ title: "Membro cadastrado com sucesso!" });
+      toast.success("Membro cadastrado com sucesso!");
       closeDialog();
     },
-    onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   const updateMutation = trpc.orgMembers.update.useMutation({
     onSuccess: () => {
       utils.orgMembers.list.invalidate();
-      toast({ title: "Membro atualizado com sucesso!" });
+      toast.success("Membro atualizado com sucesso!");
       closeDialog();
     },
-    onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   const deleteMutation = trpc.orgMembers.delete.useMutation({
     onSuccess: () => {
       utils.orgMembers.list.invalidate();
-      toast({ title: "Membro removido." });
+      toast.success("Membro removido.");
       setDeleteId(null);
     },
-    onError: (e) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   const seedMutation = trpc.orgMembers.seedFromPayroll.useMutation({
     onSuccess: (res) => {
       utils.orgMembers.list.invalidate();
-      toast({
-        title: "Seed concluído!",
-        description: `${res.inserted} inseridos, ${res.skipped} ignorados.`,
-      });
+      toast.success(`Seed concluído! ${res.inserted} inseridos, ${res.skipped} ignorados.`);
     },
-    onError: (e) => toast({ title: "Erro no seed", description: e.message, variant: "destructive" }),
+    onError: (e) => toast.error(e.message),
   });
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -192,11 +188,11 @@ export default function OrgMembers() {
 
   function handleSubmit() {
     if (!form.orgUnitId || form.orgUnitId === 0) {
-      toast({ title: "Selecione a unidade organizacional.", variant: "destructive" });
+      toast.error("Selecione a unidade organizacional.");
       return;
     }
     if (!form.name.trim() || !form.cargo.trim()) {
-      toast({ title: "Nome e cargo são obrigatórios.", variant: "destructive" });
+      toast.error("Nome e cargo são obrigatórios.");
       return;
     }
     if (editing) {

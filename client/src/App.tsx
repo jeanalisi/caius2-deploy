@@ -33,11 +33,8 @@ import AttachmentsManager from "./pages/AttachmentsManager";
 import OrgStructure from "./pages/OrgStructure";
 import Positions from "./pages/Positions";
 import OrgInvites from "./pages/OrgInvites";
-<<<<<<< Updated upstream
 import OrgMembers from "./pages/OrgMembers";
-=======
 import PublicServants from "./pages/PublicServants";
->>>>>>> Stashed changes
 import AcceptInvite from "./pages/AcceptInvite";
 import CentralCidadao from "./pages/CentralCidadao";
 import EstruturaAdministrativa from "./pages/EstruturaAdministrativa";

@@ -407,7 +407,6 @@ export const orgInvitesRouter = router({
     }),
 });
 
-<<<<<<< Updated upstream
 // ─── Org Members Router ────────────────────────────────────────────────────────────────────────────────
 export const orgMembersRouter = router({
   // Público: listar membros por unidade
@@ -491,7 +490,8 @@ export const orgMembersRouter = router({
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const { seedOrgMembers } = await import("./seed-org-members");
       return seedOrgMembers();
-=======
+    }),
+});
 // ─── Public Servants Router ───────────────────────────────────────────────────
 export const publicServantsRouter = router({
   list: publicProcedure
@@ -596,6 +596,5 @@ export const serviceTypeOrgUnitsRouter = router({
     .mutation(({ input, ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       return unlinkServiceFromOrgUnit(input.serviceTypeId, input.orgUnitId);
->>>>>>> Stashed changes
     }),
 });
