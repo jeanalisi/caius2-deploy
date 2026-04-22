@@ -381,3 +381,156 @@ export async function expireOldInvites() {
 
   return (result as any).affectedRows ?? 0;
 }
+
+// ─── Public Servants (servidores externos sem login) ─────────────────────────
+
+export async function getPublicServants(filters?: {
+  orgUnitId?: number;
+  positionId?: number;
+  isActive?: boolean;
+  isPublic?: boolean;
+}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions: string[] = [];
+  const params: any[] = [];
+
+  if (filters?.orgUnitId !== undefined) { conditions.push("ps.orgUnitId = ?"); params.push(filters.orgUnitId); }
+  if (filters?.positionId !== undefined) { conditions.push("ps.positionId = ?"); params.push(filters.positionId); }
+  if (filters?.isActive !== undefined) { conditions.push("ps.isActive = ?"); params.push(filters.isActive ? 1 : 0); }
+  if (filters?.isPublic !== undefined) { conditions.push("ps.isPublic = ?"); params.push(filters.isPublic ? 1 : 0); }
+
+  const where = conditions.length > 0 ? "WHERE " + conditions.join(" AND ") : "";
+  const [rows] = await (db as any).$client.execute(
+    `SELECT ps.*, p.name as positionName, p.level as positionLevel, o.name as orgUnitName
+     FROM publicServants ps
+     LEFT JOIN positions p ON ps.positionId = p.id
+     LEFT JOIN orgUnits o ON ps.orgUnitId = o.id
+     ${where}
+     ORDER BY p.level, ps.name`,
+    params
+  );
+  return rows as any[];
+}
+
+export async function getPublicServantById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [rows] = await (db as any).$client.execute(
+    `SELECT ps.*, p.name as positionName, p.level as positionLevel, o.name as orgUnitName
+     FROM publicServants ps
+     LEFT JOIN positions p ON ps.positionId = p.id
+     LEFT JOIN orgUnits o ON ps.orgUnitId = o.id
+     WHERE ps.id = ?`,
+    [id]
+  );
+  return (rows as any[])[0] ?? null;
+}
+
+export async function createPublicServant(data: {
+  name: string;
+  matricula?: string | null;
+  orgUnitId: number;
+  positionId?: number | null;
+  photoUrl?: string | null;
+  isPublic?: boolean;
+  legalBasis?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await (db as any).$client.execute(
+    `INSERT INTO publicServants (name, matricula, orgUnitId, positionId, photoUrl, isPublic, legalBasis, isActive)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+    [data.name, data.matricula ?? null, data.orgUnitId, data.positionId ?? null, data.photoUrl ?? null, data.isPublic !== false ? 1 : 0, data.legalBasis ?? null]
+  );
+  return getPublicServantById((result as any).insertId);
+}
+
+export async function updatePublicServant(id: number, data: {
+  name?: string;
+  matricula?: string | null;
+  orgUnitId?: number;
+  positionId?: number | null;
+  photoUrl?: string | null;
+  isPublic?: boolean;
+  isActive?: boolean;
+  legalBasis?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const fields: string[] = [];
+  const params: any[] = [];
+
+  if (data.name !== undefined) { fields.push("name = ?"); params.push(data.name); }
+  if (data.matricula !== undefined) { fields.push("matricula = ?"); params.push(data.matricula); }
+  if (data.orgUnitId !== undefined) { fields.push("orgUnitId = ?"); params.push(data.orgUnitId); }
+  if (data.positionId !== undefined) { fields.push("positionId = ?"); params.push(data.positionId); }
+  if (data.photoUrl !== undefined) { fields.push("photoUrl = ?"); params.push(data.photoUrl); }
+  if (data.isPublic !== undefined) { fields.push("isPublic = ?"); params.push(data.isPublic ? 1 : 0); }
+  if (data.isActive !== undefined) { fields.push("isActive = ?"); params.push(data.isActive ? 1 : 0); }
+  if (data.legalBasis !== undefined) { fields.push("legalBasis = ?"); params.push(data.legalBasis); }
+
+  if (fields.length === 0) return getPublicServantById(id);
+
+  params.push(id);
+  await (db as any).$client.execute(`UPDATE publicServants SET ${fields.join(", ")} WHERE id = ?`, params);
+  return getPublicServantById(id);
+}
+
+export async function deletePublicServant(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await (db as any).$client.execute("UPDATE publicServants SET isActive = 0 WHERE id = ?", [id]);
+  return true;
+}
+
+// ─── Service Type Org Units (vinculação serviços ↔ unidades) ─────────────────
+
+export async function getServicesByOrgUnit(orgUnitId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const [rows] = await (db as any).$client.execute(
+    `SELECT st.id, st.name, st.description, st.category, st.slaResponseHours, st.slaResolutionHours, st.published
+     FROM serviceTypeOrgUnits stu
+     JOIN serviceTypes st ON stu.serviceTypeId = st.id
+     WHERE stu.orgUnitId = ? AND st.published = 1
+     ORDER BY st.category, st.name`,
+    [orgUnitId]
+  );
+  return rows as any[];
+}
+
+export async function linkServiceToOrgUnit(serviceTypeId: number, orgUnitId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await (db as any).$client.execute(
+    "INSERT IGNORE INTO serviceTypeOrgUnits (serviceTypeId, orgUnitId) VALUES (?, ?)",
+    [serviceTypeId, orgUnitId]
+  );
+  return true;
+}
+
+export async function unlinkServiceFromOrgUnit(serviceTypeId: number, orgUnitId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await (db as any).$client.execute(
+    "DELETE FROM serviceTypeOrgUnits WHERE serviceTypeId = ? AND orgUnitId = ?",
+    [serviceTypeId, orgUnitId]
+  );
+  return true;
+}
+
+export async function getOrgUnitsByService(serviceTypeId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const [rows] = await (db as any).$client.execute(
+    `SELECT o.id, o.name, o.type, o.acronym
+     FROM serviceTypeOrgUnits stu
+     JOIN orgUnits o ON stu.orgUnitId = o.id
+     WHERE stu.serviceTypeId = ?`,
+    [serviceTypeId]
+  );
+  return rows as any[];
+}

@@ -16,6 +16,8 @@ import {
   getPositions, getPositionById, createPosition, updatePosition, deletePosition,
   getUserAllocations, createUserAllocation, updateUserAllocation, deactivateUserAllocation, getAllocationHistory,
   getOrgInvites, getOrgInviteByToken, getOrgInviteById, createOrgInvite, updateOrgInviteStatus, expireOldInvites,
+  getPublicServants, getPublicServantById, createPublicServant, updatePublicServant, deletePublicServant,
+  getServicesByOrgUnit, linkServiceToOrgUnit, unlinkServiceFromOrgUnit, getOrgUnitsByService,
 } from "./db-org";
 import { seedOrgStructure } from "./seed-org";
 import {
@@ -405,6 +407,7 @@ export const orgInvitesRouter = router({
     }),
 });
 
+<<<<<<< Updated upstream
 // ─── Org Members Router ────────────────────────────────────────────────────────────────────────────────
 export const orgMembersRouter = router({
   // Público: listar membros por unidade
@@ -488,5 +491,111 @@ export const orgMembersRouter = router({
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const { seedOrgMembers } = await import("./seed-org-members");
       return seedOrgMembers();
+=======
+// ─── Public Servants Router ───────────────────────────────────────────────────
+export const publicServantsRouter = router({
+  list: publicProcedure
+    .input(z.object({
+      orgUnitId: z.number().optional(),
+      positionId: z.number().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .query(({ input }) => getPublicServants({ ...input, isPublic: true })),
+
+  listAdmin: protectedProcedure
+    .input(z.object({
+      orgUnitId: z.number().optional(),
+      positionId: z.number().optional(),
+      isActive: z.boolean().optional(),
+    }))
+    .query(({ input }) => getPublicServants(input)),
+
+  byId: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(({ input }) => getPublicServantById(input.id)),
+
+  create: protectedProcedure
+    .input(z.object({
+      name: z.string().min(2),
+      matricula: z.string().optional(),
+      orgUnitId: z.number(),
+      positionId: z.number().optional(),
+      photoUrl: z.string().url().optional(),
+      isPublic: z.boolean().optional(),
+      legalBasis: z.string().optional(),
+    }))
+    .mutation(({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return createPublicServant(input);
+    }),
+
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      name: z.string().min(2).optional(),
+      matricula: z.string().nullable().optional(),
+      orgUnitId: z.number().optional(),
+      positionId: z.number().nullable().optional(),
+      photoUrl: z.string().nullable().optional(),
+      isPublic: z.boolean().optional(),
+      isActive: z.boolean().optional(),
+      legalBasis: z.string().nullable().optional(),
+    }))
+    .mutation(({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const { id, ...data } = input;
+      return updatePublicServant(id, data);
+    }),
+
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return deletePublicServant(input.id);
+    }),
+
+  uploadPhoto: protectedProcedure
+    .input(z.object({
+      servantId: z.number().optional(),
+      base64Data: z.string(),
+      mimeType: z.string().default("image/jpeg"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const { storagePut } = await import("./storage");
+      const buffer = Buffer.from(input.base64Data, "base64");
+      const ext = input.mimeType.split("/")[1] ?? "jpg";
+      const fileKey = `servants/photos/${nanoid(12)}.${ext}`;
+      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      if (input.servantId) {
+        await updatePublicServant(input.servantId, { photoUrl: url });
+      }
+      return { url };
+    }),
+});
+
+// ─── Service Type Org Units Router ────────────────────────────────────────────
+export const serviceTypeOrgUnitsRouter = router({
+  byOrgUnit: publicProcedure
+    .input(z.object({ orgUnitId: z.number() }))
+    .query(({ input }) => getServicesByOrgUnit(input.orgUnitId)),
+
+  byService: publicProcedure
+    .input(z.object({ serviceTypeId: z.number() }))
+    .query(({ input }) => getOrgUnitsByService(input.serviceTypeId)),
+
+  link: protectedProcedure
+    .input(z.object({ serviceTypeId: z.number(), orgUnitId: z.number() }))
+    .mutation(({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return linkServiceToOrgUnit(input.serviceTypeId, input.orgUnitId);
+    }),
+
+  unlink: protectedProcedure
+    .input(z.object({ serviceTypeId: z.number(), orgUnitId: z.number() }))
+    .mutation(({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return unlinkServiceFromOrgUnit(input.serviceTypeId, input.orgUnitId);
+>>>>>>> Stashed changes
     }),
 });

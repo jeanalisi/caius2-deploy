@@ -324,13 +324,14 @@ function flattenTree(nodes: OrgNode[]): OrgNode[] {
 export default function EstruturaAdministrativa() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<OrgNode | null>(null);
-  const [activeTab, setActiveTab] = useState<"competencias" | "cargos" | "usuarios" | "servicos">("competencias");
+  const [activeTab, setActiveTab] = useState<"competencias" | "cargos" | "servidores" | "servicos">("competencias");
 
   const { data: tree = [], isLoading } = trpc.orgUnits.treePublic.useQuery();
   const { data: positions = [] } = trpc.orgUnits.positionsPublic.useQuery(
     selected ? { orgUnitId: selected.id } : undefined,
     { enabled: !!selected }
   );
+<<<<<<< Updated upstream
   const { data: members = [] } = trpc.orgMembers.listPublic.useQuery(
     { orgUnitId: selected?.id },
     { enabled: !!selected }
@@ -343,6 +344,16 @@ export default function EstruturaAdministrativa() {
     if (!selected) return [];
     return (services as any[]).filter((s: any) => s.orgUnitId === selected.id);
   }, [services, selected]);
+=======
+  const { data: servants = [] } = trpc.publicServants.list.useQuery(
+    selected ? { orgUnitId: selected.id } : {},
+    { enabled: !!selected }
+  );
+  const { data: services = [] } = trpc.serviceTypeOrgUnits.byOrgUnit.useQuery(
+    { orgUnitId: selected?.id ?? 0 },
+    { enabled: !!selected }
+  );
+>>>>>>> Stashed changes
 
   const allNodes = useMemo(() => flattenTree(tree as OrgNode[]), [tree]);
 
@@ -520,8 +531,8 @@ export default function EstruturaAdministrativa() {
                   {[
                     { key: "competencias", label: "Competências", icon: Shield },
                     { key: "cargos", label: "Cargos", icon: Briefcase },
-                    { key: "usuarios", label: "Usuários Vinculados", icon: Users },
-                    { key: "servicos", label: "Serviços", icon: Globe },
+                    { key: "servidores", label: `Servidores${(servants as any[]).length > 0 ? ` (${(servants as any[]).length})` : ""}`, icon: Users },
+                    { key: "servicos", label: `Serviços${(services as any[]).length > 0 ? ` (${(services as any[]).length})` : ""}`, icon: Globe },
                   ].map(({ key, label, icon: Icon }) => (
                     <button
                       key={key}
@@ -642,6 +653,7 @@ export default function EstruturaAdministrativa() {
                     </div>
                   )}
 
+<<<<<<< Updated upstream
                   {/* Tab: Usuários / Membros */}
                   {activeTab === "usuarios" && (
                     <div>
@@ -676,6 +688,34 @@ export default function EstruturaAdministrativa() {
                                   <Badge variant="outline" className="text-[10px] mt-0.5 border-blue-200 text-blue-700 bg-blue-50">
                                     {m.cargoLei}
                                   </Badge>
+=======
+                  {/* Tab: Servidores */}
+                  {activeTab === "servidores" && (
+                    <div>
+                      {(servants as any[]).length === 0 ? (
+                        <div className="text-center py-8 text-slate-400">
+                          <Users className="w-8 h-8 mx-auto opacity-30 mb-2" />
+                          <p className="text-sm">Nenhum servidor público cadastrado para esta unidade.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                          {(servants as any[]).map((s) => (
+                            <div key={s.id} className="flex flex-col items-center gap-2 p-3 rounded-xl border border-slate-200 bg-slate-50 text-center">
+                              <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-sm bg-slate-200 flex items-center justify-center">
+                                {s.photoUrl ? (
+                                  <img src={s.photoUrl} alt={s.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <Users className="w-8 h-8 text-slate-400" />
+                                )}
+                              </div>
+                              <div className="min-w-0 w-full">
+                                <p className="text-xs font-semibold text-slate-800 leading-tight">{s.name}</p>
+                                {s.positionName && (
+                                  <p className="text-[10px] text-slate-500 mt-0.5 leading-tight">{s.positionName}</p>
+                                )}
+                                {s.matricula && (
+                                  <p className="text-[10px] font-mono text-slate-400 mt-0.5">Mat. {s.matricula}</p>
+>>>>>>> Stashed changes
                                 )}
                               </div>
                             </div>
@@ -688,12 +728,20 @@ export default function EstruturaAdministrativa() {
                   {/* Tab: Serviços */}
                   {activeTab === "servicos" && (
                     <div>
+<<<<<<< Updated upstream
                       {unitServices.length === 0 ? (
+=======
+                      {(services as any[]).length === 0 ? (
+>>>>>>> Stashed changes
                         <div className="text-center py-8 text-slate-400">
                           <Globe className="w-8 h-8 mx-auto opacity-30 mb-2" />
                           <p className="text-sm font-medium text-slate-600">Nenhum serviço vinculado</p>
                           <p className="text-xs text-slate-400 mt-1">
+<<<<<<< Updated upstream
                             Os serviços vinculados a esta unidade serão exibidos aqui quando configurados pelo administrador.
+=======
+                            Esta unidade ainda não possui serviços vinculados.
+>>>>>>> Stashed changes
                           </p>
                           <Link href="/central-cidadao">
                             <Button variant="outline" size="sm" className="mt-4 gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50">
@@ -704,6 +752,7 @@ export default function EstruturaAdministrativa() {
                         </div>
                       ) : (
                         <div className="space-y-2">
+<<<<<<< Updated upstream
                           {unitServices.map((s: any) => (
                             <Link key={s.id} href={`/servico/${s.id}`}>
                               <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50 hover:bg-white hover:border-blue-200 transition-colors cursor-pointer">
@@ -723,6 +772,29 @@ export default function EstruturaAdministrativa() {
                               <Button variant="outline" size="sm" className="gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50 w-full">
                                 <ExternalLink className="w-3.5 h-3.5" />
                                 Ver todos os serviços
+=======
+                          {(services as any[]).map((svc: any) => (
+                            <Link key={svc.id} href={`/servico/${svc.id}`}>
+                              <div className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer group">
+                                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+                                  <Globe className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-slate-800 group-hover:text-blue-700 transition-colors">{svc.name}</p>
+                                  {svc.description && (
+                                    <p className="text-xs text-slate-500 truncate mt-0.5">{svc.description}</p>
+                                  )}
+                                </div>
+                                <ExternalLink className="w-3.5 h-3.5 text-slate-300 group-hover:text-blue-400 shrink-0" />
+                              </div>
+                            </Link>
+                          ))}
+                          <div className="pt-2">
+                            <Link href="/central-cidadao">
+                              <Button variant="outline" size="sm" className="w-full gap-1.5 text-blue-600 border-blue-200 hover:bg-blue-50">
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                Ver todos os serviços disponíveis
+>>>>>>> Stashed changes
                               </Button>
                             </Link>
                           </div>

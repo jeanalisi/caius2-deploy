@@ -60,7 +60,11 @@ import { getIo } from "./_core/socketio";
 import { caiusRouter } from "./routers-caius";
 import { customModulesRouter } from "./routers-modules";
 import { verificationRouter } from "./routers-verification";
+<<<<<<< Updated upstream
 import { orgUnitsRouter, positionsRouter, userAllocationsRouter, orgInvitesRouter, orgMembersRouter } from "./routers-org";
+=======
+import { orgUnitsRouter, positionsRouter, userAllocationsRouter, orgInvitesRouter, publicServantsRouter, serviceTypeOrgUnitsRouter } from "./routers-org";
+>>>>>>> Stashed changes
 import { omnichannelRouter } from "./routers-omnichannel";
 import { workflowRouter } from "./routers-workflow";
 import { documentsRouter } from "./routers-documents";
@@ -546,7 +550,12 @@ export const appRouter = router({
   positions: positionsRouter,
   userAllocations: userAllocationsRouter,
   orgInvites: orgInvitesRouter,
+<<<<<<< Updated upstream
   orgMembers: orgMembersRouter,
+=======
+  publicServants: publicServantsRouter,
+  serviceTypeOrgUnits: serviceTypeOrgUnitsRouter,
+>>>>>>> Stashed changes
   // ── Omnichannel ───────────────────────────────────────────────────────────
   omnichannel: omnichannelRouter,
   workflow: workflowRouter,
