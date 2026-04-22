@@ -72,12 +72,13 @@ type ServiceTypeForm = {
   requiresSelfie: boolean; requiresGeolocation: boolean; requiresStrongAuth: boolean;
   serviceMode: "form" | "external";
   externalUrl: string;
+  orgUnitId: number | null;
 };
 const defaultForm: ServiceTypeForm = {
   name: "", description: "", category: "", code: "", slaResponseHours: "", slaConclusionHours: "",
   secrecyLevel: "public", requiresApproval: false, canConvertToProcess: false, allowPublicConsult: true,
   requiresSelfie: false, requiresGeolocation: false, requiresStrongAuth: false,
-  serviceMode: "form", externalUrl: "",
+  serviceMode: "form", externalUrl: "", orgUnitId: null,
 };
 
 type PublicationForm = {
@@ -131,6 +132,7 @@ export default function ServiceTypes() {
 
   const utils = trpc.useUtils();
   const { data: serviceTypes = [], refetch } = trpc.serviceTypes.list.useQuery({});
+  const { data: orgUnits = [] } = trpc.orgUnits.list.useQuery({ isActive: true });
   const { data: fields = [] } = trpc.serviceTypeFields.list.useQuery(
     { serviceTypeId: selectedId! }, { enabled: !!selectedId }
   );
@@ -272,6 +274,7 @@ export default function ServiceTypes() {
       requiresStrongAuth: st.requiresStrongAuth ?? false,
       serviceMode: (st as any).serviceMode ?? "form",
       externalUrl: (st as any).externalUrl ?? "",
+      orgUnitId: (st as any).orgUnitId ?? null,
     });
     setOpen(true);
   }
@@ -767,6 +770,24 @@ export default function ServiceTypes() {
                   <p className="text-xs text-muted-foreground">O cidadão será redirecionado para este endereço ao acessar o serviço na Central do Cidadão.</p>
                 </div>
               )}
+              <div className="col-span-2 space-y-1.5">
+                <Label className="flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5" /> Unidade Organizacional Responsável</Label>
+                <Select
+                  value={form.orgUnitId?.toString() ?? "none"}
+                  onValueChange={v => setForm(f => ({ ...f, orgUnitId: v === "none" ? null : Number(v) }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione a secretaria/unidade..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Nenhuma unidade vinculada —</SelectItem>
+                    {(orgUnits as any[]).map((u: any) => (
+                      <SelectItem key={u.id} value={u.id.toString()}>
+                        {u.acronym ? `[${u.acronym}] ` : ""}{u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Vincula este serviço à secretaria ou órgão responsável na Estrutura Administrativa pública.</p>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[

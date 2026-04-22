@@ -60,7 +60,7 @@ import { getIo } from "./_core/socketio";
 import { caiusRouter } from "./routers-caius";
 import { customModulesRouter } from "./routers-modules";
 import { verificationRouter } from "./routers-verification";
-import { orgUnitsRouter, positionsRouter, userAllocationsRouter, orgInvitesRouter } from "./routers-org";
+import { orgUnitsRouter, positionsRouter, userAllocationsRouter, orgInvitesRouter, orgMembersRouter } from "./routers-org";
 import { omnichannelRouter } from "./routers-omnichannel";
 import { workflowRouter } from "./routers-workflow";
 import { documentsRouter } from "./routers-documents";
@@ -546,6 +546,7 @@ export const appRouter = router({
   positions: positionsRouter,
   userAllocations: userAllocationsRouter,
   orgInvites: orgInvitesRouter,
+  orgMembers: orgMembersRouter,
   // ── Omnichannel ───────────────────────────────────────────────────────────
   omnichannel: omnichannelRouter,
   workflow: workflowRouter,

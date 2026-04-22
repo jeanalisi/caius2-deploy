@@ -33,6 +33,7 @@ import AttachmentsManager from "./pages/AttachmentsManager";
 import OrgStructure from "./pages/OrgStructure";
 import Positions from "./pages/Positions";
 import OrgInvites from "./pages/OrgInvites";
+import OrgMembers from "./pages/OrgMembers";
 import AcceptInvite from "./pages/AcceptInvite";
 import CentralCidadao from "./pages/CentralCidadao";
 import EstruturaAdministrativa from "./pages/EstruturaAdministrativa";
@@ -132,6 +133,7 @@ function Router() {
       <Route path={"/user-allocations"} component={OrgStructure} />
       <Route path={"/positions"} component={Positions} />
       <Route path={"/org-invites"} component={OrgInvites} />
+      <Route path={"/org-members"} component={OrgMembers} />
       {/* Administração */}
       <Route path={"/reports"} component={Reports} />
       <Route path={"/agents"} component={Agents} />

@@ -18,6 +18,9 @@ import {
   getOrgInvites, getOrgInviteByToken, getOrgInviteById, createOrgInvite, updateOrgInviteStatus, expireOldInvites,
 } from "./db-org";
 import { seedOrgStructure } from "./seed-org";
+import {
+  getOrgMembers, getOrgMemberById, createOrgMember, updateOrgMember, deleteOrgMember, getPublicOrgMembers,
+} from "./db-org-members";
 
 // ─── Org Units Router ─────────────────────────────────────────────────────────
 export const orgUnitsRouter = router({
@@ -399,5 +402,91 @@ export const orgInvitesRouter = router({
     .mutation(({ ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       return expireOldInvites();
+    }),
+});
+
+// ─── Org Members Router ────────────────────────────────────────────────────────────────────────────────
+export const orgMembersRouter = router({
+  // Público: listar membros por unidade
+  listPublic: publicProcedure
+    .input(z.object({ orgUnitId: z.number().optional() }))
+    .query(({ input }) => getPublicOrgMembers(input.orgUnitId)),
+
+  // Todos os membros (admin)
+  list: protectedProcedure
+    .input(z.object({
+      orgUnitId: z.number().optional(),
+      isActive: z.boolean().optional(),
+    }).optional())
+    .query(({ input }) => getOrgMembers(input ?? {})),
+
+  // Buscar por ID
+  byId: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .query(({ input }) => getOrgMemberById(input.id)),
+
+  // Criar membro (admin)
+  create: protectedProcedure
+    .input(z.object({
+      orgUnitId: z.number(),
+      positionId: z.number().optional(),
+      name: z.string().min(2).max(255),
+      matricula: z.string().max(64).optional(),
+      cargo: z.string().min(2).max(255),
+      cargoLei: z.string().max(128).optional(),
+      photoUrl: z.string().url().optional().or(z.literal("")),
+      email: z.string().email().optional().or(z.literal("")),
+      phone: z.string().max(64).optional(),
+      isPublic: z.boolean().optional(),
+      sortOrder: z.number().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return createOrgMember({
+        ...input,
+        photoUrl: input.photoUrl || null,
+        email: input.email || null,
+        isPublic: input.isPublic ?? true,
+        isActive: true,
+      });
+    }),
+
+  // Atualizar membro (admin)
+  update: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      orgUnitId: z.number().optional(),
+      positionId: z.number().optional().nullable(),
+      name: z.string().min(2).max(255).optional(),
+      matricula: z.string().max(64).optional(),
+      cargo: z.string().min(2).max(255).optional(),
+      cargoLei: z.string().max(128).optional(),
+      photoUrl: z.string().optional().nullable(),
+      email: z.string().email().optional().nullable().or(z.literal("")),
+      phone: z.string().max(64).optional().nullable(),
+      isPublic: z.boolean().optional(),
+      isActive: z.boolean().optional(),
+      sortOrder: z.number().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const { id, ...data } = input;
+      return updateOrgMember(id, data);
+    }),
+
+  // Remover membro (admin)
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return deleteOrgMember(input.id);
+    }),
+
+  // Seed de membros da folha de pagamento (admin)
+  seedFromPayroll: protectedProcedure
+    .mutation(async ({ ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const { seedOrgMembers } = await import("./seed-org-members");
+      return seedOrgMembers();
     }),
 });

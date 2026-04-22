@@ -99,6 +99,7 @@ export const serviceTypesRouter = router({
       flowConfig: z.any().optional(),
       serviceMode: z.enum(["form", "external"]).default("form"),
       externalUrl: z.string().optional(),
+      orgUnitId: z.number().optional().nullable(),
     }))
     .mutation(({ input, ctx }) => createServiceType({ ...input, createdById: ctx.user.id })),
 
@@ -120,6 +121,7 @@ export const serviceTypesRouter = router({
       flowConfig: z.any().optional(),
       serviceMode: z.enum(["form", "external"]).optional(),
       externalUrl: z.string().optional().nullable(),
+      orgUnitId: z.number().optional().nullable(),
     }))
     .mutation(({ input }) => {
       const { id, ...data } = input;

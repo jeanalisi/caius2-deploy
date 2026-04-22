@@ -468,6 +468,7 @@ export const serviceTypes = mysqlTable("serviceTypes", {
   formTemplateId: int("formTemplateId"),
   serviceMode: mysqlEnum("serviceMode", ["form", "external"]).default("form").notNull(),
   externalUrl: varchar("externalUrl", { length: 2048 }),
+  orgUnitId: int("orgUnitId"),
   createdById: int("createdById"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -2522,3 +2523,24 @@ export const bulkRecipients = mysqlTable("bulkRecipients", {
 });
 export type BulkRecipient = typeof bulkRecipients.$inferSelect;
 export type InsertBulkRecipient = typeof bulkRecipients.$inferInsert;
+
+// ─── Org Members (Membros Públicos da Estrutura Administrativa) ───────────────
+export const orgMembers = mysqlTable("orgMembers", {
+  id: int("id").autoincrement().primaryKey(),
+  orgUnitId: int("orgUnitId").notNull(),
+  positionId: int("positionId"),
+  name: varchar("name", { length: 255 }).notNull(),
+  matricula: varchar("matricula", { length: 64 }),
+  cargo: varchar("cargo", { length: 255 }).notNull(),
+  cargoLei: varchar("cargoLei", { length: 128 }),
+  photoUrl: text("photoUrl"),
+  email: varchar("email", { length: 320 }),
+  phone: varchar("phone", { length: 64 }),
+  isPublic: boolean("isPublic").default(true).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type OrgMember = typeof orgMembers.$inferSelect;
+export type InsertOrgMember = typeof orgMembers.$inferInsert;
