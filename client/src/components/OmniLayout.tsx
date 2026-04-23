@@ -140,9 +140,11 @@ const presentationItems = [
 ];
 
 const orgItems = [
-  { href: "/org-structure", icon: GitBranch, label: "Estrutura Organizacional" },
+  { href: "/organograma", icon: GitBranch, label: "Organograma" },
+  { href: "/org-structure", icon: Building2, label: "Estrutura Organizacional" },
   { href: "/positions", icon: Briefcase, label: "Cargos e Funções" },
   { href: "/public-servants", icon: Users, label: "Servidores Públicos" },
+  { href: "/org-members", icon: Users, label: "Membros" },
   { href: "/org-invites", icon: Mail, label: "Convites e Lotações" },
 ];
 

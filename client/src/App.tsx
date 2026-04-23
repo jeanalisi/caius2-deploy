@@ -68,6 +68,7 @@ import ControleAuditoriaPage from "./pages/ControleAuditoriaPage";
 import SystemPresentation from "./pages/SystemPresentation";
 import PresentationCidadao from "./pages/PresentationCidadao";
 import PresentationOnboarding from "./pages/PresentationOnboarding";
+import Organograma from "./pages/Organograma";
 
 function ProtocolDetailWrapper() {
   const params = useParams<{ id: string }>();
@@ -96,6 +97,7 @@ function Router() {
       <Route path={"/atendimento-online"} component={ChatCidadao} />
       <Route path={"/estrutura-administrativa"} component={EstruturaAdministrativa} />
       <Route path={"/estrutura"} component={EstruturaAdministrativa} />
+      <Route path={"/organograma"} component={Organograma} />
       <Route path={"/servico/:id"} component={ServicoDetalhe} />
       <Route path={"/servidor/:id"} component={ServidorDetalhes} />
 

@@ -129,6 +129,42 @@ export const orgUnitsRouter = router({
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       return seedOrgStructure();
     }),
+
+  orgChartPublic: publicProcedure
+    .query(async () => {
+      // getOrgUnitTree já é recursivo e filtra por parentId corretamente
+      const tree = await getOrgUnitTree(null);
+      // Enriquece cada nó com os membros públicos
+      async function enrichWithMembers(nodes: any[]): Promise<any[]> {
+        const result = [];
+        for (const node of nodes) {
+          const members = await getPublicOrgMembers(node.id);
+          const enrichedChildren = await enrichWithMembers(node.children ?? []);
+          result.push({
+            id: node.id,
+            name: node.name,
+            acronym: node.acronym,
+            type: node.type,
+            level: node.level,
+            description: node.description,
+            members: (members as any[]).map((m) => ({
+              id: m.id,
+              name: m.name,
+              cargo: m.cargo,
+              cargoLei: m.cargoLei,
+              photoUrl: m.photoUrl,
+              email: m.email,
+              phone: m.phone,
+              externalLink: m.externalLink,
+              sortOrder: m.sortOrder,
+            })),
+            children: enrichedChildren,
+          });
+        }
+        return result;
+      }
+      return enrichWithMembers(tree);
+    }),
 });
 
 // ─── Positions Router ─────────────────────────────────────────────────────────
