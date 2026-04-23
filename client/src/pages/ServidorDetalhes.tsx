@@ -70,7 +70,7 @@ export default function ServidorDetalhes() {
   // Formata o nome em Title Case
   const nomeFormatado = servidor.name
     .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .replace(/\b\w/g, (c: string) => c.toUpperCase());
 
   return (
     <div className="min-h-screen bg-slate-50">
