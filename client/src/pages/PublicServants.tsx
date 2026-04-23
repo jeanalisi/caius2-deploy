@@ -15,9 +15,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Users, Plus, Edit, Trash2, Search, Upload, Loader2,
-  Building2, Briefcase, Eye, EyeOff, Camera, UserCircle2
+  Building2, Briefcase, Eye, EyeOff, Camera, UserCircle2,
+  Mail, Phone, MapPin, FileText
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -43,6 +45,10 @@ function ServantDialog({
     photoUrl: editServant?.photoUrl ?? "",
     isPublic: editServant?.isPublic !== false,
     legalBasis: editServant?.legalBasis ?? "LC 010/2025",
+    email: editServant?.email ?? "",
+    phone: editServant?.phone ?? "",
+    address: editServant?.address ?? "",
+    bio: editServant?.bio ?? "",
   });
 
   const { data: orgUnits = [] } = trpc.orgUnits.list.useQuery({ isActive: true });
@@ -109,6 +115,10 @@ function ServantDialog({
       photoUrl: form.photoUrl || undefined,
       isPublic: form.isPublic,
       legalBasis: form.legalBasis.trim() || undefined,
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      address: form.address.trim() || null,
+      bio: form.bio.trim() || null,
     };
 
     if (editServant) {
@@ -240,6 +250,49 @@ function ServantDialog({
                 </ScrollArea>
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Contato */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" />E-mail</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="servidor@itabaiana.pb.gov.br"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" />Telefone</Label>
+              <Input
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="(83) 9 9999-9999"
+              />
+            </div>
+          </div>
+
+          {/* Endereço */}
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" />Endereço</Label>
+            <Input
+              value={form.address}
+              onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+              placeholder="Ex: Rua João Pessoa, 1, Centro, Itabaiana/PB"
+            />
+          </div>
+
+          {/* Bio */}
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5"><FileText className="w-3.5 h-3.5" />Biografia / Descrição</Label>
+            <Textarea
+              value={form.bio}
+              onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+              placeholder="Breve descrição sobre o servidor..."
+              rows={3}
+              className="resize-none"
+            />
           </div>
 
           {/* Base Legal */}

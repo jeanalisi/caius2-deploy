@@ -2558,6 +2558,10 @@ export const publicServants = mysqlTable("publicServants", {
   isPublic: boolean("isPublic").default(true),
   isActive: boolean("isActive").default(true),
   legalBasis: varchar("legalBasis", { length: 255 }),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 64 }),
+  address: varchar("address", { length: 512 }),
+  bio: text("bio"),
   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
 });

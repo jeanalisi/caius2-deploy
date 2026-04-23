@@ -576,15 +576,43 @@ export const publicServantsRouter = router({
     .input(z.object({ id: z.number() }))
     .query(({ input }) => getPublicServantById(input.id)),
 
+  // Busca pública por ID — normaliza campos para o mesmo formato de orgMembers
+  byIdPublic: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const s = await getPublicServantById(input.id);
+      if (!s || !(s as any).isPublic || !(s as any).isActive) return null;
+      return {
+        id: (s as any).id,
+        orgUnitId: (s as any).orgUnitId,
+        positionId: (s as any).positionId,
+        name: (s as any).name,
+        matricula: (s as any).matricula,
+        cargo: null as string | null,
+        cargoLei: (s as any).legalBasis ?? null,
+        photoUrl: (s as any).photoUrl ?? null,
+        email: (s as any).email ?? null,
+        phone: (s as any).phone ?? null,
+        address: (s as any).address ?? null,
+        bio: (s as any).bio ?? null,
+        externalLink: null as string | null,
+        sortOrder: 0,
+      };
+    }),
+
   create: protectedProcedure
     .input(z.object({
       name: z.string().min(2),
       matricula: z.string().optional(),
       orgUnitId: z.number(),
       positionId: z.number().optional(),
-      photoUrl: z.string().url().optional(),
+      photoUrl: z.string().optional(),
       isPublic: z.boolean().optional(),
       legalBasis: z.string().optional(),
+      email: z.string().email().optional().nullable(),
+      phone: z.string().optional().nullable(),
+      address: z.string().optional().nullable(),
+      bio: z.string().optional().nullable(),
     }))
     .mutation(({ input, ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
@@ -602,6 +630,10 @@ export const publicServantsRouter = router({
       isPublic: z.boolean().optional(),
       isActive: z.boolean().optional(),
       legalBasis: z.string().nullable().optional(),
+      email: z.string().email().optional().nullable(),
+      phone: z.string().optional().nullable(),
+      address: z.string().optional().nullable(),
+      bio: z.string().optional().nullable(),
     }))
     .mutation(({ input, ctx }) => {
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });

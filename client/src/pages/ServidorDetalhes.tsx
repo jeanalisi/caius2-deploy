@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, Mail, Phone, ExternalLink, UserCircle,
-  Building2, BookOpen, Scale, Briefcase,
+  Building2, BookOpen, Scale, Briefcase, MapPin,
 } from "lucide-react";
 import { Link, useParams } from "wouter";
 
@@ -16,10 +16,19 @@ export default function ServidorDetalhes() {
   const params = useParams<{ id: string }>();
   const id = parseInt(params.id ?? "0", 10);
 
-  const { data: servidor, isLoading, error } = trpc.orgMembers.byIdPublic.useQuery(
+  // Tenta buscar em orgMembers primeiro, depois em publicServants
+  const { data: orgMember, isLoading: loadingMember } = trpc.orgMembers.byIdPublic.useQuery(
     { id },
     { enabled: id > 0 }
   );
+  const { data: publicServant, isLoading: loadingServant } = trpc.publicServants.byIdPublic.useQuery(
+    { id },
+    { enabled: id > 0 && !orgMember }
+  );
+
+  const servidor = orgMember ?? publicServant ?? null;
+  const isLoading = loadingMember || (loadingServant && !orgMember);
+  const error = !isLoading && !servidor ? true : null;
 
   const { data: orgUnit } = trpc.orgUnits.publicById.useQuery(
     { id: servidor?.orgUnitId ?? 0 },
@@ -155,7 +164,7 @@ export default function ServidorDetalhes() {
             )}
 
             {/* Contatos e link externo */}
-            {(servidor.email || servidor.phone || servidor.externalLink) && (
+            {(servidor.email || servidor.phone || (servidor as any).address || servidor.externalLink) && (
               <div>
                 <h2 className="text-sm font-semibold text-slate-700 mb-3">Contato</h2>
                 <div className="flex flex-col sm:flex-row flex-wrap gap-3">
@@ -176,6 +185,12 @@ export default function ServidorDetalhes() {
                       <Phone className="w-4 h-4 text-slate-400 group-hover:text-green-500" />
                       <span className="text-slate-700 group-hover:text-green-700">{servidor.phone}</span>
                     </a>
+                  )}
+                  {(servidor as any).address && (
+                    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm">
+                      <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="text-slate-700">{(servidor as any).address}</span>
+                    </div>
                   )}
                   {servidor.externalLink && (
                     <a

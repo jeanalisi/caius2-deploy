@@ -421,6 +421,10 @@ export async function createPublicServant(data: {
   photoUrl?: string | null;
   isPublic?: boolean;
   legalBasis?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  bio?: string | null;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -433,6 +437,10 @@ export async function createPublicServant(data: {
     isPublic: data.isPublic !== false,
     isActive: true,
     legalBasis: data.legalBasis ?? null,
+    email: data.email ?? null,
+    phone: data.phone ?? null,
+    address: data.address ?? null,
+    bio: data.bio ?? null,
   });
   return getPublicServantById((result as any).insertId);
 }
@@ -446,6 +454,10 @@ export async function updatePublicServant(id: number, data: {
   isPublic?: boolean;
   isActive?: boolean;
   legalBasis?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  bio?: string | null;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -459,6 +471,10 @@ export async function updatePublicServant(id: number, data: {
   if (data.isPublic !== undefined) updateData.isPublic = data.isPublic;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
   if (data.legalBasis !== undefined) updateData.legalBasis = data.legalBasis;
+  if (data.email !== undefined) updateData.email = data.email;
+  if (data.phone !== undefined) updateData.phone = data.phone;
+  if (data.address !== undefined) updateData.address = data.address;
+  if (data.bio !== undefined) updateData.bio = data.bio;
 
   if (Object.keys(updateData).length === 0) return getPublicServantById(id);
 
