@@ -200,14 +200,15 @@ function ServantDialog({
           <div className="space-y-1.5">
             <Label>Unidade Organizacional *</Label>
             <Select
-              value={form.orgUnitId}
-              onValueChange={(v) => setForm((f) => ({ ...f, orgUnitId: v, positionId: "" }))}
+              value={form.orgUnitId || "none"}
+              onValueChange={(v) => setForm((f) => ({ ...f, orgUnitId: v === "none" ? "" : v, positionId: "" }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a unidade..." />
               </SelectTrigger>
               <SelectContent>
                 <ScrollArea className="h-56">
+                  <SelectItem value="none">— Selecione a unidade —</SelectItem>
                   {(orgUnits as any[]).map((u) => (
                     <SelectItem key={u.id} value={String(u.id)}>
                       {u.acronym ? `[${u.acronym}] ` : ""}{u.name}
@@ -222,15 +223,15 @@ function ServantDialog({
           <div className="space-y-1.5">
             <Label>Cargo</Label>
             <Select
-              value={form.positionId}
-              onValueChange={(v) => setForm((f) => ({ ...f, positionId: v }))}
+              value={form.positionId || "none"}
+              onValueChange={(v) => setForm((f) => ({ ...f, positionId: v === "none" ? "" : v }))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o cargo..." />
               </SelectTrigger>
               <SelectContent>
                 <ScrollArea className="h-48">
-                  <SelectItem value="">— Sem cargo definido —</SelectItem>
+                  <SelectItem value="none">— Sem cargo definido —</SelectItem>
                   {filteredPositions.map((p: any) => (
                     <SelectItem key={p.id} value={String(p.id)}>
                       {p.name}

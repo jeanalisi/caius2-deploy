@@ -483,13 +483,14 @@ export default function OrgMembers() {
             <div>
               <Label>Unidade Organizacional *</Label>
               <Select
-                value={form.orgUnitId ? form.orgUnitId.toString() : ""}
-                onValueChange={(v) => setForm((f) => ({ ...f, orgUnitId: Number(v) }))}
+                value={form.orgUnitId ? form.orgUnitId.toString() : "none"}
+                onValueChange={(v) => setForm((f) => ({ ...f, orgUnitId: v === "none" ? 0 : Number(v) }))}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Selecione a unidade..." />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">— Selecione a unidade —</SelectItem>
                   {(units as OrgUnit[]).map((u) => (
                     <SelectItem key={u.id} value={u.id.toString()}>
                       {u.acronym ? `[${u.acronym}] ` : ""}{u.name}
