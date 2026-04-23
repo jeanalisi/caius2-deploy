@@ -139,6 +139,8 @@ export default function OrgMembers() {
     onError: (e) => toast.error(e.message),
   });
 
+  const uploadPhotoMutation = trpc.orgMembers.uploadMemberPhoto.useMutation();
+
   const seedMutation = trpc.orgMembers.seedFromPayroll.useMutation({
     onSuccess: (res) => {
       utils.orgMembers.list.invalidate();
@@ -192,7 +194,7 @@ export default function OrgMembers() {
     reader.readAsDataURL(file);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!form.orgUnitId || form.orgUnitId === 0) {
       toast.error("Selecione a unidade organizacional.");
       return;
@@ -200,6 +202,19 @@ export default function OrgMembers() {
     if (!form.name.trim() || !form.cargo.trim()) {
       toast.error("Nome e cargo são obrigatórios.");
       return;
+    }
+    // Se photoUrl é base64, fazer upload para S3 primeiro
+    let resolvedPhotoUrl = form.photoUrl || null;
+    if (form.photoUrl && form.photoUrl.startsWith("data:")) {
+      try {
+        const [header, base64Data] = form.photoUrl.split(",");
+        const mimeType = header.match(/data:([^;]+)/)?.[1] ?? "image/jpeg";
+        const result = await uploadPhotoMutation.mutateAsync({ base64Data, mimeType });
+        resolvedPhotoUrl = result.url;
+      } catch (err: any) {
+        toast.error("Erro ao fazer upload da foto: " + (err?.message ?? "Tente novamente."));
+        return;
+      }
     }
     if (editing) {
       updateMutation.mutate({
@@ -209,7 +224,7 @@ export default function OrgMembers() {
         matricula: form.matricula || undefined,
         cargo: form.cargo,
         cargoLei: form.cargoLei || undefined,
-        photoUrl: form.photoUrl || null,
+        photoUrl: resolvedPhotoUrl,
         email: form.email || null,
         phone: form.phone || undefined,
         bio: form.bio || null,
@@ -223,7 +238,7 @@ export default function OrgMembers() {
         matricula: form.matricula || undefined,
         cargo: form.cargo,
         cargoLei: form.cargoLei || undefined,
-        photoUrl: form.photoUrl || undefined,
+        photoUrl: resolvedPhotoUrl || undefined,
         email: form.email || undefined,
         phone: form.phone || undefined,
         bio: form.bio || undefined,

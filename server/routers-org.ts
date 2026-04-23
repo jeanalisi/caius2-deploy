@@ -442,11 +442,11 @@ export const orgMembersRouter = router({
       matricula: z.string().max(64).optional(),
       cargo: z.string().min(2).max(255),
       cargoLei: z.string().max(128).optional(),
-      photoUrl: z.string().url().optional().or(z.literal("")),
+      photoUrl: z.string().optional().or(z.literal("")),
       email: z.string().email().optional().or(z.literal("")),
       phone: z.string().max(64).optional(),
       bio: z.string().max(2000).optional(),
-      externalLink: z.string().url().optional().or(z.literal("")),
+      externalLink: z.string().optional().or(z.literal("")),
       isPublic: z.boolean().optional(),
       sortOrder: z.number().optional(),
     }))
@@ -501,6 +501,21 @@ export const orgMembersRouter = router({
       if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
       const { seedOrgMembers } = await import("./seed-org-members");
       return seedOrgMembers();
+    }),
+  // Upload de foto do membro para S3 (admin)
+  uploadMemberPhoto: protectedProcedure
+    .input(z.object({
+      base64Data: z.string(),
+      mimeType: z.string().default("image/jpeg"),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      const { storagePut } = await import("./storage");
+      const buffer = Buffer.from(input.base64Data, "base64");
+      const ext = input.mimeType.split("/")[1] ?? "jpg";
+      const fileKey = `org-members/photos/${nanoid(12)}.${ext}`;
+      const { url } = await storagePut(fileKey, buffer, input.mimeType);
+      return { url };
     }),
 });
 // ─── Public Servants Router ───────────────────────────────────────────────────
