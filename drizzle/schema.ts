@@ -2546,3 +2546,20 @@ export const orgMembers = mysqlTable("orgMembers", {
 });
 export type OrgMember = typeof orgMembers.$inferSelect;
 export type InsertOrgMember = typeof orgMembers.$inferInsert;
+
+// ─── Public Servants (Servidores Públicos — legado) ───────────────────────────
+export const publicServants = mysqlTable("publicServants", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  matricula: varchar("matricula", { length: 32 }),
+  orgUnitId: int("orgUnitId").notNull(),
+  positionId: int("positionId"),
+  photoUrl: varchar("photoUrl", { length: 512 }),
+  isPublic: boolean("isPublic").default(true),
+  isActive: boolean("isActive").default(true),
+  legalBasis: varchar("legalBasis", { length: 255 }),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+export type PublicServant = typeof publicServants.$inferSelect;
+export type InsertPublicServant = typeof publicServants.$inferInsert;
