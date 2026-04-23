@@ -220,62 +220,72 @@ export default function ServidorDetalhes() {
         </div>
       </nav>
 
-      {/* ── Capa com gradiente ──────────────────────────────────────────────── */}
-      <div className={`h-40 sm:h-48 bg-gradient-to-br ${colors.from} ${colors.to} relative overflow-hidden`}>
+      {/* ── Capa com gradiente + Avatar integrado ──────────────────────────── */}
+      <div className={`bg-gradient-to-br ${colors.from} ${colors.to} relative`} style={{ paddingBottom: "5rem" }}>
         {/* Padrão decorativo */}
-        <div className="absolute inset-0 opacity-10">
+        <div className="absolute inset-0 opacity-10 pointer-events-none">
           <div className="absolute top-4 right-8 w-32 h-32 rounded-full border-2 border-white" />
           <div className="absolute top-12 right-20 w-20 h-20 rounded-full border border-white" />
-          <div className="absolute -bottom-4 left-12 w-24 h-24 rounded-full border-2 border-white" />
+          <div className="absolute bottom-8 left-12 w-24 h-24 rounded-full border-2 border-white" />
         </div>
         {/* Brasão / ícone da prefeitura */}
-        <div className="absolute bottom-4 right-6 opacity-15">
+        <div className="absolute bottom-8 right-6 opacity-15 pointer-events-none">
           <Building2 className="w-20 h-20 text-white" />
+        </div>
+        {/* Espaço da capa */}
+        <div className="h-36 sm:h-44" />
+        {/* Avatar e nome sobrepostos na parte inferior da capa */}
+        <div className="max-w-3xl mx-auto px-4">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+            {/* Avatar */}
+            <div className="w-32 h-32 rounded-2xl border-4 border-white shadow-xl shrink-0 overflow-hidden bg-slate-200">
+              {servidor.photoUrl ? (
+                <div
+                  className="w-full h-full"
+                  style={{
+                    backgroundImage: `url(${servidor.photoUrl})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center top",
+                  }}
+                  role="img"
+                  aria-label={nomeFormatado}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <UserCircle2 className="w-16 h-16 text-slate-400" />
+                </div>
+              )}
+            </div>
+            {/* Nome, cargo e badges — texto branco sobre a capa */}
+            <div className="flex-1 min-w-0 pb-1">
+              <h1 className="text-2xl font-bold text-white leading-tight drop-shadow">{nomeFormatado}</h1>
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {servidor.cargo && (
+                  <Badge className="bg-white/20 text-white border-white/30 font-medium text-xs px-2.5 py-1 gap-1 backdrop-blur-sm">
+                    <Briefcase className="w-3 h-3" />
+                    {servidor.cargo}
+                  </Badge>
+                )}
+                {orgUnit && (
+                  <Badge variant="outline" className="font-medium text-xs px-2.5 py-1 gap-1 border border-white/30 text-white bg-white/10">
+                    <Building2 className="w-3 h-3" />
+                    {unitLabel}
+                  </Badge>
+                )}
+                {servidor.matricula && (
+                  <span className="text-xs font-mono text-white/70 bg-white/10 border border-white/20 px-2 py-0.5 rounded-md">
+                    Mat. {servidor.matricula}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* ── Conteúdo principal ──────────────────────────────────────────────── */}
       <div className="max-w-3xl mx-auto px-4 pb-16">
-
-        {/* ── Cabeçalho do perfil ─────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-16 mb-6">
-          {/* Avatar */}
-          <div className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white shadow-xl bg-slate-200 flex items-center justify-center shrink-0">
-            {servidor.photoUrl ? (
-              <img
-                src={servidor.photoUrl}
-                alt={nomeFormatado}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <UserCircle2 className="w-16 h-16 text-slate-400" />
-            )}
-          </div>
-
-          {/* Nome, cargo e badges */}
-          <div className="flex-1 min-w-0 pb-1">
-            <h1 className="text-2xl font-bold text-slate-900 leading-tight">{nomeFormatado}</h1>
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              {servidor.cargo && (
-                <Badge className="bg-slate-800 text-white border-0 font-medium text-xs px-2.5 py-1 gap-1">
-                  <Briefcase className="w-3 h-3" />
-                  {servidor.cargo}
-                </Badge>
-              )}
-              {orgUnit && (
-                <Badge variant="outline" className={`font-medium text-xs px-2.5 py-1 gap-1 border ${colors.badge}`}>
-                  <Building2 className="w-3 h-3" />
-                  {unitLabel}
-                </Badge>
-              )}
-              {servidor.matricula && (
-                <span className="text-xs font-mono text-slate-400 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                  Mat. {servidor.matricula}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
+        <div className="mb-6" />
 
         {/* ── Grid de conteúdo ────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
