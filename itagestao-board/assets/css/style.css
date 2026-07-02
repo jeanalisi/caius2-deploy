@@ -1,0 +1,619 @@
+/* =====================================================
+   ItaGestão Board - Estilos Principais
+   Prefeitura Municipal de Itabaiana-PB
+   ===================================================== */
+
+:root {
+    --primary: #0d47a1;
+    --primary-light: #1976d2;
+    --primary-dark: #002171;
+    --primary-bg: #e3f2fd;
+    --sidebar-width: 260px;
+    --sidebar-collapsed: 70px;
+    --navbar-height: 60px;
+    --border-color: #e8eef3;
+    --bg-light: #f5f7fa;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+    --radius: 8px;
+    --radius-lg: 12px;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-light);
+    color: #333;
+    overflow-x: hidden;
+}
+
+/* ===== SIDEBAR ===== */
+.sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--primary);
+    color: #fff;
+    z-index: 1050;
+    transition: all 0.3s ease;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.sidebar-header {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.sidebar-logo {
+    width: 48px;
+    height: 48px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-size: 1.5rem;
+}
+
+.sidebar-title {
+    font-weight: 700;
+    margin-bottom: 0;
+    font-size: 0.95rem;
+}
+
+.sidebar-subtitle {
+    opacity: 0.7;
+    font-size: 0.75rem;
+}
+
+.sidebar-nav {
+    padding: 1rem 0;
+}
+
+.sidebar-nav .nav-link {
+    color: rgba(255,255,255,0.8);
+    padding: 0.65rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+    font-size: 0.875rem;
+}
+
+.sidebar-nav .nav-link:hover {
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    border-left-color: rgba(255,255,255,0.5);
+}
+
+.sidebar-nav .nav-link.active {
+    color: #fff;
+    background: rgba(255,255,255,0.15);
+    border-left-color: #fff;
+    font-weight: 600;
+}
+
+.sidebar-nav .nav-link i {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.sidebar-divider {
+    border-color: rgba(255,255,255,0.15);
+    margin: 0.5rem 1rem;
+}
+
+/* ===== MAIN CONTENT ===== */
+.main-content {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    transition: margin-left 0.3s ease;
+}
+
+/* ===== TOP NAVBAR ===== */
+.top-navbar {
+    height: var(--navbar-height);
+    background: #fff;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1040;
+    box-shadow: var(--shadow-sm);
+}
+
+.sidebar-toggle {
+    color: #555;
+    text-decoration: none;
+    padding: 0;
+}
+
+.breadcrumb {
+    font-size: 0.85rem;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: #dc3545;
+    color: #fff;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== PAGE CONTENT ===== */
+.page-content {
+    padding: 1.5rem;
+    min-height: calc(100vh - var(--navbar-height) - 50px);
+}
+
+/* ===== FOOTER ===== */
+.app-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: #fff;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* ===== CARDS ===== */
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.card-header {
+    background: #fff;
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+}
+
+/* ===== STAT CARDS ===== */
+.stat-card {
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+}
+
+.stat-card .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.stat-card .stat-label {
+    font-size: 0.8rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ===== KANBAN BOARD ===== */
+.kanban-board {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 1rem;
+    min-height: 500px;
+    align-items: flex-start;
+}
+
+.kanban-list {
+    min-width: 280px;
+    max-width: 320px;
+    background: #f0f2f5;
+    border-radius: var(--radius-lg);
+    padding: 0.75rem;
+    flex-shrink: 0;
+}
+
+.kanban-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.kanban-list-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.kanban-list-count {
+    background: rgba(0,0,0,0.1);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.kanban-cards {
+    min-height: 50px;
+}
+
+.kanban-card {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    border: 1px solid var(--border-color);
+    transition: box-shadow 0.2s, transform 0.1s;
+}
+
+.kanban-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.kanban-card.sortable-ghost {
+    opacity: 0.5;
+    background: var(--primary-bg);
+}
+
+.kanban-card.sortable-chosen {
+    box-shadow: var(--shadow-lg);
+}
+
+.kanban-card-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.kanban-card-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.kanban-card-label {
+    height: 6px;
+    border-radius: 3px;
+    width: 40px;
+}
+
+.kanban-card-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.kanban-card-meta .badge {
+    font-size: 0.65rem;
+}
+
+.kanban-card-avatars {
+    display: flex;
+}
+
+.kanban-card-avatars .mini-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: 600;
+    margin-left: -6px;
+    border: 2px solid #fff;
+}
+
+.kanban-card-avatars .mini-avatar:first-child {
+    margin-left: 0;
+}
+
+/* Priority indicators */
+.priority-urgente { border-left: 3px solid #dc3545; }
+.priority-alta { border-left: 3px solid #fd7e14; }
+.priority-media { border-left: 3px solid #ffc107; }
+.priority-baixa { border-left: 3px solid #198754; }
+
+/* ===== TABLES ===== */
+.table {
+    font-size: 0.875rem;
+}
+
+.table th {
+    font-weight: 600;
+    color: #555;
+    border-bottom-width: 1px;
+    white-space: nowrap;
+}
+
+/* ===== BUTTONS ===== */
+.btn-primary {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+/* ===== BADGES ===== */
+.badge-priority-baixa { background: #d4edda; color: #155724; }
+.badge-priority-media { background: #fff3cd; color: #856404; }
+.badge-priority-alta { background: #ffe0cc; color: #7c2d12; }
+.badge-priority-urgente { background: #f8d7da; color: #721c24; }
+
+/* ===== MODALS ===== */
+.modal-header {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 0;
+}
+
+.modal-header .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 991.98px) {
+    .sidebar {
+        transform: translateX(-100%);
+    }
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    .main-content {
+        margin-left: 0;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .page-content {
+        padding: 1rem;
+    }
+    .kanban-list {
+        min-width: 260px;
+    }
+}
+
+/* ===== SIDEBAR COLLAPSED ===== */
+body.sidebar-collapsed .sidebar {
+    width: var(--sidebar-collapsed);
+}
+
+body.sidebar-collapsed .sidebar-header {
+    padding: 1rem 0.5rem;
+}
+
+body.sidebar-collapsed .sidebar-title,
+body.sidebar-collapsed .sidebar-subtitle,
+body.sidebar-collapsed .sidebar-nav .nav-link span {
+    display: none;
+}
+
+body.sidebar-collapsed .sidebar-nav .nav-link {
+    justify-content: center;
+    padding: 0.75rem;
+}
+
+body.sidebar-collapsed .main-content {
+    margin-left: var(--sidebar-collapsed);
+}
+
+/* ===== ANIMATIONS ===== */
+.fade-in {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== CHECKLIST ===== */
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.checklist-item.done .checklist-text {
+    text-decoration: line-through;
+    color: #999;
+}
+
+/* ===== TIMELINE/HISTORY ===== */
+.timeline {
+    position: relative;
+    padding-left: 2rem;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--border-color);
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1rem;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -1.5rem;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    border: 2px solid #fff;
+}
+
+.timeline-item .timeline-time {
+    font-size: 0.75rem;
+    color: #999;
+}
+
+/* ===== NOTIFICATION DROPDOWN ===== */
+.notification-dropdown {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s;
+}
+
+.notification-item:hover {
+    background: #f8f9fa;
+}
+
+.notification-item.unread {
+    background: var(--primary-bg);
+}
+
+/* ===== SEARCH ===== */
+.search-box {
+    position: relative;
+}
+
+.search-box .form-control {
+    padding-left: 2.5rem;
+    border-radius: 20px;
+    background: #f5f7fa;
+    border: 1px solid #e0e0e0;
+}
+
+.search-box .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+}
+
+/* ===== QUADRO GRID ===== */
+.quadro-card {
+    border: none;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    height: 100%;
+}
+
+.quadro-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.quadro-card-header {
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 2rem;
+}
+
+.quadro-card-body {
+    padding: 1rem;
+}
+
+.quadro-card-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+}
+
+.quadro-card-subtitle {
+    font-size: 0.75rem;
+    color: #666;
+}
