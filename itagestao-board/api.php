@@ -6,13 +6,17 @@
 
 require_once __DIR__ . '/includes/init.php';
 
-// Verificar autenticação
-if (!Auth::check()) {
-    jsonResponse(['success' => false, 'message' => 'Não autorizado.'], 401);
-}
-
 $module = $_GET['module'] ?? '';
 $action = $_GET['action'] ?? '';
+
+// Módulos que não requerem autenticação
+$publicModules = ['auth'];
+$publicActions = ['login'];
+
+// Verificar autenticação (exceto para login)
+if (!Auth::check() && !(in_array($module, $publicModules) && in_array($action, $publicActions))) {
+    jsonResponse(['success' => false, 'message' => 'Não autorizado.'], 401);
+}
 
 // Mapa de controllers AJAX
 $controllers = [

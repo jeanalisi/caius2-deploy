@@ -3,17 +3,16 @@
 -- Prefeitura Municipal de Itabaiana-PB
 -- =====================================================
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-SET AUTOCOMMIT = 0;
-START TRANSACTION;
-SET time_zone = "-03:00";
 SET NAMES utf8mb4;
+SET time_zone = '-03:00';
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- =====================================================
 -- TABELAS ESTRUTURAIS
 -- =====================================================
 
-CREATE TABLE IF NOT EXISTS `configuracoes` (
+DROP TABLE IF EXISTS `configuracoes`;
+CREATE TABLE `configuracoes` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `chave` VARCHAR(100) NOT NULL,
   `valor` TEXT DEFAULT NULL,
@@ -24,7 +23,8 @@ CREATE TABLE IF NOT EXISTS `configuracoes` (
   UNIQUE KEY `chave` (`chave`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `perfis` (
+DROP TABLE IF EXISTS `perfis`;
+CREATE TABLE `perfis` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(100) NOT NULL,
   `slug` VARCHAR(100) NOT NULL,
@@ -37,7 +37,8 @@ CREATE TABLE IF NOT EXISTS `perfis` (
   UNIQUE KEY `slug` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `permissoes` (
+DROP TABLE IF EXISTS `permissoes`;
+CREATE TABLE `permissoes` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `perfil_id` INT(11) NOT NULL,
   `modulo` VARCHAR(100) NOT NULL,
@@ -45,11 +46,11 @@ CREATE TABLE IF NOT EXISTS `permissoes` (
   `permitido` TINYINT(1) NOT NULL DEFAULT 0,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `perfil_id` (`perfil_id`),
-  CONSTRAINT `fk_permissoes_perfil` FOREIGN KEY (`perfil_id`) REFERENCES `perfis` (`id`) ON DELETE CASCADE
+  KEY `perfil_id` (`perfil_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `secretarias` (
+DROP TABLE IF EXISTS `secretarias`;
+CREATE TABLE `secretarias` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(200) NOT NULL,
   `sigla` VARCHAR(20) DEFAULT NULL,
@@ -61,7 +62,8 @@ CREATE TABLE IF NOT EXISTS `secretarias` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `setores` (
+DROP TABLE IF EXISTS `setores`;
+CREATE TABLE `setores` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `secretaria_id` INT(11) NOT NULL,
   `nome` VARCHAR(200) NOT NULL,
@@ -70,11 +72,11 @@ CREATE TABLE IF NOT EXISTS `setores` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `secretaria_id` (`secretaria_id`),
-  CONSTRAINT `fk_setores_secretaria` FOREIGN KEY (`secretaria_id`) REFERENCES `secretarias` (`id`) ON DELETE CASCADE
+  KEY `secretaria_id` (`secretaria_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `usuarios` (
+DROP TABLE IF EXISTS `usuarios`;
+CREATE TABLE `usuarios` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(200) NOT NULL,
   `email` VARCHAR(200) NOT NULL,
@@ -94,17 +96,25 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   UNIQUE KEY `email` (`email`),
   KEY `perfil_id` (`perfil_id`),
   KEY `secretaria_id` (`secretaria_id`),
-  KEY `setor_id` (`setor_id`),
-  CONSTRAINT `fk_usuarios_perfil` FOREIGN KEY (`perfil_id`) REFERENCES `perfis` (`id`),
-  CONSTRAINT `fk_usuarios_secretaria` FOREIGN KEY (`secretaria_id`) REFERENCES `secretarias` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_usuarios_setor` FOREIGN KEY (`setor_id`) REFERENCES `setores` (`id`) ON DELETE SET NULL
+  KEY `setor_id` (`setor_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
 -- TABELAS DE QUADROS E KANBAN
 -- =====================================================
 
-CREATE TABLE IF NOT EXISTS `quadros` (
+DROP TABLE IF EXISTS `prioridades`;
+CREATE TABLE `prioridades` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `nome` VARCHAR(50) NOT NULL,
+  `cor` VARCHAR(7) NOT NULL,
+  `icone` VARCHAR(50) DEFAULT NULL,
+  `nivel` INT(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DROP TABLE IF EXISTS `quadros`;
+CREATE TABLE `quadros` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `titulo` VARCHAR(200) NOT NULL,
   `descricao` TEXT DEFAULT NULL,
@@ -119,12 +129,11 @@ CREATE TABLE IF NOT EXISTS `quadros` (
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `secretaria_id` (`secretaria_id`),
-  KEY `criado_por` (`criado_por`),
-  CONSTRAINT `fk_quadros_secretaria` FOREIGN KEY (`secretaria_id`) REFERENCES `secretarias` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_quadros_criador` FOREIGN KEY (`criado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+  KEY `criado_por` (`criado_por`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `listas` (
+DROP TABLE IF EXISTS `listas`;
+CREATE TABLE `listas` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `quadro_id` INT(11) NOT NULL,
   `titulo` VARCHAR(200) NOT NULL,
@@ -135,31 +144,22 @@ CREATE TABLE IF NOT EXISTS `listas` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `quadro_id` (`quadro_id`),
-  CONSTRAINT `fk_listas_quadro` FOREIGN KEY (`quadro_id`) REFERENCES `quadros` (`id`) ON DELETE CASCADE
+  KEY `quadro_id` (`quadro_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `etiquetas` (
+DROP TABLE IF EXISTS `etiquetas`;
+CREATE TABLE `etiquetas` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `nome` VARCHAR(100) NOT NULL,
   `cor` VARCHAR(7) NOT NULL DEFAULT '#0d6efd',
   `quadro_id` INT(11) DEFAULT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `quadro_id` (`quadro_id`),
-  CONSTRAINT `fk_etiquetas_quadro` FOREIGN KEY (`quadro_id`) REFERENCES `quadros` (`id`) ON DELETE CASCADE
+  KEY `quadro_id` (`quadro_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `prioridades` (
-  `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `nome` VARCHAR(50) NOT NULL,
-  `cor` VARCHAR(7) NOT NULL,
-  `icone` VARCHAR(50) DEFAULT NULL,
-  `nivel` INT(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS `cartoes` (
+DROP TABLE IF EXISTS `cartoes`;
+CREATE TABLE `cartoes` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `lista_id` INT(11) NOT NULL,
   `quadro_id` INT(11) NOT NULL,
@@ -186,17 +186,11 @@ CREATE TABLE IF NOT EXISTS `cartoes` (
   KEY `responsavel_id` (`responsavel_id`),
   KEY `prioridade_id` (`prioridade_id`),
   KEY `criado_por` (`criado_por`),
-  KEY `prazo` (`prazo`),
-  CONSTRAINT `fk_cartoes_lista` FOREIGN KEY (`lista_id`) REFERENCES `listas` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_cartoes_quadro` FOREIGN KEY (`quadro_id`) REFERENCES `quadros` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_cartoes_secretaria` FOREIGN KEY (`secretaria_id`) REFERENCES `secretarias` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_cartoes_setor` FOREIGN KEY (`setor_id`) REFERENCES `setores` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_cartoes_responsavel` FOREIGN KEY (`responsavel_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_cartoes_prioridade` FOREIGN KEY (`prioridade_id`) REFERENCES `prioridades` (`id`) ON DELETE SET NULL,
-  CONSTRAINT `fk_cartoes_criador` FOREIGN KEY (`criado_por`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+  KEY `prazo` (`prazo`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `cartao_responsaveis` (
+DROP TABLE IF EXISTS `cartao_responsaveis`;
+CREATE TABLE `cartao_responsaveis` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `cartao_id` INT(11) NOT NULL,
   `usuario_id` INT(11) NOT NULL,
@@ -204,12 +198,11 @@ CREATE TABLE IF NOT EXISTS `cartao_responsaveis` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `cartao_usuario` (`cartao_id`, `usuario_id`),
-  KEY `usuario_id` (`usuario_id`),
-  CONSTRAINT `fk_cartao_resp_cartao` FOREIGN KEY (`cartao_id`) REFERENCES `cartoes` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_cartao_resp_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+  KEY `usuario_id` (`usuario_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `cartao_comentarios` (
+DROP TABLE IF EXISTS `cartao_comentarios`;
+CREATE TABLE `cartao_comentarios` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `cartao_id` INT(11) NOT NULL,
   `usuario_id` INT(11) NOT NULL,
@@ -218,12 +211,11 @@ CREATE TABLE IF NOT EXISTS `cartao_comentarios` (
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `cartao_id` (`cartao_id`),
-  KEY `usuario_id` (`usuario_id`),
-  CONSTRAINT `fk_comentarios_cartao` FOREIGN KEY (`cartao_id`) REFERENCES `cartoes` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_comentarios_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+  KEY `usuario_id` (`usuario_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `cartao_checklists` (
+DROP TABLE IF EXISTS `cartao_checklists`;
+CREATE TABLE `cartao_checklists` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `cartao_id` INT(11) NOT NULL,
   `titulo` VARCHAR(200) NOT NULL,
@@ -232,11 +224,11 @@ CREATE TABLE IF NOT EXISTS `cartao_checklists` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `cartao_id` (`cartao_id`),
-  CONSTRAINT `fk_checklists_cartao` FOREIGN KEY (`cartao_id`) REFERENCES `cartoes` (`id`) ON DELETE CASCADE
+  KEY `cartao_id` (`cartao_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `cartao_anexos` (
+DROP TABLE IF EXISTS `cartao_anexos`;
+CREATE TABLE `cartao_anexos` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `cartao_id` INT(11) NOT NULL,
   `usuario_id` INT(11) DEFAULT NULL,
@@ -249,23 +241,21 @@ CREATE TABLE IF NOT EXISTS `cartao_anexos` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `cartao_id` (`cartao_id`),
-  KEY `usuario_id` (`usuario_id`),
-  CONSTRAINT `fk_anexos_cartao` FOREIGN KEY (`cartao_id`) REFERENCES `cartoes` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_anexos_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+  KEY `usuario_id` (`usuario_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `cartao_etiquetas` (
+DROP TABLE IF EXISTS `cartao_etiquetas`;
+CREATE TABLE `cartao_etiquetas` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `cartao_id` INT(11) NOT NULL,
   `etiqueta_id` INT(11) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `cartao_etiqueta` (`cartao_id`, `etiqueta_id`),
-  KEY `etiqueta_id` (`etiqueta_id`),
-  CONSTRAINT `fk_ce_cartao` FOREIGN KEY (`cartao_id`) REFERENCES `cartoes` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_ce_etiqueta` FOREIGN KEY (`etiqueta_id`) REFERENCES `etiquetas` (`id`) ON DELETE CASCADE
+  KEY `etiqueta_id` (`etiqueta_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `cartao_historico` (
+DROP TABLE IF EXISTS `cartao_historico`;
+CREATE TABLE `cartao_historico` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `cartao_id` INT(11) NOT NULL,
   `usuario_id` INT(11) DEFAULT NULL,
@@ -278,16 +268,15 @@ CREATE TABLE IF NOT EXISTS `cartao_historico` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `cartao_id` (`cartao_id`),
-  KEY `usuario_id` (`usuario_id`),
-  CONSTRAINT `fk_historico_cartao` FOREIGN KEY (`cartao_id`) REFERENCES `cartoes` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_historico_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+  KEY `usuario_id` (`usuario_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
 -- TABELAS DE NOTIFICAÇÕES E LOGS
 -- =====================================================
 
-CREATE TABLE IF NOT EXISTS `notificacoes` (
+DROP TABLE IF EXISTS `notificacoes`;
+CREATE TABLE `notificacoes` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `usuario_id` INT(11) NOT NULL,
   `titulo` VARCHAR(200) NOT NULL,
@@ -298,11 +287,11 @@ CREATE TABLE IF NOT EXISTS `notificacoes` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `usuario_id` (`usuario_id`),
-  KEY `lida` (`lida`),
-  CONSTRAINT `fk_notificacoes_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE
+  KEY `lida` (`lida`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS `logs_acesso` (
+DROP TABLE IF EXISTS `logs_acesso`;
+CREATE TABLE `logs_acesso` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `usuario_id` INT(11) DEFAULT NULL,
   `acao` VARCHAR(100) NOT NULL,
@@ -313,9 +302,10 @@ CREATE TABLE IF NOT EXISTS `logs_acesso` (
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `usuario_id` (`usuario_id`),
-  KEY `created_at` (`created_at`),
-  CONSTRAINT `fk_logs_usuario` FOREIGN KEY (`usuario_id`) REFERENCES `usuarios` (`id`) ON DELETE SET NULL
+  KEY `created_at` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- =====================================================
 -- DADOS INICIAIS
@@ -439,5 +429,3 @@ INSERT INTO `etiquetas` (`nome`, `cor`, `quadro_id`) VALUES
 ('Cancelado', '#6f42c1', NULL),
 ('Gabinete', '#0d6efd', NULL),
 ('Prazo legal', '#e91e63', NULL);
-
-COMMIT;

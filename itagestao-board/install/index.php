@@ -5,6 +5,8 @@
  */
 
 session_start();
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
 
 // Verificar se já está instalado
 if (file_exists(__DIR__ . '/../config.php')) {
@@ -12,6 +14,7 @@ if (file_exists(__DIR__ . '/../config.php')) {
     if (strpos($config, 'DB_NAME') !== false) {
         echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Já instalado</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
         </head><body class="bg-light d-flex align-items-center justify-content-center" style="min-height:100vh;">
         <div class="card shadow" style="max-width:500px;width:100%;">
         <div class="card-body text-center p-4">
@@ -31,6 +34,7 @@ $success = '';
 // Processar instalação
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 3) {
     $db_host = trim($_POST['db_host'] ?? 'localhost');
+    $db_port = trim($_POST['db_port'] ?? '3306');
     $db_name = trim($_POST['db_name'] ?? '');
     $db_user = trim($_POST['db_user'] ?? '');
     $db_pass = $_POST['db_pass'] ?? '';
@@ -40,23 +44,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 3) {
     $admin_senha = $_POST['admin_senha'] ?? 'admin123';
 
     try {
-        // Testar conexão
-        $pdo = new PDO("mysql:host={$db_host};charset=utf8mb4", $db_user, $db_pass, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+        // Testar conexão com o servidor MySQL
+        $dsn = "mysql:host={$db_host};port={$db_port};charset=utf8mb4";
+        $pdo = new PDO($dsn, $db_user, $db_pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
         ]);
 
         // Criar banco se não existir
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
         $pdo->exec("USE `{$db_name}`");
 
-        // Executar SQL
-        $sql = file_get_contents(__DIR__ . '/../database.sql');
-        $pdo->exec($sql);
+        // Ler e executar SQL statement por statement
+        $sqlFile = __DIR__ . '/../database.sql';
+        if (!file_exists($sqlFile)) {
+            throw new Exception('Arquivo database.sql não encontrado.');
+        }
+
+        $sql = file_get_contents($sqlFile);
+        
+        // Remover comentários de linha
+        $sql = preg_replace('/--.*$/m', '', $sql);
+        
+        // Dividir por ponto-e-vírgula (respeitando strings)
+        $statements = array_filter(array_map('trim', splitSqlStatements($sql)));
+        
+        foreach ($statements as $stmt) {
+            if (!empty($stmt) && $stmt !== ';') {
+                try {
+                    $pdo->exec($stmt);
+                } catch (PDOException $e) {
+                    // Ignorar erros de DROP TABLE IF EXISTS e tabela já existe
+                    if (strpos($e->getMessage(), '1051') === false && 
+                        strpos($e->getMessage(), '1050') === false) {
+                        // Log mas não para a execução para INSERTs duplicados
+                        if (strpos($e->getMessage(), 'Duplicate entry') === false) {
+                            throw $e;
+                        }
+                    }
+                }
+            }
+        }
 
         // Criar usuário administrador
         $hash = password_hash($admin_senha, PASSWORD_BCRYPT, ['cost' => 12]);
-        $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha, perfil_id, primeiro_acesso) VALUES (?, ?, ?, 1, 1)");
-        $stmt->execute([$admin_nome, $admin_email, $hash]);
+        
+        // Verificar se já existe
+        $check = $pdo->prepare("SELECT id FROM usuarios WHERE email = ?");
+        $check->execute([$admin_email]);
+        if (!$check->fetch()) {
+            $stmt = $pdo->prepare("INSERT INTO usuarios (nome, email, senha, perfil_id, secretaria_id, primeiro_acesso, ativo) VALUES (?, ?, ?, 1, 1, 1, 1)");
+            $stmt->execute([$admin_nome, $admin_email, $hash]);
+        }
 
         // Criar quadros iniciais
         $quadros_iniciais = [
@@ -83,54 +123,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $step === 3) {
             'convenios' => ['Ideia', 'Cadastro', 'Plano de trabalho', 'Análise', 'Aprovado', 'Execução', 'Prestação de contas', 'Finalizado']
         ];
 
-        foreach ($quadros_iniciais as $q) {
-            $stmt = $pdo->prepare("INSERT INTO quadros (titulo, secretaria_id, cor, icone, tipo_fluxo, visibilidade, criado_por) VALUES (?, ?, ?, ?, ?, 'publico', 1)");
-            $stmt->execute([$q[0], $q[1], $q[2], $q[3], $q[4]]);
-            $quadro_id = $pdo->lastInsertId();
+        // Verificar se já existem quadros
+        $checkQuadros = $pdo->query("SELECT COUNT(*) as total FROM quadros");
+        $totalQuadros = $checkQuadros->fetch()['total'];
 
-            $listas = $fluxos[$q[4]] ?? $fluxos['padrao'];
-            foreach ($listas as $pos => $titulo) {
-                $stmt = $pdo->prepare("INSERT INTO listas (quadro_id, titulo, posicao) VALUES (?, ?, ?)");
-                $stmt->execute([$quadro_id, $titulo, $pos]);
+        if ($totalQuadros == 0) {
+            foreach ($quadros_iniciais as $q) {
+                $stmt = $pdo->prepare("INSERT INTO quadros (titulo, secretaria_id, cor, icone, tipo_fluxo, visibilidade, criado_por) VALUES (?, ?, ?, ?, ?, 'publico', 1)");
+                $stmt->execute([$q[0], $q[1], $q[2], $q[3], $q[4]]);
+                $quadro_id = $pdo->lastInsertId();
+
+                $listasFluxo = $fluxos[$q[4]] ?? $fluxos['padrao'];
+                foreach ($listasFluxo as $pos => $titulo) {
+                    $stmtLista = $pdo->prepare("INSERT INTO listas (quadro_id, titulo, posicao) VALUES (?, ?, ?)");
+                    $stmtLista->execute([$quadro_id, $titulo, $pos]);
+                }
             }
         }
 
         // Gerar config.php
-        $configContent = "<?php
+        $configContent = '<?php
 /**
  * ItaGestão Board - Arquivo de Configuração
- * Gerado automaticamente pelo instalador em " . date('d/m/Y H:i:s') . "
+ * Gerado automaticamente pelo instalador em ' . date('d/m/Y H:i:s') . '
  */
 
 // Configurações do Banco de Dados
-define('DB_HOST', '{$db_host}');
-define('DB_NAME', '{$db_name}');
-define('DB_USER', '{$db_user}');
-define('DB_PASS', '{$db_pass}');
-define('DB_CHARSET', 'utf8mb4');
+define(\'DB_HOST\', \'' . addslashes($db_host) . '\');
+define(\'DB_PORT\', \'' . addslashes($db_port) . '\');
+define(\'DB_NAME\', \'' . addslashes($db_name) . '\');
+define(\'DB_USER\', \'' . addslashes($db_user) . '\');
+define(\'DB_PASS\', \'' . addslashes($db_pass) . '\');
+define(\'DB_CHARSET\', \'utf8mb4\');
 
 // Configurações do Sistema
-define('SITE_URL', '{$site_url}');
-define('SITE_NAME', 'ItaGestão Board');
-define('SITE_VERSION', '1.0.0');
+define(\'SITE_URL\', \'' . addslashes($site_url) . '\');
+define(\'SITE_NAME\', \'ItaGestão Board\');
+define(\'SITE_VERSION\', \'1.0.0\');
 
 // Configurações de Segurança
-define('SESSION_NAME', 'itagestao_session');
-define('SESSION_LIFETIME', 7200);
-define('HASH_COST', 12);
+define(\'SESSION_NAME\', \'itagestao_session\');
+define(\'SESSION_LIFETIME\', 7200);
+define(\'HASH_COST\', 12);
 
 // Configurações de Upload
-define('UPLOAD_DIR', __DIR__ . '/uploads/');
-define('UPLOAD_MAX_SIZE', 10485760);
-define('ALLOWED_EXTENSIONS', 'pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif,zip,rar');
+define(\'UPLOAD_DIR\', __DIR__ . \'/uploads/\');
+define(\'UPLOAD_MAX_SIZE\', 10485760);
+define(\'ALLOWED_EXTENSIONS\', \'pdf,doc,docx,xls,xlsx,jpg,jpeg,png,gif,zip,rar\');
 
 // Configurações de Timezone
-define('APP_TIMEZONE', 'America/Recife');
+define(\'APP_TIMEZONE\', \'America/Recife\');
 
 // Modo de desenvolvimento
-define('DEBUG_MODE', false);
-";
-        file_put_contents(__DIR__ . '/../config.php', $configContent);
+define(\'DEBUG_MODE\', false);
+';
+        $configPath = __DIR__ . '/../config.php';
+        if (file_put_contents($configPath, $configContent) === false) {
+            throw new Exception('Não foi possível gravar o arquivo config.php. Verifique as permissões da pasta.');
+        }
 
         $success = 'Instalação concluída com sucesso!';
         $step = 4;
@@ -142,6 +192,49 @@ define('DEBUG_MODE', false);
         $error = 'Erro: ' . $e->getMessage();
         $step = 3;
     }
+}
+
+/**
+ * Divide SQL em statements individuais respeitando strings e delimitadores
+ */
+function splitSqlStatements($sql) {
+    $statements = [];
+    $current = '';
+    $inString = false;
+    $stringChar = '';
+    $len = strlen($sql);
+    
+    for ($i = 0; $i < $len; $i++) {
+        $char = $sql[$i];
+        
+        if ($inString) {
+            $current .= $char;
+            if ($char === $stringChar && ($i === 0 || $sql[$i-1] !== '\\')) {
+                $inString = false;
+            }
+        } else {
+            if ($char === '\'' || $char === '"') {
+                $inString = true;
+                $stringChar = $char;
+                $current .= $char;
+            } elseif ($char === ';') {
+                $trimmed = trim($current);
+                if (!empty($trimmed)) {
+                    $statements[] = $trimmed;
+                }
+                $current = '';
+            } else {
+                $current .= $char;
+            }
+        }
+    }
+    
+    $trimmed = trim($current);
+    if (!empty($trimmed)) {
+        $statements[] = $trimmed;
+    }
+    
+    return $statements;
 }
 ?>
 <!DOCTYPE html>
@@ -177,22 +270,33 @@ define('DEBUG_MODE', false);
         <div class="card-body p-4">
 
             <?php if ($error): ?>
-            <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-2"></i><?php echo $error; ?></div>
+            <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-2"></i><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
 
             <?php if ($step === 1): ?>
             <!-- PASSO 1: Verificação de Requisitos -->
             <h5 class="fw-bold mb-3">Passo 1: Verificação de Requisitos</h5>
             <?php
+            $uploadsDir = __DIR__ . '/../uploads';
+            $rootDir = __DIR__ . '/..';
+            
+            // Tentar criar pasta uploads se não existir
+            if (!is_dir($uploadsDir)) {
+                @mkdir($uploadsDir, 0755, true);
+                @mkdir($uploadsDir . '/anexos', 0755, true);
+                @mkdir($uploadsDir . '/evidencias', 0755, true);
+            }
+
             $requisitos = [
-                ['PHP >= 8.0', version_compare(PHP_VERSION, '8.0.0', '>=')],
-                ['Extensão PDO', extension_loaded('pdo')],
-                ['Extensão PDO MySQL', extension_loaded('pdo_mysql')],
-                ['Extensão JSON', extension_loaded('json')],
-                ['Extensão mbstring', extension_loaded('mbstring')],
-                ['Extensão fileinfo', extension_loaded('fileinfo')],
-                ['Pasta uploads gravável', is_writable(__DIR__ . '/../uploads')],
-                ['Pasta raiz gravável (config.php)', is_writable(__DIR__ . '/..')],
+                ['PHP >= 8.0', version_compare(PHP_VERSION, '8.0.0', '>='), 'Versão atual: ' . PHP_VERSION],
+                ['Extensão PDO', extension_loaded('pdo'), ''],
+                ['Extensão PDO MySQL', extension_loaded('pdo_mysql'), ''],
+                ['Extensão JSON', extension_loaded('json'), ''],
+                ['Extensão mbstring', extension_loaded('mbstring'), ''],
+                ['Extensão fileinfo', extension_loaded('fileinfo'), ''],
+                ['Pasta uploads gravável', is_dir($uploadsDir) && is_writable($uploadsDir), 'Caminho: ' . realpath($uploadsDir)],
+                ['Pasta raiz gravável (config.php)', is_writable($rootDir), 'Caminho: ' . realpath($rootDir)],
+                ['Arquivo database.sql presente', file_exists(__DIR__ . '/../database.sql'), ''],
             ];
             $todosOk = true;
             ?>
@@ -202,7 +306,12 @@ define('DEBUG_MODE', false);
                         if (!$r[1]) $todosOk = false;
                     ?>
                     <tr>
-                        <td><?php echo $r[0]; ?></td>
+                        <td>
+                            <?php echo $r[0]; ?>
+                            <?php if (!empty($r[2])): ?>
+                            <br><small class="text-muted"><?php echo $r[2]; ?></small>
+                            <?php endif; ?>
+                        </td>
                         <td class="text-end">
                             <?php if ($r[1]): ?>
                             <span class="badge bg-success"><i class="bi bi-check-lg"></i> OK</span>
@@ -217,7 +326,10 @@ define('DEBUG_MODE', false);
             <?php if ($todosOk): ?>
             <a href="?step=2" class="btn btn-primary w-100">Próximo <i class="bi bi-arrow-right ms-1"></i></a>
             <?php else: ?>
-            <div class="alert alert-warning">Corrija os requisitos acima antes de continuar.</div>
+            <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>Corrija os requisitos acima antes de continuar.
+                <br><small>Se a pasta não é gravável, execute: <code>chmod 755 uploads/ && chmod 755 .</code></small>
+            </div>
             <a href="?step=1" class="btn btn-secondary w-100">Verificar Novamente</a>
             <?php endif; ?>
 
@@ -246,50 +358,61 @@ define('DEBUG_MODE', false);
             <form method="POST" action="?step=3">
                 <h6 class="fw-semibold text-primary mb-2">Banco de Dados</h6>
                 <div class="row mb-3">
-                    <div class="col-md-8">
+                    <div class="col-md-6">
                         <label class="form-label small">Host</label>
-                        <input type="text" class="form-control" name="db_host" value="localhost" required>
+                        <input type="text" class="form-control" name="db_host" value="<?php echo htmlspecialchars($_POST['db_host'] ?? 'localhost'); ?>" required>
+                        <small class="text-muted">Geralmente: localhost</small>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <label class="form-label small">Porta</label>
+                        <input type="text" class="form-control" name="db_port" value="<?php echo htmlspecialchars($_POST['db_port'] ?? '3306'); ?>" required>
+                    </div>
+                    <div class="col-md-3">
                         <label class="form-label small">Nome do Banco</label>
-                        <input type="text" class="form-control" name="db_name" value="itagestao" required>
+                        <input type="text" class="form-control" name="db_name" value="<?php echo htmlspecialchars($_POST['db_name'] ?? 'itagestao'); ?>" required>
                     </div>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label class="form-label small">Usuário</label>
-                        <input type="text" class="form-control" name="db_user" value="root" required>
+                        <label class="form-label small">Usuário do Banco</label>
+                        <input type="text" class="form-control" name="db_user" value="<?php echo htmlspecialchars($_POST['db_user'] ?? ''); ?>" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small">Senha</label>
-                        <input type="password" class="form-control" name="db_pass">
+                        <label class="form-label small">Senha do Banco</label>
+                        <input type="password" class="form-control" name="db_pass" value="<?php echo htmlspecialchars($_POST['db_pass'] ?? ''); ?>">
                     </div>
                 </div>
 
                 <h6 class="fw-semibold text-primary mb-2 mt-4">URL do Sistema</h6>
                 <div class="mb-3">
                     <label class="form-label small">URL completa (sem barra no final)</label>
-                    <input type="url" class="form-control" name="site_url" value="<?php echo 'http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . dirname(dirname($_SERVER['SCRIPT_NAME'])); ?>" required>
+                    <?php 
+                    $defaultUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') 
+                                  . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') 
+                                  . rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'])), '/');
+                    ?>
+                    <input type="text" class="form-control" name="site_url" value="<?php echo htmlspecialchars($_POST['site_url'] ?? $defaultUrl); ?>" required>
+                    <small class="text-muted">Ex: https://gestao.itabaiana.pb.gov.br</small>
                 </div>
 
                 <h6 class="fw-semibold text-primary mb-2 mt-4">Administrador</h6>
                 <div class="mb-3">
-                    <label class="form-label small">Nome</label>
-                    <input type="text" class="form-control" name="admin_nome" value="Administrador" required>
+                    <label class="form-label small">Nome completo</label>
+                    <input type="text" class="form-control" name="admin_nome" value="<?php echo htmlspecialchars($_POST['admin_nome'] ?? 'Administrador'); ?>" required>
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label class="form-label small">E-mail</label>
-                        <input type="email" class="form-control" name="admin_email" value="admin@itabaiana.pb.gov.br" required>
+                        <label class="form-label small">E-mail de acesso</label>
+                        <input type="email" class="form-control" name="admin_email" value="<?php echo htmlspecialchars($_POST['admin_email'] ?? 'admin@itabaiana.pb.gov.br'); ?>" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small">Senha</label>
-                        <input type="password" class="form-control" name="admin_senha" value="admin123" required>
+                        <input type="text" class="form-control" name="admin_senha" value="<?php echo htmlspecialchars($_POST['admin_senha'] ?? 'admin123'); ?>" required>
                         <small class="text-muted">Altere após o primeiro login</small>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary w-100">
+                <button type="submit" class="btn btn-primary w-100 py-2">
                     <i class="bi bi-database-check me-1"></i>Instalar Sistema
                 </button>
             </form>
@@ -303,8 +426,8 @@ define('DEBUG_MODE', false);
                 
                 <div class="bg-light rounded p-3 text-start mb-4">
                     <h6 class="fw-bold">Dados de Acesso:</h6>
-                    <p class="mb-1"><strong>E-mail:</strong> <?php echo $_POST['admin_email'] ?? 'admin@itabaiana.pb.gov.br'; ?></p>
-                    <p class="mb-0"><strong>Senha:</strong> <?php echo $_POST['admin_senha'] ?? 'admin123'; ?></p>
+                    <p class="mb-1"><strong>E-mail:</strong> <?php echo htmlspecialchars($_POST['admin_email'] ?? 'admin@itabaiana.pb.gov.br'); ?></p>
+                    <p class="mb-0"><strong>Senha:</strong> <?php echo htmlspecialchars($_POST['admin_senha'] ?? 'admin123'); ?></p>
                 </div>
 
                 <div class="alert alert-warning text-start">

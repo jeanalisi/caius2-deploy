@@ -144,7 +144,7 @@
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                window.location.href = '<?php echo SITE_URL ?? ""; ?>/?page=dashboard';
+                window.location.href = '<?php echo defined("SITE_URL") ? SITE_URL : ""; ?>/?page=dashboard';
             } else {
                 document.getElementById('alert-container').innerHTML = 
                     '<div class="alert alert-danger alert-dismissible fade show"><i class="bi bi-exclamation-circle me-2"></i>' + 

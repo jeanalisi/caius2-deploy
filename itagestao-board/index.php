@@ -33,7 +33,7 @@ if (!Auth::check()) {
 }
 
 // Verificar primeiro acesso (forçar troca de senha)
-if ($_SESSION['primeiro_acesso'] && $page !== 'alterar-senha' && $page !== 'logout') {
+if (!empty($_SESSION['primeiro_acesso']) && $page !== 'alterar-senha' && $page !== 'logout') {
     setFlash('info', 'Por segurança, altere sua senha no primeiro acesso.');
     redirect('?page=alterar-senha');
 }

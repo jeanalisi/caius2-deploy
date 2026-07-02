@@ -5,7 +5,10 @@
 
 // Verificar se o sistema está instalado
 if (!file_exists(__DIR__ . '/../config.php')) {
-    header('Location: install/');
+    // Calcular caminho relativo para install/
+    $scriptDir = dirname($_SERVER['SCRIPT_NAME']);
+    $installPath = rtrim($scriptDir, '/') . '/install/';
+    header('Location: ' . $installPath);
     exit;
 }
 

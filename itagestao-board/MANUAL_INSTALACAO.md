@@ -52,12 +52,16 @@ No painel de hospedagem (Plesk ou cPanel):
 ## Solução de Problemas
 
 | Problema | Solução |
-|----------|---------|
-| Erro de conexão com banco | Verifique host, usuário e senha do MySQL |
-| Pasta não gravável | Defina permissão 755 para uploads/ e raiz |
-| Página em branco | Ative exibição de erros no PHP ou verifique logs |
+|----------|--------|
+| Erro de conexão com banco | Verifique host, usuário e senha do MySQL. Em hospedagem compartilhada o host pode não ser `localhost` |
+| Erro "Access denied for user" | O usuário não tem permissão. No cPanel/Plesk, adicione o usuário ao banco com TODAS as permissões |
+| Erro "CREATE DATABASE" negado | Em hospedagem compartilhada, crie o banco manualmente pelo painel antes de rodar o instalador |
+| Pasta não gravável | Execute: `chmod 755 uploads/` e `chmod 755 .` na raiz do projeto |
+| Página em branco | Ative exibição de erros: adicione `ini_set('display_errors',1);` no início do install/index.php |
 | Drag-and-drop não funciona | Verifique se JavaScript está habilitado |
 | Erro 500 | Verifique se mod_rewrite está ativo no Apache |
+| Erro ao gravar config.php | A pasta raiz precisa de permissão de escrita (755 ou 775) |
+| Login não funciona após instalar | Verifique se a URL do sistema está correta no config.php |
 
 ## Configuração Nginx (alternativa ao Apache)
 

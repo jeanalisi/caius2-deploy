@@ -9,6 +9,7 @@
 
 // Configurações do Banco de Dados
 define('DB_HOST', 'localhost');
+define('DB_PORT', '3306');
 define('DB_NAME', 'itagestao');
 define('DB_USER', 'root');
 define('DB_PASS', '');

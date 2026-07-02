@@ -7,7 +7,14 @@
  * Redirecionar para URL
  */
 function redirect($url) {
-    header("Location: " . SITE_URL . '/' . $url);
+    if (strpos($url, 'http') === 0 || strpos($url, '//') === 0) {
+        header("Location: " . $url);
+    } elseif (strpos($url, '?') === 0) {
+        // Relative query string
+        header("Location: " . SITE_URL . "/" . $url);
+    } else {
+        header("Location: " . SITE_URL . '/' . ltrim($url, '/'));
+    }
     exit;
 }
 
