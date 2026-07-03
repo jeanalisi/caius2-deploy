@@ -4,7 +4,7 @@
 
 | Componente | Versão Mínima |
 |-----------|---------------|
-| PHP | 8.0+ |
+| PHP | 7.4+ |
 | MySQL | 5.7+ ou MariaDB 10.3+ |
 | Apache | 2.4+ com mod_rewrite |
 | Extensões PHP | PDO, pdo_mysql, mbstring, json, fileinfo |

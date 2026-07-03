@@ -11,7 +11,7 @@ O ItaGestão Board é uma plataforma de gestão institucional em formato de quad
 
 ## Tecnologias
 
-- **PHP 8.3** (puro, sem frameworks)
+- **PHP 7.4+** (puro, sem frameworks)
 - **MySQL/MariaDB**
 - **Bootstrap 5.3**
 - **JavaScript/AJAX**
@@ -21,7 +21,7 @@ O ItaGestão Board é uma plataforma de gestão institucional em formato de quad
 
 ## Requisitos do Servidor
 
-- PHP 8.0 ou superior
+- PHP 7.4 ou superior
 - MySQL 5.7+ ou MariaDB 10.3+
 - Extensões PHP: PDO, pdo_mysql, mbstring, json, fileinfo
 - Apache com mod_rewrite (ou Nginx equivalente)

@@ -288,7 +288,7 @@ function splitSqlStatements($sql) {
             }
 
             $requisitos = [
-                ['PHP >= 8.0', version_compare(PHP_VERSION, '8.0.0', '>='), 'Versão atual: ' . PHP_VERSION],
+                ['PHP >= 7.4', version_compare(PHP_VERSION, '7.4.0', '>='), 'Versão atual: ' . PHP_VERSION],
                 ['Extensão PDO', extension_loaded('pdo'), ''],
                 ['Extensão PDO MySQL', extension_loaded('pdo_mysql'), ''],
                 ['Extensão JSON', extension_loaded('json'), ''],
@@ -344,7 +344,7 @@ function splitSqlStatements($sql) {
             <div class="bg-light p-3 rounded mb-3">
                 <h6 class="fw-bold">Requisitos do servidor:</h6>
                 <ul class="mb-0 small">
-                    <li>PHP 8.0 ou superior</li>
+                    <li>PHP 7.4 ou superior</li>
                     <li>MySQL 5.7+ ou MariaDB 10.3+</li>
                     <li>Extensões: PDO, pdo_mysql, mbstring, json, fileinfo</li>
                     <li>Permissão de escrita nas pastas uploads/ e raiz</li>
